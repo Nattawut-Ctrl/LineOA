@@ -33,17 +33,9 @@ $products = [
         'category' => 'กระบอกน้ำ',
         'stock' => 15
     ],
-    [
-        'name' => 'หมวกแก๊ป',
-        'price' => 150,
-        'image' => '../../uploads/hat1.png',
-        'description' => 'หมวกเท่ใส่สบาย กันแดดได้ดี',
-        'category' => 'หมวก',
-        'stock' => 20
-    ],
 ];
 
-$categories = ['ทั้งหมด', 'เสื้อ', 'กระบอกน้ำ', 'หมวก'];
+$categories = ['ทั้งหมด', 'เสื้อ', 'กระบอกน้ำ' ];
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -198,7 +190,7 @@ $categories = ['ทั้งหมด', 'เสื้อ', 'กระบอก�
                             <p class="price mb-1"><?php echo number_format($product['price']); ?> บาท</p>
                             <small class="text-muted flex-grow-1"><?php echo $product['description']; ?></small>
                             <button class="btn btn-sm btn-buy text-white mt-3 open-cart-bar" data-product='<?php echo json_encode($product); ?>'>
-                                🛒 ใส่รถเข็น
+                                🛒 ซื้อเลย
                             </button>
                         </div>
                     </div>
@@ -210,7 +202,7 @@ $categories = ['ทั้งหมด', 'เสื้อ', 'กระบอก�
     <!-- Cart Bar -->
     <div class="cart-bar" id="cartBar">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0">🛍️ เพิ่มสินค้าในรถเข็น</h5>
+            <!-- <h5 class="mb-0">🛍️ เพิ่มสินค้าในรถเข็น</h5> -->
             <button class="btn-close" onclick="closeCartBar()"></button>
         </div>
 

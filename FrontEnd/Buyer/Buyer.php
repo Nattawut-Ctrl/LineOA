@@ -33,7 +33,17 @@ $products = [
         'category' => 'กระบอกน้ำ',
         'stock' => 15
     ],
+    [
+        'name' => 'หมวกแก๊ป',
+        'price' => 150,
+        'image' => '../../uploads/hat1.png',
+        'description' => 'หมวกเท่ใส่สบาย กันแดดได้ดี',
+        'category' => 'หมวก',
+        'stock' => 20
+    ],
 ];
+
+$categories = ['ทั้งหมด', 'เสื้อ', 'กระบอกน้ำ', 'หมวก'];
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -56,7 +66,7 @@ $products = [
             font-weight: bold;
         }
 
-        /* สินค้าแบบ Shopee */
+        /* สินค้า */
         .product-card {
             transition: all 0.2s ease-in-out;
         }
@@ -72,7 +82,7 @@ $products = [
             font-size: 1.1rem;
         }
 
-        /* Popup แถบล่าง */
+        /* Cart popup */
         .cart-bar {
             position: fixed;
             left: 0;
@@ -113,6 +123,27 @@ $products = [
         .btn-buy:hover {
             background-color: #d7381c;
         }
+
+        /* หมวดหมู่สินค้า */
+        .category-bar {
+            background: white;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .category-item {
+            color: #333;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            transition: 0.2s;
+        }
+
+        .category-item:hover,
+        .category-item.active {
+            background: #ee4d2d;
+            color: white;
+        }
     </style>
 </head>
 
@@ -136,11 +167,30 @@ $products = [
         <p class="text-muted">เลือกช้อปสินค้าได้เลย!</p>
     </div>
 
+    <!-- Category Bar -->
+    <div class="category-bar py-2">
+        <div class="container">
+            <!-- Mobile button -->
+            <div class="d-md-none text-center mb-2">
+                <button class="btn btn-outline-dark btn-sm" data-bs-toggle="collapse" data-bs-target="#categoryCollapse">
+                    หมวดหมู่ ▾
+                </button>
+            </div>
+
+            <!-- Category list -->
+            <div id="categoryCollapse" class="collapse d-md-block text-center">
+                <?php foreach ($categories as $cat): ?>
+                    <a href="#" class="category-item mx-1" data-category="<?php echo $cat; ?>"><?php echo $cat; ?></a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+
     <!-- สินค้า -->
     <div class="container my-4">
-        <div class="row g-4">
+        <div class="row g-4" id="product-list">
             <?php foreach ($products as $product): ?>
-                <div class="col-6 col-md-3">
+                <div class="col-6 col-md-3 product-item" data-category="<?php echo $product['category']; ?>">
                     <div class="card product-card h-100">
                         <img src="<?php echo $product['image']; ?>" class="card-img-top rounded" alt="">
                         <div class="card-body d-flex flex-column">
@@ -188,6 +238,7 @@ $products = [
     <script>
         let selectedProduct = null;
 
+        // เปิด Cart Bar
         document.querySelectorAll('.open-cart-bar').forEach(btn => {
             btn.addEventListener('click', () => {
                 selectedProduct = JSON.parse(btn.getAttribute('data-product'));
@@ -225,6 +276,21 @@ $products = [
             });
             window.location.href = 'payment.php?' + params.toString();
         }
+
+        // ฟิลเตอร์หมวดหมู่
+        document.querySelectorAll('.category-item').forEach(item => {
+            item.addEventListener('click', e => {
+                e.preventDefault();
+                const selected = item.getAttribute('data-category');
+                document.querySelectorAll('.category-item').forEach(a => a.classList.remove('active'));
+                item.classList.add('active');
+
+                document.querySelectorAll('.product-item').forEach(card => {
+                    const cat = card.getAttribute('data-category');
+                    card.style.display = (selected === 'ทั้งหมด' || cat === selected) ? 'block' : 'none';
+                });
+            });
+        });
     </script>
 </body>
 

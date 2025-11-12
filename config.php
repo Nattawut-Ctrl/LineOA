@@ -2,7 +2,7 @@
 function connectDB() {
     $host = "localhost";
     $user = "root";
-    $pass = "1234";
+    $pass = "";
     $dbname = "line_shop";   // ชื่อเดียวกับที่ CREATE DATABASE
 
     $conn = new mysqli($host, $user, $pass, $dbname);

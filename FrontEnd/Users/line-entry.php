@@ -44,6 +44,7 @@
         const profile = await liff.getProfile();
         const userId = profile.userId;
         const name = profile.displayName;
+        const pictureUrl = profile.pictureUrl || "";
 
         // สร้างฟอร์มส่งข้อมูลไป checkLineUser.php
         const form = document.createElement("form");
@@ -61,6 +62,12 @@
         nameInput.name = "display_name";
         nameInput.value = name;
         form.appendChild(nameInput);
+
+        const picInput = document.createElement("input");
+        picInput.type = "hidden";
+        picInput.name = "picture_url";
+        picInput.value = pictureUrl;
+        form.appendChild(picInput);
 
         document.body.appendChild(form);
         form.submit();

@@ -6,6 +6,7 @@ $conn = connectDB();
 
 $line_uid      = $_POST['line_uid']      ?? '';
 $display_name  = $_POST['display_name']  ?? '';
+$picture_url   = $_POST['picture_url']   ?? '';
 
 if ($line_uid === '') {
     die("ไม่พบ LINE UID");
@@ -27,7 +28,8 @@ if ($row = $result->fetch_assoc()) {
     // ❌ ยังไม่เคยสมัคร → ส่งไป Register พร้อมแนบ line_uid + display_name
     $params = http_build_query([
         'line_uid'     => $line_uid,
-        'display_name' => $display_name
+        'display_name' => $display_name,
+        'picture_url' => $picture_url
     ]);
     header("Location: Register.php?" . $params);
     exit;

@@ -35,7 +35,7 @@ $products = [
     ],
 ];
 
-$categories = ['ทั้งหมด', 'เสื้อ', 'กระบอกน้ำ' ];
+$categories = ['ทั้งหมด', 'เสื้อ', 'กระบอกน้ำ'];
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -178,6 +178,19 @@ $categories = ['ทั้งหมด', 'เสื้อ', 'กระบอก�
         </div>
     </div>
 
+    <!-- Search Bar -->
+    <!-- Search Bar -->
+    <form class="d-flex" role="search" onsubmit="searchCategory(event)">
+        <div class="input-group">
+            <span class="input-group-text" id="search-icon">
+                <i class="bi bi-search"></i> <!-- ใช้ไอคอนของ Bootstrap Icons -->
+            </span>
+            <input class="form-control" type="search" placeholder="ค้นหา..." aria-label="Search" id="searchInput">
+            <button class="btn btn-outline-dark" type="submit">ค้นหา</button>
+        </div>
+    </form>
+
+
     <!-- สินค้า -->
     <div class="container my-4">
         <div class="row g-4" id="product-list">
@@ -283,6 +296,32 @@ $categories = ['ทั้งหมด', 'เสื้อ', 'กระบอก�
                 });
             });
         });
+
+        // ฟังก์ชันค้นหา
+        function searchCategory(e) {
+            e.preventDefault(); // หยุดการรีเฟรชหน้าหลังจาก submit ฟอร์ม
+            const keyword = document.getElementById('searchInput').value.trim().toLowerCase(); // รับคำค้นหาจาก input
+            const products = document.querySelectorAll('.product-item'); // เลือกทุกรายการสินค้า
+
+            let found = false;
+
+            // วนลูปผ่านสินค้าแต่ละชิ้น
+            products.forEach(product => {
+                const productName = product.querySelector('.card-title').textContent.toLowerCase();
+                const match = productName.includes(keyword); // เช็คว่าชื่อสินค้าตรงกับคำค้นหาหรือไม่
+
+                if (match) {
+                    product.style.display = 'block'; // แสดงสินค้าที่ตรง
+                    found = true;
+                } else {
+                    product.style.display = 'none'; // ซ่อนสินค้าที่ไม่ตรง
+                }
+            });
+
+            if (!found) {
+                alert('ไม่พบสินค้าที่ค้นหา: ' + keyword); // แจ้งเตือนหากไม่พบสินค้าที่ตรงกับคำค้น
+            }
+        }
     </script>
 </body>
 

@@ -1,16 +1,1 @@
-#เพิ่มฐานข้อมูล users
 
-CREATE DATABASE IF NOT EXISTS line_shop CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE line_shop;
-
-CREATE TABLE users (
-  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  line_uid VARCHAR(50) NOT NULL UNIQUE,
-  display_name VARCHAR(100),
-  first_name VARCHAR(100),
-  last_name VARCHAR(100),
-  phone VARCHAR(20),
-  email VARCHAR(100),
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);

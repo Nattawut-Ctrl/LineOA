@@ -17,16 +17,31 @@ $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 
 $products = [];
-$sql = "SELECT name, price, image, description, category, stock FROM products";
+$sql = "SELECT id, name, price, image, description, category, stock FROM products";
 $result = $conn->query($sql);
 
 if ($result && $result->num_rows > 0) {
     while ($row = $result->fetch_assoc()) {
-        $products[] = $row;
+        $products[$row['id']] = $row;
+        $products[$row['id']]['variants'][] = [];
     }
 } else {
     $products = [];
 }
+
+$variant_sql = "SELECT product_id, variant_name, price, stock FROM product_variants";
+$variant_result = $conn->query($variant_sql);
+
+if ($variant_result && $variant_result->num_rows > 0) {
+    while ($vrow = $variant_result->fetch_assoc()) {
+        $pid = $vrow['product_id'];
+        if (isset($product_ids[$pid])) {
+            $products[$pid]['variants'][] = $vrow;
+        }
+    }
+}
+
+$products = array_values($products);
 
 $categories = ['ทั้งหมด'];
 $cat_sql = "SELECT DISTINCT category FROM products";
@@ -203,7 +218,7 @@ if ($cat_result && $cat_result->num_rows > 0) {
                             <h6 class="card-title text-truncate"><?php echo $product['name']; ?></h6>
                             <p class="price mb-1"><?php echo number_format($product['price']); ?> บาท</p>
                             <small class="text-muted flex-grow-1"><?php echo $product['description']; ?></small>
-                            <button class="btn btn-sm btn-buy text-white mt-3 open-cart-bar" data-product='<?php echo json_encode($product); ?>'>
+                            <button class="btn btn-sm btn-buy text-white mt-3 open-cart-bar" data-product='<?php echo json_encode($product, JSON_UNESCAPED_UNICODE); ?>'>
                                 🛒 ซื้อเลย
                             </button>
                         </div>
@@ -226,6 +241,11 @@ if ($cat_result && $cat_result->num_rows > 0) {
                 <h6 id="cartProductName" class="mb-1"></h6>
                 <span class="price" id="cartProductPrice"></span>
             </div>
+        </div>
+
+        <div class="mb-3" id="variantWrapper" style="display: none;">
+            <label class="form-label">ตัวเลือกสินค้า</label>
+            <select id="variantSelect" class="form-select"></select>
         </div>
 
         <div class="mb-3">
@@ -258,6 +278,27 @@ if ($cat_result && $cat_result->num_rows > 0) {
             document.getElementById('cartProductName').innerText = product.name;
             document.getElementById('cartProductPrice').innerText = product.price + ' บาท';
             document.getElementById('quantity').value = 1;
+
+            const variantWrapper = document.getElementById('variantWrapper');
+            const variantSelect = document.getElementById('variantSelect');
+
+            if (variantSelect) {
+                variantSelect.innerHTML = '';
+            }
+
+            if (product.variant && product.variants.length > 0) {
+                variantWrapper.style.display = 'block';
+                product.variants.forEach(variant => {
+                    const option = document.createElement('option');
+                    option.value = variant.id;
+                    option.textContent = variant.variant_name + (variant.price ? ' - ' + variant.price + ' บาท' : '');
+                    option.dataset.price = variant.price;
+                    variantSelect.appendChild(option);
+                });
+            } else {
+                variantWrapper.style.display = 'none';
+            }
+
             bar.classList.add('show');
         }
 
@@ -281,10 +322,25 @@ if ($cat_result && $cat_result->num_rows > 0) {
             form.action = 'payment.php';
 
             const fields = {
+                product_id: product.id,
                 product_name: product.name,
                 quantity: qty,
                 price: product.price,
             };
+
+            const variantWrapper = document.getElementById('variantWrapper');
+            const variantSelect = document.getElementById('variantSelect');
+
+            if (variantWrapper && variantSelect && variantWrapper.style.display !== 'none' && variantSelect.value) {
+                const selectedOption = variantSelect.options[variantSelect.selectedIndex];
+                
+                fields.variant_id = selectedOption.value;
+                fields.variant_name = selectedOption.textContent;
+
+                if (selectedOption.dataset.price) {
+                    fields.price = selectedOption.dataset.price;
+                }
+            }
 
             for (const key in fields) {
                 const input = document.createElement('input');

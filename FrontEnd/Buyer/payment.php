@@ -8,6 +8,9 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // ดึงค่าจากหน้าก่อน (GET)
+$product_id = $_GET['product_id'] ?? null;
+$variant_id = $_GET['variant_id'] ?? null;
+$variant_name = $_GET['variant_name'] ?? null;
 $product_name = $_GET['product_name'] ?? '';
 $quantity = (int)($_GET['quantity'] ?? 1);
 $price = (float)($_GET['price'] ?? 0);

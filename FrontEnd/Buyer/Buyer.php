@@ -17,25 +17,26 @@ $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 
 $products = [];
+
 $sql = "SELECT id, name, price, image, description, category, stock FROM products";
 $result = $conn->query($sql);
 
 if ($result && $result->num_rows > 0) {
     while ($row = $result->fetch_assoc()) {
         $products[$row['id']] = $row;
-        $products[$row['id']]['variants'][] = [];
+        $products[$row['id']]['variants'] = [];
     }
 } else {
     $products = [];
 }
 
-$variant_sql = "SELECT product_id, variant_name, price, stock FROM product_variants";
+$variant_sql = "SELECT id, product_id, variant_name, price, stock FROM product_variants";
 $variant_result = $conn->query($variant_sql);
 
 if ($variant_result && $variant_result->num_rows > 0) {
     while ($vrow = $variant_result->fetch_assoc()) {
         $pid = $vrow['product_id'];
-        if (isset($product_ids[$pid])) {
+        if (isset($products[$pid])) {
             $products[$pid]['variants'][] = $vrow;
         }
     }

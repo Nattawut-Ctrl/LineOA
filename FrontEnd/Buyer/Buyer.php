@@ -274,12 +274,27 @@ $categories = ['ทั้งหมด', 'เสื้อ', 'กระบอก�
         function confirmPurchase() {
             const qty = document.getElementById('quantity').value;
             const product = selectedProduct;
-            const params = new URLSearchParams({
+
+            const form = document.createElement('form');
+            form.method = 'GET';
+            form.action = 'payment.php';
+
+            const fields = {
                 product_name: product.name,
                 quantity: qty,
-                price: product.price
-            });
-            window.location.href = 'payment.php?' + params.toString();
+                price: product.price,
+            };
+
+            for (const key in fields) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = fields[key];
+                form.appendChild(input);
+            }
+
+            document.body.appendChild(form);
+            form.submit();
         }
 
         // ฟิลเตอร์หมวดหมู่

@@ -274,35 +274,62 @@ if ($cat_result && $cat_result->num_rows > 0) {
         });
 
         function openCartBar(product) {
-            const bar = document.getElementById('cartBar');
-            document.getElementById('cartProductImage').src = product.image;
-            document.getElementById('cartProductName').innerText = product.name;
-            document.getElementById('cartProductPrice').innerText = product.price + ' บาท';
-            document.getElementById('quantity').value = 1;
+    const bar = document.getElementById('cartBar');
+    const imgEl = document.getElementById('cartProductImage');
+    const nameEl = document.getElementById('cartProductName');
+    const priceEl = document.getElementById('cartProductPrice');
 
-            const variantWrapper = document.getElementById('variantWrapper');
-            const variantSelect = document.getElementById('variantSelect');
+    imgEl.src = product.image;
+    nameEl.innerText = product.name;
+    priceEl.innerText = product.price + ' บาท';
+    document.getElementById('quantity').value = 1;
 
-            if (variantSelect) {
-                variantSelect.innerHTML = '';
-            }
+    const variantWrapper = document.getElementById('variantWrapper');
+    const variantSelect = document.getElementById('variantSelect');
 
-            if (product.variants && product.variants.length > 0) {
-                variantWrapper.style.display = 'block';
-                product.variants.forEach(variant => {
-                    const option = document.createElement('option');
-                    option.value = variant.id;
-                    option.textContent = variant.variant_name + (variant.price ? ' - ' + variant.price + ' บาท' : '');
-                    option.dataset.price = variant.price;
-                    option.dataset.image = variant.image;
-                    variantSelect.appendChild(option);
-                });
-            } else {
-                variantWrapper.style.display = 'none';
-            }
+    if (variantSelect) {
+        variantSelect.innerHTML = '';
+    }
 
-            bar.classList.add('show');
-        }
+    if (product.variants && product.variants.length > 0) {
+        variantWrapper.style.display = 'block';
+
+        product.variants.forEach(variant => {
+            const option = document.createElement('option');
+            option.value = variant.id;
+            option.textContent = variant.variant_name + (variant.price ? ' - ' + variant.price + ' บาท' : '');
+            option.dataset.price = variant.price;
+            option.dataset.image = variant.image; // 👈 ถ้ามีคอลัมน์นี้
+            variantSelect.appendChild(option);
+        });
+
+        // ✅ ตั้งค่าเริ่มต้นตาม variant แรก
+        const firstOption = variantSelect.options[0];
+        const firstPrice = firstOption.dataset.price || product.price;
+        const firstImage = firstOption.dataset.image || product.image;
+
+        priceEl.innerText = firstPrice + ' บาท';
+        imgEl.src = firstImage;
+
+        // ✅ เวลามีการเปลี่ยนตัวเลือก ให้เปลี่ยนราคา + รูปตามนั้น
+        variantSelect.onchange = function () {
+            const selectedOption = this.options[this.selectedIndex];
+            const newPrice = selectedOption.dataset.price || product.price;
+            const newImage = selectedOption.dataset.image || product.image;
+
+            priceEl.innerText = newPrice + ' บาท';
+            imgEl.src = newImage;
+        };
+
+    } else {
+        variantWrapper.style.display = 'none';
+        // ถ้าไม่มีตัวเลือก ใช้ราคาหลัก + รูปหลักของ product
+        priceEl.innerText = product.price + ' บาท';
+        imgEl.src = product.image;
+    }
+
+    bar.classList.add('show');
+}
 
         function closeCartBar() {
             document.getElementById('cartBar').classList.remove('show');

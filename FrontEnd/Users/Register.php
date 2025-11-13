@@ -17,7 +17,7 @@ $picture_url = clean($_GET['picture_url'] ?? '');
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $line_uid     = clean($_POST['line_uid']     ?? '');
     $display_name = clean($_POST['display_name'] ?? '');
-    $picture_url = clean($_POST['picture_url'] ?? '');
+    $picture_url  = clean($_POST['picture_url'] ?? '');
     $first_name   = clean($_POST['first_name']   ?? '');
     $last_name    = clean($_POST['last_name']    ?? '');
     $phone        = clean($_POST['phone']        ?? '');

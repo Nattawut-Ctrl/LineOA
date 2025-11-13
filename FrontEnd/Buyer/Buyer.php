@@ -175,9 +175,9 @@ if ($cat_result && $cat_result->num_rows > 0) {
 
         .variant-item.active {
             border-color: #ee4d2d;
-        background: #ffe9e3;
-        color: #ee4d2d;
-        font-weight: 600;
+            background: #ffe9e3;
+            color: #ee4d2d;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -271,7 +271,7 @@ if ($cat_result && $cat_result->num_rows > 0) {
 
         <div class="mb-3" id="variantWrapper" style="display: none;">
             <label class="form-label">ตัวเลือกสินค้า</label>
-            <select id="variantList" class="variant-list"></select>
+            <div id="variantList" class="variant-list"></div>
         </div>
 
         <div class="mb-3">
@@ -299,82 +299,82 @@ if ($cat_result && $cat_result->num_rows > 0) {
             });
         });
 
-      function openCartBar(product) {
-    const bar = document.getElementById('cartBar');
-    const imgEl = document.getElementById('cartProductImage');
-    const nameEl = document.getElementById('cartProductName');
-    const priceEl = document.getElementById('cartProductPrice');
+        function openCartBar(product) {
+            const bar = document.getElementById('cartBar');
+            const imgEl = document.getElementById('cartProductImage');
+            const nameEl = document.getElementById('cartProductName');
+            const priceEl = document.getElementById('cartProductPrice');
 
-    selectedVariant = null; // reset ทุกครั้งที่เปิด
+            selectedVariant = null; // reset ทุกครั้งที่เปิด
 
-    imgEl.src = product.image;
-    nameEl.innerText = product.name;
-    priceEl.innerText = product.price + ' บาท';
-    document.getElementById('quantity').value = 1;
+            imgEl.src = product.image;
+            nameEl.innerText = product.name;
+            priceEl.innerText = product.price + ' บาท';
+            document.getElementById('quantity').value = 1;
 
-    const variantWrapper = document.getElementById('variantWrapper');
-    const variantList = document.getElementById('variantList');
+            const variantWrapper = document.getElementById('variantWrapper');
+            const variantList = document.getElementById('variantList');
 
-    if (variantList) {
-        variantList.innerHTML = '';
-    }
-
-    if (product.variants && product.variants.length > 0) {
-        variantWrapper.style.display = 'block';
-
-        product.variants.forEach((variant, index) => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'variant-item';
-            btn.textContent = variant.variant_name;
-
-            // เก็บข้อมูลใน data-*
-            btn.dataset.id = variant.id;
-            btn.dataset.name = variant.variant_name;
-            btn.dataset.price = variant.price || product.price;
-            btn.dataset.image = variant.image || product.image;
-
-            btn.addEventListener('click', () => {
-                // ลบ active ของตัวอื่น
-                document
-                    .querySelectorAll('#variantList .variant-item')
-                    .forEach(el => el.classList.remove('active'));
-
-                // set active ตัวนี้
-                btn.classList.add('active');
-
-                // อัปเดตราคา + รูป
-                const newPrice = btn.dataset.price;
-                const newImage = btn.dataset.image;
-
-                priceEl.innerText = newPrice + ' บาท';
-                imgEl.src = newImage;
-
-                // เก็บค่าไว้ใช้ตอนยืนยันซื้อ
-                selectedVariant = {
-                    id: btn.dataset.id,
-                    name: btn.dataset.name,
-                    price: newPrice,
-                    image: newImage
-                };
-            });
-
-            variantList.appendChild(btn);
-
-            // เลือกตัวแรกเป็น default เหมือน Shopee
-            if (index === 0) {
-                btn.click();
+            if (variantList) {
+                variantList.innerHTML = '';
             }
-        });
 
-    } else {
-        variantWrapper.style.display = 'none';
-        priceEl.innerText = product.price + ' บาท';
-        imgEl.src = product.image;
-    }
+            if (product.variants && product.variants.length > 0) {
+                variantWrapper.style.display = 'block';
 
-    bar.classList.add('show');
-}
+                product.variants.forEach((variant, index) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'variant-item';
+                    btn.textContent = variant.variant_name;
+
+                    // เก็บข้อมูลใน data-*
+                    btn.dataset.id = variant.id;
+                    btn.dataset.name = variant.variant_name;
+                    btn.dataset.price = variant.price || product.price;
+                    btn.dataset.image = variant.image || product.image;
+
+                    btn.addEventListener('click', () => {
+                        // ลบ active ของตัวอื่น
+                        document
+                            .querySelectorAll('#variantList .variant-item')
+                            .forEach(el => el.classList.remove('active'));
+
+                        // set active ตัวนี้
+                        btn.classList.add('active');
+
+                        // อัปเดตราคา + รูป
+                        const newPrice = btn.dataset.price;
+                        const newImage = btn.dataset.image;
+
+                        priceEl.innerText = newPrice + ' บาท';
+                        imgEl.src = newImage;
+
+                        // เก็บค่าไว้ใช้ตอนยืนยันซื้อ
+                        selectedVariant = {
+                            id: btn.dataset.id,
+                            name: btn.dataset.name,
+                            price: newPrice,
+                            image: newImage
+                        };
+                    });
+
+                    variantList.appendChild(btn);
+
+                    // เลือกตัวแรกเป็น default เหมือน Shopee
+                    if (index === 0) {
+                        btn.click();
+                    }
+                });
+
+            } else {
+                variantWrapper.style.display = 'none';
+                priceEl.innerText = product.price + ' บาท';
+                imgEl.src = product.image;
+            }
+
+            bar.classList.add('show');
+        }
 
         function closeCartBar() {
             document.getElementById('cartBar').classList.remove('show');
@@ -387,40 +387,40 @@ if ($cat_result && $cat_result->num_rows > 0) {
             input.value = value;
         }
 
-      function confirmPurchase() {
-    const qty = document.getElementById('quantity').value;
-    const product = selectedProduct;
+        function confirmPurchase() {
+            const qty = document.getElementById('quantity').value;
+            const product = selectedProduct;
 
-    const form = document.createElement('form');
-    form.method = 'GET';
-    form.action = 'payment.php';
+            const form = document.createElement('form');
+            form.method = 'GET';
+            form.action = 'payment.php';
 
-    const fields = {
-        product_id: product.id,
-        product_name: product.name,
-        quantity: qty,
-        price: product.price, // จะถูก override ถ้ามี variant
-    };
+            const fields = {
+                product_id: product.id,
+                product_name: product.name,
+                quantity: qty,
+                price: product.price, // จะถูก override ถ้ามี variant
+            };
 
-    // ถ้ามีเลือก variant
-    if (selectedVariant) {
-        fields.variant_id = selectedVariant.id;
-        fields.variant_name = selectedVariant.name;
-        fields.price = selectedVariant.price;      // ใช้ราคาตามตัวเลือก
-        fields.variant_image = selectedVariant.image; // ถ้าอยากส่งรูปไปด้วย
-    }
+            // ถ้ามีเลือก variant
+            if (selectedVariant) {
+                fields.variant_id = selectedVariant.id;
+                fields.variant_name = selectedVariant.name;
+                fields.price = selectedVariant.price; // ใช้ราคาตามตัวเลือก
+                fields.variant_image = selectedVariant.image; // ถ้าอยากส่งรูปไปด้วย
+            }
 
-    for (const key in fields) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = fields[key];
-        form.appendChild(input);
-    }
+            for (const key in fields) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = fields[key];
+                form.appendChild(input);
+            }
 
-    document.body.appendChild(form);
-    form.submit();
-}
+            document.body.appendChild(form);
+            form.submit();
+        }
 
         // ฟิลเตอร์หมวดหมู่
         document.querySelectorAll('.category-item').forEach(item => {

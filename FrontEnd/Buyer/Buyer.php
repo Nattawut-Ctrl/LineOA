@@ -30,7 +30,7 @@ if ($result && $result->num_rows > 0) {
     $products = [];
 }
 
-$variant_sql = "SELECT id, product_id, variant_name, price, stock FROM product_variants";
+$variant_sql = "SELECT id, product_id, variant_name, price, stock, image FROM product_variants";
 $variant_result = $conn->query($variant_sql);
 
 if ($variant_result && $variant_result->num_rows > 0) {
@@ -287,13 +287,14 @@ if ($cat_result && $cat_result->num_rows > 0) {
                 variantSelect.innerHTML = '';
             }
 
-            if (product.variant && product.variants.length > 0) {
+            if (product.variants && product.variants.length > 0) {
                 variantWrapper.style.display = 'block';
                 product.variants.forEach(variant => {
                     const option = document.createElement('option');
                     option.value = variant.id;
                     option.textContent = variant.variant_name + (variant.price ? ' - ' + variant.price + ' บาท' : '');
                     option.dataset.price = variant.price;
+                    option.dataset.image = variant.image;
                     variantSelect.appendChild(option);
                 });
             } else {

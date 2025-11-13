@@ -1,5 +1,12 @@
 <?php
 session_start();
+
+// ป้องกันคนที่ยังไม่ได้ล็อกอิน
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../Users/line-entry.php");
+    exit;
+}
+
 require_once '../../config.php';
 $conn = connectDB();
 
@@ -42,14 +49,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="th">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>อัปโหลดสลิปสำเร็จ</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <body class="bg-light d-flex flex-column justify-content-center align-items-center vh-100">
-    <div class="card p-4 shadow" style="max-width: 400px; width: 100%;">
+    <div class="card p-4 shadow-sm" style="max-width: 400px; width: 100%;">
+        <!-- แสดงข้อความตามผลการอัปโหลด -->
         <?= $message ?? "<div class='alert alert-secondary text-center'>ไม่มีข้อมูลอัปโหลด</div>"; ?>
-        <a href="shop.php" class="btn btn-dark w-100 mt-3">กลับหน้าร้านค้า</a>
+        <!-- ปุ่มกลับไปหน้าร้านค้า -->
+        <a href="Buyer.php" class="btn btn-dark w-100 mt-3">กลับหน้าร้านค้า</a>
     </div>
 </body>
 </html>

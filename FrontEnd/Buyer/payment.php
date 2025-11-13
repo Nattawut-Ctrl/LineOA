@@ -18,12 +18,21 @@ $total = $quantity * $price;
 <html lang="th">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ชำระเงิน | Line-Shop</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <body class="bg-light">
 
+<!-- แถบเมนูหัวข้อ -->
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="#">Line-Shop</a>
+    </div>
+</nav>
+
+<!-- ส่วนของเนื้อหา -->
 <div class="container py-5">
     <div class="card shadow-sm mx-auto" style="max-width: 600px;">
         <div class="card-body">
@@ -82,5 +91,6 @@ function previewSlip(event) {
     }
 }
 </script>
+
 </body>
 </html>

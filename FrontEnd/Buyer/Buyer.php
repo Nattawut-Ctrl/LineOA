@@ -16,26 +16,28 @@ $stmt->execute();
 $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 
-$products = [
-    [
-        'name' => 'เสื้อยืดลายมินิมอล',
-        'price' => 250,
-        'image' => '../../uploads/shirt1.png',
-        'description' => 'ผ้าคอตตอน 100% ใส่สบาย ไม่ย้วย',
-        'category' => 'เสื้อ',
-        'stock' => 10
-    ],
-    [
-        'name' => 'กระบอกน้ำเก็บความเย็น',
-        'price' => 500,
-        'image' => '../../uploads/bottle1.png',
-        'description' => 'เก็บอุณหภูมิได้นาน 8 ชม. กันรั่ว 100%',
-        'category' => 'กระบอกน้ำ',
-        'stock' => 15
-    ],
-];
+$products = [];
+$sql = "SELECT name, price, image, description, category, stock FROM products";
+$result = $conn->query($sql);
 
-$categories = ['ทั้งหมด', 'เสื้อ', 'กระบอกน้ำ'];
+if ($result && $result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        $products[] = $row;
+    }
+} else {
+    $products = [];
+}
+
+$categories = ['ทั้งหมด'];
+$cat_sql = "SELECT DISTINCT category FROM products";
+$cat_result = $conn->query($cat_sql);
+
+if ($cat_result && $cat_result->num_rows > 0) {
+    while ($cat_row = $cat_result->fetch_assoc()) {
+        $categories[] = $cat_row['category'];
+    }
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -146,9 +148,9 @@ $categories = ['ทั้งหมด', 'เสื้อ', 'กระบอก�
         <div class="container">
             <a class="navbar-brand text-white" href="#">🛍️ Line-Shop</a>
             <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a href="#" class="nav-link text-white">หน้าแรก</a></li>
+                <!-- <li class="nav-item"><a href="#" class="nav-link text-white">หน้าแรก</a></li> -->
                 <li class="nav-item"><a href="#" class="nav-link text-white">สินค้า</a></li>
-                <li class="nav-item"><a href="#" class="nav-link text-white">บัญชีของฉัน</a></li>
+                <!-- <li class="nav-item"><a href="#" class="nav-link text-white">บัญชีของฉัน</a></li> -->
             </ul>
         </div>
     </nav>
@@ -178,7 +180,6 @@ $categories = ['ทั้งหมด', 'เสื้อ', 'กระบอก�
         </div>
     </div>
 
-    <!-- Search Bar -->
     <!-- Search Bar -->
     <form class="d-flex" role="search" onsubmit="searchCategory(event)">
         <div class="input-group">

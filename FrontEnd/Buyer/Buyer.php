@@ -30,6 +30,24 @@ if ($result && $result->num_rows > 0) {
     $products = [];
 }
 
+$cart_items = [];
+$stmt = $conn->prepare("
+    SELECT c.*, p.name AS name, p.image AS image,
+           v.variant_name, v.image AS variant_image
+    FROM cart_items c
+    JOIN products p ON c.product_id = p.id
+    LEFT JOIN product_variants v ON c.variant_id = v.id
+    WHERE c.user_id = ?
+");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$resCart = $stmt->get_result();
+while ($row = $resCart->fetch_assoc()) {
+    $cart_items[] = $row;
+}
+$stmt->close();
+
+
 $variant_sql = "SELECT id, product_id, variant_name, price, stock, image FROM product_variants";
 $variant_result = $conn->query($variant_sql);
 
@@ -241,7 +259,6 @@ if ($cat_result && $cat_result->num_rows > 0) {
         </div>
     </form>
 
-
     <!-- สินค้า -->
     <div class="container my-4">
         <div class="row g-4" id="product-list">
@@ -342,7 +359,7 @@ if ($cat_result && $cat_result->num_rows > 0) {
         let selectedVariant = null;
 
         // ✅ ตะกร้า
-        let cart = [];
+        let cart = <?php echo json_encode($cart_items, JSON_UNESCAPED_UNICODE); ?> || [];
         let cartModal = null;
 
         // ✅ เตรียม event ตอน DOM พร้อม
@@ -378,6 +395,8 @@ if ($cat_result && $cat_result->num_rows > 0) {
                     if (cartModal) cartModal.show();
                 });
             }
+
+            updateCartBadge();
         });
 
         function openCartBar(product) {
@@ -470,8 +489,6 @@ if ($cat_result && $cat_result->num_rows > 0) {
             document.getElementById('cartBar').classList.remove('show');
         }
 
-
-
         function changeQuantity(change) {
             const input = document.getElementById('quantity');
             let value = parseInt(input.value);
@@ -512,6 +529,7 @@ if ($cat_result && $cat_result->num_rows > 0) {
 
             updateCartBadge();
             alert('เพิ่มสินค้าในตะกร้าแล้ว');
+            syncCartToServer();
         }
 
         function removeCartItem(index) {
@@ -562,18 +580,18 @@ if ($cat_result && $cat_result->num_rows > 0) {
                 row.className = 'd-flex align-items-center mb-2';
 
                 row.innerHTML = `
-            <img src="${item.image}" width="50" class="rounded me-2">
-            <div class="flex-grow-1">
-                <div class="small">${item.name}</div>
-                <div class="small text-muted">จำนวน: ${item.quantity}</div>
-            </div>
-            <div class="text-end small me-2">${lineTotal.toLocaleString()} บาท</div>
-            <button type="button"
-                    class="btn btn-sm btn-outline-danger remove-cart-item"
-                    data-index="${index}">
-                <i class="bi bi-trash"></i>
-            </button>
-        `;
+                    <img src="${item.image}" width="50" class="rounded me-2">
+                    <div class="flex-grow-1">
+                        <div class="small">${item.name}</div>
+                        <div class="small text-muted">จำนวน: ${item.quantity}</div>
+                    </div>
+                    <div class="text-end small me-2">${lineTotal.toLocaleString()} บาท</div>
+                    <button type="button"
+                        class="btn btn-sm btn-outline-danger remove-cart-item"
+                        data-index="${index}">
+                            <i class="bi bi-trash"></i>
+                    </button>
+                `;
 
                 container.appendChild(row);
             });
@@ -589,12 +607,11 @@ if ($cat_result && $cat_result->num_rows > 0) {
             });
         }
 
-
-
-
         function confirmPurchase() {
             const qty = document.getElementById('quantity').value;
             const product = selectedProduct;
+
+            syncCartToServer();
 
             const form = document.createElement('form');
             form.method = 'GET';
@@ -666,6 +683,30 @@ if ($cat_result && $cat_result->num_rows > 0) {
             if (!found) {
                 alert('ไม่พบสินค้าที่ค้นหา: ' + keyword); // แจ้งเตือนหากไม่พบสินค้าที่ตรงกับคำค้น
             }
+        }
+
+        // ✅ ส่งตะกร้าปัจจุบันไปเก็บใน DB
+        function syncCartToServer() {
+            fetch('save_cart.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        cart
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        console.log('Cart synced to server');
+                    } else {
+                        console.error('Sync error:', data);
+                    }
+                })
+                .catch(err => {
+                    console.error('Fetch error:', err);
+                });
         }
     </script>
 </body>

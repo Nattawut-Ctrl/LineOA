@@ -31,6 +31,111 @@ while ($row = $res->fetch_assoc()) {
 <body class="bg-light">
     <div class="container py-4">
 
+        <?php
+        // --------------------------
+        // ตั้งค่าการแบ่งหน้า
+        // --------------------------
+        $perPage = 5; // จำนวนสินค้าต่อหน้า ปรับได้
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        if ($page < 1) $page = 1;
+
+        // นับจำนวนสินค้าทั้งหมด
+        $countRes = $conn->query("SELECT COUNT(*) AS total FROM products");
+        $totalRows = ($countRes && $countRes->num_rows > 0)
+            ? (int)$countRes->fetch_assoc()['total']
+            : 0;
+
+        $totalPages = max(1, ceil($totalRows / $perPage));
+
+        // ถ้าเลข page เกินหน้าสุดท้าย ให้ดึงหน้าสุดท้ายแทน
+        if ($page > $totalPages) $page = $totalPages;
+
+        $offset = ($page - 1) * $perPage;
+
+        // ดึงเฉพาะสินค้าของหน้านี้
+        $productsList = $conn->query("
+            SELECT p.*,
+                (SELECT COUNT(*) FROM product_variants WHERE product_id = p.id) AS variant_count
+            FROM products p
+            ORDER BY p.id DESC
+            LIMIT $perPage OFFSET $offset
+        ");
+        ?>
+
+        <h3 class="mt-5">📦 รายการสินค้า</h3>
+
+        <table class="table table-bordered bg-white mt-3">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>รูป</th>
+                    <th>ชื่อสินค้า</th>
+                    <th>ราคา</th>
+                    <th>สต็อก</th>
+                    <th>ตัวเลือก</th>
+                    <th width="200">จัดการ</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <?php while ($p = $productsList->fetch_assoc()): ?>
+                    <tr>
+                        <td><?= $p['id'] ?></td>
+                        <td><img src="<?= $p['image'] ?>" width="60"></td>
+                        <td><?= $p['name'] ?></td>
+                        <td><?= $p['price'] ?></td>
+                        <td><?= $p['stock'] ?></td>
+                        <td><?= $p['variant_count'] ?> รายการ</td>
+
+                        <td>
+
+                            <!-- ปุ่มแก้ไข เปิด Modal -->
+                            <button
+                                class="btn btn-warning btn-sm editProductBtn"
+                                data-id="<?= $p['id'] ?>">
+                                แก้ไข
+                            </button>
+
+                            <!-- ปุ่มลบ -->
+                            <button
+                                class="btn btn-danger btn-sm deleteProductBtn"
+                                data-id="<?= $p['id'] ?>">
+                                ลบ
+                            </button>
+
+                        </td>
+                    </tr>
+                <?php endwhile; ?>
+            </tbody>
+        </table>
+
+        <?php if ($totalPages > 1): ?>
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+
+                    <!-- ปุ่มก่อนหน้า -->
+                    <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
+                        <a class="page-link" href="?page=<?= $page - 1 ?>">ก่อนหน้า</a>
+                    </li>
+
+                    <!-- เลขหน้า -->
+                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                        <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
+                            <a class="page-link" href="?page=<?= $i ?>">
+                                <?= $i ?>
+                            </a>
+                        </li>
+                    <?php endfor; ?>
+
+                    <!-- ปุ่มถัดไป -->
+                    <li class="page-item <?= ($page >= $totalPages) ? 'disabled' : '' ?>">
+                        <a class="page-link" href="?page=<?= $page + 1 ?>">ถัดไป</a>
+                    </li>
+
+                </ul>
+            </nav>
+        <?php endif; ?>
+
         <?php if (isset($_GET['success'])): ?>
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 <?php
@@ -148,63 +253,6 @@ while ($row = $res->fetch_assoc()) {
                 <button class="btn btn-success mt-3">บันทึกสินค้าใหม่</button>
             </form>
         </div>
-
-        <?php
-        $productsList = $conn->query("
-    SELECT p.*, 
-        (SELECT COUNT(*) FROM product_variants WHERE product_id = p.id) as variant_count
-    FROM products p
-    ORDER BY p.id DESC
-");
-        ?>
-
-        <h3 class="mt-5">📦 รายการสินค้า</h3>
-
-        <table class="table table-bordered bg-white mt-3">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>รูป</th>
-                    <th>ชื่อสินค้า</th>
-                    <th>ราคา</th>
-                    <th>สต็อก</th>
-                    <th>ตัวเลือก</th>
-                    <th width="200">จัดการ</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                <?php while ($p = $productsList->fetch_assoc()): ?>
-                    <tr>
-                        <td><?= $p['id'] ?></td>
-                        <td><img src="<?= $p['image'] ?>" width="60"></td>
-                        <td><?= $p['name'] ?></td>
-                        <td><?= $p['price'] ?></td>
-                        <td><?= $p['stock'] ?></td>
-                        <td><?= $p['variant_count'] ?> รายการ</td>
-
-                        <td>
-
-                            <!-- ปุ่มแก้ไข เปิด Modal -->
-                            <button
-                                class="btn btn-warning btn-sm editProductBtn"
-                                data-id="<?= $p['id'] ?>">
-                                แก้ไข
-                            </button>
-
-                            <!-- ปุ่มลบ -->
-                            <button
-                                class="btn btn-danger btn-sm deleteProductBtn"
-                                data-id="<?= $p['id'] ?>">
-                                ลบ
-                            </button>
-
-                        </td>
-                    </tr>
-                <?php endwhile; ?>
-            </tbody>
-        </table>
-
 
     </div>
 
@@ -343,15 +391,22 @@ while ($row = $res->fetch_assoc()) {
             btn.onclick = () => {
                 if (!confirm("ลบสินค้านี้?")) return;
 
+                const fd = new FormData();
+                fd.append('id', btn.dataset.id);
+
                 fetch("ajax_delete_product.php", {
                         method: "POST",
-                        body: new FormData(Object.assign(document.createElement('form'), {
-                            innerHTML: `<input name="id" value="${btn.dataset.id}">`
-                        }))
-                    }).then(r => r.text())
+                        body: fd
+                    })
+                    .then(r => r.text())
                     .then(txt => {
-                        if (txt === "success") location.reload();
-                    });
+                        if (txt.trim() === "success") {
+                            location.reload();
+                        } else {
+                            console.error("Delete failed:", txt);
+                        }
+                    })
+                    .catch(err => console.error("Fetch error:", err));
             };
         });
     </script>

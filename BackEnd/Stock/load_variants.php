@@ -2,7 +2,7 @@
 require_once '../../config.php';
 $conn = connectDB();
 
-$product_id = $_GET['product_id'] ?? 0;
+$product_id = isset($_GET['product_id']) ? (int)$_GET['product_id'] : 0;
 
 $res = $conn->query("SELECT * FROM product_variants WHERE product_id = $product_id");
 

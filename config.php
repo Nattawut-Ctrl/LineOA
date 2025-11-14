@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/utils/log.php';
+
 function connectDB() {
     $host = "localhost";
     $user = "root";

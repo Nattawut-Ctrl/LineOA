@@ -1,6 +1,9 @@
 <?php
+session_start();
 require_once '../../config.php';
 $conn = connectDB();
+
+$userId = $_SESSION['user_id'] ?? null;
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -10,6 +13,17 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 
 if ($id <= 0) {
+
+    log_db_action(
+        $conn,
+        $userId,
+        'DELETE',
+        'products',
+        $id,
+        'Invalid product id in ajax_delete_product',
+        'fail'
+    );
+
     http_response_code(400);
     exit('Invalid ID');
 }
@@ -35,16 +49,32 @@ while ($row = $v->fetch_assoc()) {
 // ------------------------
 // 3) ลบข้อมูลที่เกี่ยวข้องใน DB
 // ------------------------
+$okCart    = $conn->query("DELETE FROM cart_items WHERE product_id = $id");
+$okVariant = $conn->query("DELETE FROM product_variants WHERE product_id = $id");
+$okProduct = $conn->query("DELETE FROM products WHERE id = $id");
 
-// ลบของที่อยู่ในตะกร้า
-$conn->query("DELETE FROM cart_items WHERE product_id = $id");
+// ประเมินสถานะ
+$status = ($okCart && $okVariant && $okProduct) ? 'success' : 'fail';
 
-// ลบตัวเลือกสินค้า
-$conn->query("DELETE FROM product_variants WHERE product_id = $id");
+// บันทึก log
+log_db_action(
+    $conn,
+    $userId,
+    'DELETE',
+    'products',
+    $id,
+    "Delete product id=$id from products, product_variants, cart_items",
+    $status
+);
 
-// ลบสินค้า
-$conn->query("DELETE FROM products WHERE id = $id");
+// ถ้าลบไม่สำเร็จ ส่ง error
+if ($status !== 'success') {
+    http_response_code(500);
+    header('Content-Type: text/plain; charset=utf-8');
+    echo "error";
+    exit;
+}
 
-// ตอบกลับ
+// ตอบกลับปกติ
 header('Content-Type: text/plain; charset=utf-8');
 echo "success";

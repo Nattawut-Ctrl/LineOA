@@ -78,3 +78,4 @@ if ($status !== 'success') {
 // ตอบกลับปกติ
 header('Content-Type: text/plain; charset=utf-8');
 echo "success";
+?>

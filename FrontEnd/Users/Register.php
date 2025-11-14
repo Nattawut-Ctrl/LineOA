@@ -81,59 +81,86 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
-<body class="bg-light">
+<body class="bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">
 
-    <div class="container my-5">
-        <h2 class="text-center mb-4">สมัครสมาชิก (เชื่อมกับ LINE)</h2>
-
-        <?php if (!empty($errors)): ?>
-            <div class="alert alert-danger">
-                <?php foreach ($errors as $e): ?>
-                    <div><?php echo $e; ?></div>
-                <?php endforeach; ?>
+    <div class="container d-flex align-items-center justify-content-center min-vh-100 py-5">
+        <div class="card shadow-lg rounded-4 w-100" style="max-width: 480px;">
+            
+            <!-- Header -->
+            <div class="card-header bg-danger text-white text-center py-4 rounded-top-4 border-0">
+                <h2 class="mb-0 fw-bold">สมัครสมาชิก</h2>
+                <small class="text-white-50">เชื่อมกับ LINE</small>
             </div>
-        <?php endif; ?>
 
-        <form method="post">
-            <!-- line_uid / display_name ซ่อน / แสดงแบบอ่านอย่างเดียว -->
-            <input type="hidden" name="line_uid" value="<?php echo $line_uid; ?>">
-            <input type="hidden" name="display_name" value="<?php echo $display_name; ?>">
-            <input type="hidden" name="picture_url" value="<?php echo $picture_url; ?>">
-
-            <div class="form-group">
-                <?php if ($picture_url): ?>
-                    <div class="d-flex justify-content-center">
-                        <img src="<?php echo htmlspecialchars($picture_url); ?>"
-                            alt="LINE Profile Picture" class="rounded-circle mb-3" width="100" height="100">
+            <div class="card-body p-4">
+                <!-- Error messages -->
+                <?php if (!empty($errors)): ?>
+                    <div class="alert alert-danger alert-dismissible fade show rounded-3" role="alert">
+                        <div class="fw-bold mb-2">⚠️ พบข้อผิดพลาด:</div>
+                        <?php foreach ($errors as $e): ?>
+                            <div class="small mb-1">✗ <?php echo $e; ?></div>
+                        <?php endforeach; ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 <?php endif; ?>
-                <p class="text-center h2"><strong><?php echo $display_name ?: '(ไม่ทราบ)'; ?></strong></p>
-            </div>
 
-            <div class="form-group mb-3">
-                <label class="h2 font-weight-bold">ชื่อจริง:</label>
-                <input type="text" class="form-control form-control-lg" name="first_name" required value="<?php echo $first_name ?? ''; ?>">
-            </div>
+                <form method="post">
+                    <!-- Hidden fields -->
+                    <input type="hidden" name="line_uid" value="<?php echo $line_uid; ?>">
+                    <input type="hidden" name="display_name" value="<?php echo $display_name; ?>">
+                    <input type="hidden" name="picture_url" value="<?php echo $picture_url; ?>">
 
-            <div class="form-group mb-3">
-                <label class="h2 font-weight-bold">นามสกุล:</label>
-                <input type="text" class="form-control form-control-lg" name="last_name" required value="<?php echo $last_name ?? ''; ?>">
-            </div>
+                    <!-- Profile section -->
+                    <div class="text-center mb-4">
+                        <?php if ($picture_url): ?>
+                            <img src="<?php echo htmlspecialchars($picture_url); ?>"
+                                alt="LINE Profile Picture" class="rounded-circle shadow-sm mb-3" width="120" height="120" style="border: 4px solid #fff; object-fit: cover;">
+                        <?php else: ?>
+                            <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 120px; height: 120px; border: 4px solid #fff;">
+                                <span class="fs-1 text-white">👤</span>
+                            </div>
+                        <?php endif; ?>
+                        <h4 class="fw-bold text-dark mt-2"><?php echo $display_name ?: '(ไม่ทราบ)'; ?></h4>
+                        <small class="text-muted">จาก LINE</small>
+                    </div>
 
-            <div class="form-group mb-3">
-                <label class="h2 font-weight-bold">เบอร์โทรศัพท์:</label>
-                <input type="tel" class="form-control form-control-lg" name="phone" maxlength="10" pattern="^[0-9]{10}$" title="กรุณากรอกเบอร์โทรศัพท์ 10 หลัก (เฉพาะตัวเลข)" required value="<?php echo $phone ?? ''; ?>">
-            </div>
+                    <!-- Form fields -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold fs-6 text-dark">ชื่อจริง <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-lg rounded-2 border-2" name="first_name" required value="<?php echo htmlspecialchars($first_name ?? ''); ?>" placeholder="กรอกชื่อจริง">
+                    </div>
 
-            <div class="form-group mb-3">
-                <label class="h2 font-weight-bold">เลขบัตรประชาชน 13 หลัก:</label>
-                <input type="tel" class="form-control form-control-lg" name="citizen_id" maxlength="13" pattern="^[0-9]{13}$" title="กรุณากรอกเลขบัตรประชาชน 13 หลัก (เฉพาะตัวเลข)" required value="<?php echo $citizen_id ?? ''; ?>">
-            </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold fs-6 text-dark">นามสกุล <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-lg rounded-2 border-2" name="last_name" required value="<?php echo htmlspecialchars($last_name ?? ''); ?>" placeholder="กรอกนามสกุล">
+                    </div>
 
-            <div class="d-flex justify-content-center">
-                <button type="submit" class="btn btn-primary btn-lg btn-block mb-4">สมัครสมาชิก</button>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold fs-6 text-dark">เบอร์โทรศัพท์ <span class="text-danger">*</span></label>
+                        <input type="tel" class="form-control form-control-lg rounded-2 border-2" id="phone" name="phone" maxlength="12" inputmode="numeric" pattern="[0-9]{10}" required value="<?php echo htmlspecialchars($phone ?? ''); ?>" placeholder="xxx-xxx-xxxx">
+                        <small id="phone-error" class="text-danger d-block mt-1"></small>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold fs-6 text-dark">เลขบัตรประชาชน 13 หลัก <span class="text-danger">*</span></label>
+                        <input type="tel" class="form-control form-control-lg rounded-2 border-2" id="citizen_id" name="citizen_id" maxlength="17" inputmode="numeric" pattern="[0-9]{13}" required value="<?php echo htmlspecialchars($citizen_id ?? ''); ?>" placeholder="1-2345-67890-12-3">
+                        <small id="citizen-id-error" class="text-danger d-block mt-1"></small>
+                    </div>
+
+                    <!-- Submit button -->
+                    <div class="d-grid gap-2 mt-5">
+                        <button type="submit" class="btn btn-danger btn-lg fw-bold rounded-2 py-3 text-white shadow-sm">
+                            ✓ สมัครสมาชิก
+                        </button>
+                    </div>
+
+                    <!-- Footer text -->
+                    <p class="text-center text-muted small mt-4 mb-0">
+                        การสมัครแสดงว่าคุณยอมรับเงื่อนไขการใช้บริการ
+                    </p>
+                </form>
             </div>
-        </form>
+        </div>
     </div>
 
     <script>
@@ -146,22 +173,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             document.getElementById("citizen-id-error").innerText = "";
 
             // ตรวจสอบว่าเบอร์โทรศัพท์มีความยาวถูกต้องและไม่มีสัญลักษณ์พิเศษ
-            if (!/^[0-9]{10}$/.test(phone.value)) {
+            if (!/^[0-9]{12}$/.test(phone.value)) {
                 event.preventDefault(); // ป้องกันการส่งฟอร์ม
                 document.getElementById("phone-error").innerText = "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก (เฉพาะตัวเลข)";
             }
 
             // ตรวจสอบว่าเลขบัตรประชาชนมีความยาวถูกต้องและไม่มีสัญลักษณ์พิเศษ
-            if (!/^[0-9]{13}$/.test(citizenId.value)) {
+            if (!/^[0-9]{17}$/.test(citizenId.value)) {
                 event.preventDefault(); // ป้องกันการส่งฟอร์ม
                 document.getElementById("citizen-id-error").innerText = "กรุณากรอกเลขบัตรประชาชน 13 หลัก (เฉพาะตัวเลข)";
             }
         });
+
+        const phoneInput = document.getElementById("phone");
+        phoneInput.addEventListener("input", function() {
+            let value = this.value.replace(/\D/g, ''); // ลบตัวที่ไม่ใช่ตัวเลข
+
+            if (value.length > 3 && value.length <= 6) {
+                this.value = value.slice(0, 3) + '-' + value.slice(3);
+            }
+            else if (value.length > 6) {
+                this.value = value.slice(0, 3) + '-' + value.slice(3, 6) + '-' + value.slice(6, 10);
+            } else {
+                this.value = value;
+            }
+        });
+
+        const citizenIdInput = document.getElementById("citizen_id");
+        citizenIdInput.addEventListener("input", function() {
+            let value = this.value.replace(/\D/g, ''); // ลบตัวที่ไม่ใช่ตัวเลข
+
+            let len = value.length;
+            let result = '';
+
+            if (len > 0) {
+                result = value.slice(0, 1);
+            }
+            if (len > 1) {
+                result += "-" + value.slice(1, 5);
+            }
+            if (len > 5) {
+                result += "-" + value.slice(5, 10);
+            }
+            if (len > 10) {
+                result += "-" + value.slice(10, 12);
+            }
+            if (len > 12) {
+                result += "-" + value.slice(12, 13);
+            }
+            this.value = result;
+        });
     </script>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 

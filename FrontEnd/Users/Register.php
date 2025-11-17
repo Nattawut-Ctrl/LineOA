@@ -8,6 +8,8 @@ function clean($s)
     return trim(htmlspecialchars($s ?? '', ENT_QUOTES, 'UTF-8'));
 }
 
+$errors = [];
+
 // รับค่า GET จาก checkLineUser.php
 $line_uid     = clean($_GET['line_uid']     ?? '');
 $display_name = clean($_GET['display_name'] ?? '');
@@ -25,6 +27,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $errors = [];
 
+    // ดึงค่าดิบจากฟอร์ม
+    $phone_raw      = $_POST['phone']      ?? '';
+    $citizen_raw    = $_POST['citizen_id'] ?? '';
+
+    // เอาเฉพาะตัวเลข
+    $phone_digits   = preg_replace('/\D/', '', $phone_raw);
+    $citizen_digits = preg_replace('/\D/', '', $citizen_raw);
+
+    $phone      = $phone_digits;
+    $citizen_id = $citizen_digits;
+
     if ($line_uid === '') {
         $errors[] = "ไม่พบ LINE UID กรุณาเข้าสมัครผ่านปุ่มใน LINE อีกครั้ง";
     }
@@ -35,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = "กรุณากรอกนามสกุล";
     }
     if (!preg_match('/^[0-9]{10}$/', $phone)) {
-        $errors[] = "กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง 10 หลัก (เฉพาะตัวเลข)";
+        $errors[] = "กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง 10 หลัก (เฉพาะตัวเลข)"; // -*
     }
     if (!preg_match('/^[0-9]{13}$/', $citizen_id)) {
         $errors[] = "กรุณากรอกเลขบัตรประชาชนให้ถูกต้อง 13 หลัก (เฉพาะตัวเลข)";
@@ -85,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <div class="container d-flex align-items-center justify-content-center min-vh-100 py-5">
         <div class="card shadow-lg rounded-4 w-100" style="max-width: 480px;">
-            
+
             <!-- Header -->
             <div class="card-header bg-danger text-white text-center py-4 rounded-top-4 border-0">
                 <h2 class="mb-0 fw-bold">สมัครสมาชิก</h2>
@@ -135,15 +148,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <input type="text" class="form-control form-control-lg rounded-2 border-2" name="last_name" required value="<?php echo htmlspecialchars($last_name ?? ''); ?>" placeholder="กรอกนามสกุล">
                     </div>
 
+                    <!-- -* -->
                     <div class="mb-4">
                         <label class="form-label fw-bold fs-6 text-dark">เบอร์โทรศัพท์ <span class="text-danger">*</span></label>
-                        <input type="tel" class="form-control form-control-lg rounded-2 border-2" id="phone" name="phone" maxlength="12" inputmode="numeric" pattern="[0-9]{10}" required value="<?php echo htmlspecialchars($phone ?? ''); ?>" placeholder="xxx-xxx-xxxx">
+                        <input type="tel" class="form-control form-control-lg rounded-2 border-2" id="phone" name="phone" maxlength="12" inputmode="numeric" required value="<?php echo htmlspecialchars($phone ?? ''); ?>" placeholder="xxx-xxx-xxxx">
                         <small id="phone-error" class="text-danger d-block mt-1"></small>
                     </div>
 
                     <div class="mb-4">
                         <label class="form-label fw-bold fs-6 text-dark">เลขบัตรประชาชน 13 หลัก <span class="text-danger">*</span></label>
-                        <input type="tel" class="form-control form-control-lg rounded-2 border-2" id="citizen_id" name="citizen_id" maxlength="17" inputmode="numeric" pattern="[0-9]{13}" required value="<?php echo htmlspecialchars($citizen_id ?? ''); ?>" placeholder="1-2345-67890-12-3">
+                        <input type="tel" class="form-control form-control-lg rounded-2 border-2" id="citizen_id" name="citizen_id" maxlength="17" inputmode="numeric" required value="<?php echo htmlspecialchars($citizen_id ?? ''); ?>" placeholder="1-2345-67890-12-3">
                         <small id="citizen-id-error" class="text-danger d-block mt-1"></small>
                     </div>
 
@@ -168,31 +182,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             var phone = document.getElementById("phone");
             var citizenId = document.getElementById("citizen_id");
 
-            // รีเซ็ตข้อความผิดพลาด
             document.getElementById("phone-error").innerText = "";
             document.getElementById("citizen-id-error").innerText = "";
 
-            // ตรวจสอบว่าเบอร์โทรศัพท์มีความยาวถูกต้องและไม่มีสัญลักษณ์พิเศษ
-            if (!/^[0-9]{12}$/.test(phone.value)) {
-                event.preventDefault(); // ป้องกันการส่งฟอร์ม
-                document.getElementById("phone-error").innerText = "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก (เฉพาะตัวเลข)";
+            const phoneDigits = phone.value.replace(/\D/g, '');
+            const citizenDigits = citizenId.value.replace(/\D/g, '');
+
+            if (!/^[0-9]{10}$/.test(phoneDigits)) {
+                event.preventDefault();
+                document.getElementById("phone-error").innerText =
+                    "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก (เฉพาะตัวเลข)";
             }
 
-            // ตรวจสอบว่าเลขบัตรประชาชนมีความยาวถูกต้องและไม่มีสัญลักษณ์พิเศษ
-            if (!/^[0-9]{17}$/.test(citizenId.value)) {
-                event.preventDefault(); // ป้องกันการส่งฟอร์ม
-                document.getElementById("citizen-id-error").innerText = "กรุณากรอกเลขบัตรประชาชน 13 หลัก (เฉพาะตัวเลข)";
+            if (!/^[0-9]{13}$/.test(citizenDigits)) {
+                event.preventDefault();
+                document.getElementById("citizen-id-error").innerText =
+                    "กรุณากรอกเลขบัตรประชาชน 13 หลัก (เฉพาะตัวเลข)";
             }
         });
 
-        const phoneInput = document.getElementById("phone");
+
+        const phoneInput = document.getElementById("phone"); // -*
         phoneInput.addEventListener("input", function() {
             let value = this.value.replace(/\D/g, ''); // ลบตัวที่ไม่ใช่ตัวเลข
 
             if (value.length > 3 && value.length <= 6) {
                 this.value = value.slice(0, 3) + '-' + value.slice(3);
-            }
-            else if (value.length > 6) {
+            } else if (value.length > 6) {
                 this.value = value.slice(0, 3) + '-' + value.slice(3, 6) + '-' + value.slice(6, 10);
             } else {
                 this.value = value;

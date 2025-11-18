@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once '../../config.php';   // ปรับ path ตามจริง
+require_once '../../config.php';
 $conn = connectDB();
 
 function clean($s)

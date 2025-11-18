@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,23 +17,30 @@
       color: #333;
       padding: 50px;
     }
+
     .loading {
       font-size: 1.2em;
       color: #666;
     }
   </style>
 </head>
+
 <body>
   <h2>กำลังเข้าสู่ระบบผ่าน LINE...</h2>
   <p class="loading">กรุณารอสักครู่...</p>
 
   <script>
-    const liffId = "2008474276-zZ2DZolb"; // 🔸 แก้ตรงนี้ให้เป็นของจริง
+    const liffId = "2008474276-zZ2DZolb";
+
+    const params = new URLSearchParams(location.search);
+    const from = params.get("from") || "shop";
 
     async function main() {
       try {
         // เริ่มต้น LIFF
-        await liff.init({ liffId });
+        await liff.init({
+          liffId
+        });
 
         // ถ้ายังไม่ล็อกอิน ให้ไป login ก่อน
         if (!liff.isLoggedIn()) {
@@ -69,6 +77,12 @@
         picInput.value = pictureUrl;
         form.appendChild(picInput);
 
+        const fromInput = document.createElement("input");
+        fromInput.type = "hidden";
+        fromInput.name = "from";
+        fromInput.value = from;
+        form.appendChild(fromInput);
+
         document.body.appendChild(form);
         form.submit();
 
@@ -84,4 +98,5 @@
     main();
   </script>
 </body>
+
 </html>

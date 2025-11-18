@@ -6,23 +6,25 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-require_once '../../config.php';
-$conn = connectDB();
+require_once '../../utils/db_with_log.php';
+include_once '../../bootstrap.php';
+
+$conn = connectDBWithLog();
 $user_id = (int)$_SESSION['user_id'];
 
-$stmt = $conn->prepare("SELECT first_name, last_name FROM users WHERE id = ?");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$result = $stmt->get_result();
-$user = $result->fetch_assoc();
+/* 1) โหลดชื่อผู้ใช้ */
+$sqlUser  = "SELECT first_name, last_name FROM users WHERE id = ?";
+$result   = db_query($conn, $sqlUser, [$user_id], "i");
+$user     = $result ? $result->fetch_assoc() : ['first_name' => '', 'last_name' => ''];
 
+/* 2) โหลด products ทั้งหมด */
 $products = [];
 
-$sql = "SELECT id, name, price, image, description, category, stock FROM products";
-$result = $conn->query($sql);
+$sqlProducts = "SELECT id, name, price, image, description, category, stock FROM products";
+$resProd     = db_query($conn, $sqlProducts);   // ไม่มี params
 
-if ($result && $result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
+if ($resProd && $resProd->num_rows > 0) {
+    while ($row = $resProd->fetch_assoc()) {
         $products[$row['id']] = $row;
         $products[$row['id']]['variants'] = [];
     }
@@ -30,26 +32,27 @@ if ($result && $result->num_rows > 0) {
     $products = [];
 }
 
+/* 3) โหลด cart items ของ user คนนี้ */
 $cart_items = [];
-$stmt = $conn->prepare("
+$sqlCart = "
     SELECT c.*, p.name AS name, p.image AS image,
            v.variant_name, v.image AS variant_image
     FROM cart_items c
     JOIN products p ON c.product_id = p.id
     LEFT JOIN product_variants v ON c.variant_id = v.id
     WHERE c.user_id = ?
-");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$resCart = $stmt->get_result();
-while ($row = $resCart->fetch_assoc()) {
-    $cart_items[] = $row;
+";
+$resCart = db_query($conn, $sqlCart, [$user_id], "i");
+
+if ($resCart && $resCart->num_rows > 0) {
+    while ($row = $resCart->fetch_assoc()) {
+        $cart_items[] = $row;
+    }
 }
-$stmt->close();
 
-
-$variant_sql = "SELECT id, product_id, variant_name, price, stock, image FROM product_variants";
-$variant_result = $conn->query($variant_sql);
+/* 4) โหลด variants ทั้งหมด */
+$variant_sql   = "SELECT id, product_id, variant_name, price, stock, image FROM product_variants";
+$variant_result = db_query($conn, $variant_sql);
 
 if ($variant_result && $variant_result->num_rows > 0) {
     while ($vrow = $variant_result->fetch_assoc()) {
@@ -62,9 +65,10 @@ if ($variant_result && $variant_result->num_rows > 0) {
 
 $products = array_values($products);
 
+/* 5) โหลดหมวดหมู่ */
 $categories = ['ทั้งหมด'];
-$cat_sql = "SELECT DISTINCT category FROM products";
-$cat_result = $conn->query($cat_sql);
+$cat_sql    = "SELECT DISTINCT category FROM products";
+$cat_result = db_query($conn, $cat_sql);
 
 if ($cat_result && $cat_result->num_rows > 0) {
     while ($cat_row = $cat_result->fetch_assoc()) {
@@ -72,6 +76,7 @@ if ($cat_result && $cat_result->num_rows > 0) {
     }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="th">
 
@@ -79,8 +84,6 @@ if ($cat_result && $cat_result->num_rows > 0) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Line-Shop</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <style>
         body {
@@ -413,7 +416,6 @@ if ($cat_result && $cat_result->num_rows > 0) {
     </div>
 
     <!-- SCRIPTS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let selectedProduct = null;
         let selectedVariant = null;

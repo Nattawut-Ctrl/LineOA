@@ -6,8 +6,10 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-require_once '../../config.php';
-$conn = connectDB();
+require_once '../../utils/db_with_log.php';
+include_once '../../bootstrap.php';
+
+$conn = connectDBWithLog();
 $user_id = $_SESSION['user_id'];
 
 // ถ้าไม่ส่ง mode มา ให้ถือเป็น single (ซื้อทีละชิ้น)
@@ -63,26 +65,23 @@ if ($mode === 'cart') {
     }
 
     if ($variant_id) {
-        $stmt = $conn->prepare("
+        $sql = ("
             SELECT pv.price, pv.variant_name, p.name AS product_name
             FROM product_variants pv
             JOIN products p ON pv.product_id = p.id
             WHERE pv.id = ? AND p.id = ?
         ");
-        $stmt->bind_param("ii", $variant_id, $product_id);
+        $res = db_query($conn, $sql, [$variant_id, $product_id], "ii");
     } else {
-        $stmt = $conn->prepare("
+        $sql("
             SELECT price, name AS product_name
             FROM products 
             WHERE id = ?
         ");
-        $stmt->bind_param("i", $product_id);
+        $res = db_query($conn, $sql, [$product_id], "i");
     }
 
-    $stmt->execute();
-    $res  = $stmt->get_result();
-    $data = $res->fetch_assoc();
-    $stmt->close();
+    $data = $res ? $res->fetch_assoc() : null;
 
     if (!$data) {
         die("❌ ไม่พบข้อมูลสินค้า");
@@ -115,7 +114,6 @@ if ($mode === 'cart') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ชำระเงิน | Line-Shop</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <body class="bg-light">

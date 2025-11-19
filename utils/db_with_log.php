@@ -182,41 +182,86 @@ function db_query(mysqli $conn, string $sql, array $params = [], string $types =
 
 function db_exec(mysqli $conn, string $sql, array $params = [], string $types = '')
 {
-    $start = microtime(true);
-    $error = '';
+    $recordId = null;
+    $status   = 'success';
+    $errorMsg = null;
     $affected = 0;
 
-    if (empty($params)) {
-        // ไม่มี params → ยิงตรง (ใช้เฉพาะกรณีไม่มี input จาก user)
-        $ok = $conn->query($sql);
-        $error = $conn->error;
-        $affected = $conn->affected_rows;
-    } else {
-        $stmt = $conn->prepare($sql);
-        if (!$stmt) {
-            $error = $conn->error;
-            $ok = false;
+    try {
+        if (empty($params)) {
+            $ok = $conn->query($sql);
+            if (!$ok) {
+                throw new Exception($conn->error, $conn->errno);
+            }
+            $affected = $conn->affected_rows;
         } else {
             if ($types === '') {
                 $types = str_repeat('s', count($params));
             }
+
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                throw new Exception($conn->error, $conn->errno);
+            }
+
             $stmt->bind_param($types, ...$params);
-            $ok = $stmt->execute();
-            $error = $stmt->error;
+            $stmt->execute();
             $affected = $stmt->affected_rows;
+            $recordId = $stmt->insert_id ?: $conn->insert_id;
             $stmt->close();
         }
+    } catch (Throwable $e) {
+        $status   = 'error';
+        $errorMsg = $e->getMessage();
     }
 
-    $duration = microtime(true) - $start;
-
-    // log ลงตาราง query_logs เหมือน db_query
-    db_query($conn, $sql, $params, $error, $duration);
+    writeLog($conn, $sql, $params, $types, $status, $errorMsg, $recordId);
 
     return [
-        'ok'        => $ok,
-        'error'     => $error,
-        'affected'  => $affected,
-        'duration'  => $duration,
+        'ok'       => ($status === 'success'),
+        'error'    => $errorMsg,
+        'affected' => $affected,
     ];
 }
+
+
+// function db_exec(mysqli $conn, string $sql, array $params = [], string $types = '')
+// {
+//     $start = microtime(true);
+//     $error = '';
+//     $affected = 0;
+
+//     if (empty($params)) {
+//         // ไม่มี params → ยิงตรง (ใช้เฉพาะกรณีไม่มี input จาก user)
+//         $ok = $conn->query($sql);
+//         $error = $conn->error;
+//         $affected = $conn->affected_rows;
+//     } else {
+//         $stmt = $conn->prepare($sql);
+//         if (!$stmt) {
+//             $error = $conn->error;
+//             $ok = false;
+//         } else {
+//             if ($types === '') {
+//                 $types = str_repeat('s', count($params));
+//             }
+//             $stmt->bind_param($types, ...$params);
+//             $ok = $stmt->execute();
+//             $error = $stmt->error;
+//             $affected = $stmt->affected_rows;
+//             $stmt->close();
+//         }
+//     }
+
+//     $duration = microtime(true) - $start;
+
+//     // log ลงตาราง query_logs เหมือน db_query
+//     db_query($conn, $sql, $params, $error, $duration);
+
+//     return [
+//         'ok'        => $ok,
+//         'error'     => $error,
+//         'affected'  => $affected,
+//         'duration'  => $duration,
+//     ];
+// }

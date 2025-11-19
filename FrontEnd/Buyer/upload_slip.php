@@ -7,8 +7,8 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-require_once '../../config.php';
-$conn = connectDB();
+require_once '../../utils/db_with_log.php';
+$conn = connectDBWithLog();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user_id = $_SESSION['user_id'];
@@ -43,11 +43,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $prices        = $_POST['price']        ?? [];
                 $total_all     = (float)($_POST['total'] ?? 0); // ถ้าอยากใช้ทีหลัง
 
-                $stmt = $conn->prepare("
-                    INSERT INTO payments
+                db_query(
+                    $conn,
+                    "INSERT INTO payments
                     (user_id, product_id, variant_id, product_name, variant_name, quantity, price, total, slip_image, payment_time)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ");
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    [], // จะใช้ prepare statement ด้านล่างแทน
+                    ""
+                );
+                // $stmt = $conn->prepare("
+                //     INSERT INTO payments
+                //     (user_id, product_id, variant_id, product_name, variant_name, quantity, price, total, slip_image, payment_time)
+                //     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                // ");
 
                 foreach ($product_ids as $i => $pid) {
                     $pid   = (int)$pid;

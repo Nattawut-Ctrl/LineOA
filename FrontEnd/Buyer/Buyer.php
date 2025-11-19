@@ -180,7 +180,7 @@ if ($cat_result && $cat_result->num_rows > 0) {
         <div class="container-fluid px-3">
             <a class="navbar-brand fw-bold fs-5 d-flex align-items-center gap-2" href="#">
                 <span class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center"
-                      style="width:32px;height:32px;">
+                    style="width:32px;height:32px;">
                     <i class="bi bi-bag-check text-danger"></i>
                 </span>
                 <span>Line-Shop</span>
@@ -193,8 +193,8 @@ if ($cat_result && $cat_result->num_rows > 0) {
                 <button class="btn btn-light btn-sm rounded-circle position-relative shadow-sm" id="cartIcon" type="button">
                     <i class="bi bi-cart3 text-danger"></i>
                     <span class="position-absolute top-0 start-100 translate-middle badge bg-warning text-dark rounded-pill"
-                          id="cartCountBadge"
-                          style="font-size:0.65rem; display:none;">
+                        id="cartCountBadge"
+                        style="font-size:0.65rem; display:none;">
                         0
                     </span>
                 </button>
@@ -225,8 +225,8 @@ if ($cat_result && $cat_result->num_rows > 0) {
                         <i class="bi bi-search text-secondary"></i>
                     </span>
                     <input class="form-control border-0" type="search"
-                           placeholder="ค้นหาสินค้า เช่น เสื้อยืด, รองเท้า, กระเป๋า..."
-                           aria-label="ค้นหา" id="searchInput">
+                        placeholder="ค้นหาสินค้า เช่น เสื้อยืด, รองเท้า, กระเป๋า..."
+                        aria-label="ค้นหา" id="searchInput">
                     <button class="btn btn-danger fw-bold px-4" type="submit">
                         ค้นหา
                     </button>
@@ -243,7 +243,7 @@ if ($cat_result && $cat_result->num_rows > 0) {
                     <i class="bi bi-sliders me-1"></i> เลือกดูตามหมวดหมู่
                 </div>
                 <button class="btn btn-sm btn-outline-secondary rounded-pill" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#categoryCollapse">
+                    data-bs-toggle="collapse" data-bs-target="#categoryCollapse">
                     <i class="bi bi-funnel"></i> หมวดหมู่
                 </button>
             </div>
@@ -276,9 +276,9 @@ if ($cat_result && $cat_result->num_rows > 0) {
                     <div class="card product-card h-100 border-0 shadow-sm">
                         <div class="position-relative product-img-wrap rounded-top-4 overflow-hidden">
                             <img src="<?php echo $product['image']; ?>"
-                                 class="card-img-top w-100 h-100"
-                                 alt="<?php echo $product['name']; ?>"
-                                 loading="lazy">
+                                class="card-img-top w-100 h-100"
+                                alt="<?php echo $product['name']; ?>"
+                                loading="lazy">
                             <?php if (!empty($product['category'])): ?>
                                 <span class="badge text-bg-light position-absolute top-2 start-2 rounded-pill shadow-sm small">
                                     <i class="bi bi-tag me-1 text-danger"></i><?php echo $product['category']; ?>
@@ -320,8 +320,8 @@ if ($cat_result && $cat_result->num_rows > 0) {
 
     <!-- Cart Bar (Popup from bottom) -->
     <div class="position-fixed bottom-0 start-0 end-0 bg-white border-top border-3"
-         id="cartBar"
-         style="border-top-color: #ee4d2d!important; transform: translateY(100%); transition: transform 0.3s ease; z-index: 1050; border-top-left-radius: 20px; border-top-right-radius: 20px;">
+        id="cartBar"
+        style="border-top-color: #ee4d2d!important; transform: translateY(100%); transition: transform 0.3s ease; z-index: 1050; border-top-left-radius: 20px; border-top-right-radius: 20px;">
         <div class="p-3">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="d-flex align-items-center gap-2">
@@ -355,16 +355,16 @@ if ($cat_result && $cat_result->num_rows > 0) {
                 <label class="form-label small fw-semibold mb-2">จำนวน</label>
                 <div class="d-flex align-items-center justify-content-center gap-2">
                     <button type="button"
-                            class="btn btn-outline-secondary btn-sm rounded-circle fw-bold"
-                            style="width: 36px; height: 36px;"
-                            onclick="changeQuantity(-1)">−</button>
+                        class="btn btn-outline-secondary btn-sm rounded-circle fw-bold"
+                        style="width: 36px; height: 36px;"
+                        onclick="changeQuantity(-1)">−</button>
                     <input type="number" id="quantity" value="1" min="1"
-                           class="form-control text-center fw-bold"
-                           style="width: 80px;">
+                        class="form-control text-center fw-bold"
+                        style="width: 80px;">
                     <button type="button"
-                            class="btn btn-outline-secondary btn-sm rounded-circle fw-bold"
-                            style="width: 36px; height: 36px;"
-                            onclick="changeQuantity(1)">+</button>
+                        class="btn btn-outline-secondary btn-sm rounded-circle fw-bold"
+                        style="width: 36px; height: 36px;"
+                        onclick="changeQuantity(1)">+</button>
                 </div>
             </div>
 
@@ -373,9 +373,9 @@ if ($cat_result && $cat_result->num_rows > 0) {
                     <i class="bi bi-cart-plus me-1"></i> เพิ่มลงตะกร้า
                 </button>
                 <button type="button"
-                        class="btn fw-bold rounded-3 text-white"
-                        style="background: linear-gradient(135deg, #ee4d2d, #ff7043);"
-                        onclick="confirmPurchase()">
+                    class="btn fw-bold rounded-3 text-white"
+                    style="background: linear-gradient(135deg, #ee4d2d, #ff7043);"
+                    onclick="confirmPurchase()">
                     <i class="bi bi-lightning-charge me-1"></i> ซื้อเลย
                 </button>
             </div>
@@ -389,7 +389,7 @@ if ($cat_result && $cat_result->num_rows > 0) {
                 <div class="modal-header border-0">
                     <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
                         <span class="bg-danger-subtle text-danger-emphasis rounded-circle d-inline-flex align-items-center justify-content-center"
-                              style="width:32px;height:32px;">
+                            style="width:32px;height:32px;">
                             <i class="bi bi-bag-check-fill"></i>
                         </span>
                         <span>ตะกร้าสินค้า</span>
@@ -405,9 +405,9 @@ if ($cat_result && $cat_result->num_rows > 0) {
                         <span class="text-danger" id="cartTotal">0 บาท</span>
                     </div>
                     <button type="button"
-                            class="btn fw-bold text-white rounded-3 px-4"
-                            style="background: linear-gradient(135deg, #ff7043, #ff9800);"
-                            id="goPaymentBtn">
+                        class="btn fw-bold text-white rounded-3 px-4"
+                        style="background: linear-gradient(135deg, #ff7043, #ff9800);"
+                        id="goPaymentBtn">
                         <i class="bi bi-credit-card me-1"></i> ชำระเงิน
                     </button>
                 </div>
@@ -768,15 +768,20 @@ if ($cat_result && $cat_result->num_rows > 0) {
         }
 
         function syncCartToServer() {
+            // console.log('cart before sync', cart);
+
             fetch('save_cart.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ cart })
+                    body: JSON.stringify({
+                        cart
+                    })
                 })
                 .then(res => res.json())
                 .then(data => {
+                    // console.log('Server response:', data);
                     if (data.status === 'ok') {
                         console.log('Cart synced to server');
                     } else {
@@ -786,8 +791,10 @@ if ($cat_result && $cat_result->num_rows > 0) {
                 .catch(err => {
                     console.error('Fetch error:', err);
                 });
+
         }
     </script>
 
 </body>
+
 </html>

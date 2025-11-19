@@ -1,10 +1,39 @@
 <?php
-require_once '../../config.php';
-$conn = connectDB();
+require_once '../../utils/db_with_log.php';
+$conn = connectDBWithLog();
 
-$id = intval($_GET['id']);
-$p = $conn->query("SELECT * FROM products WHERE id = $id")->fetch_assoc();
-$v = $conn->query("SELECT * FROM product_variants WHERE product_id = $id");
+// รับ id แบบปลอดภัย
+$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+if ($id <= 0) {
+    exit("<p class='text-danger'>ไม่พบสินค้า</p>");
+}
+
+// ----------------------------------------
+// โหลดข้อมูลสินค้า (log อัตโนมัติ)
+// ----------------------------------------
+$resP = db_query(
+    $conn,
+    "SELECT * FROM products WHERE id = ?",
+    [$id],
+    "i"
+);
+
+$p = $resP ? $resP->fetch_assoc() : null;
+
+if (!$p) {
+    exit("<p class='text-danger'>ไม่พบสินค้า</p>");
+}
+
+// ----------------------------------------
+// โหลดตัวเลือกสินค้า (variants)
+// ----------------------------------------
+$resV = db_query(
+    $conn,
+    "SELECT * FROM product_variants WHERE product_id = ?",
+    [$id],
+    "i"
+);
 ?>
 
 <form id="updateProductForm">
@@ -13,7 +42,7 @@ $v = $conn->query("SELECT * FROM product_variants WHERE product_id = $id");
 
 <div class="mb-3">
     <label>ชื่อสินค้า</label>
-    <input type="text" name="name" value="<?= $p['name'] ?>" class="form-control">
+    <input type="text" name="name" value="<?= htmlspecialchars($p['name']) ?>" class="form-control">
 </div>
 
 <div class="row">
@@ -30,20 +59,20 @@ $v = $conn->query("SELECT * FROM product_variants WHERE product_id = $id");
 
 <div class="mb-3">
     <label>คำอธิบาย</label>
-    <textarea name="description" class="form-control"><?= $p['description'] ?></textarea>
+    <textarea name="description" class="form-control"><?= htmlspecialchars($p['description']) ?></textarea>
 </div>
 
 <hr>
 <h5>ตัวเลือกสินค้า (Variants)</h5>
 
-<?php while ($row = $v->fetch_assoc()): ?>
+<?php while ($row = $resV->fetch_assoc()): ?>
 <div class="border rounded p-2 mb-2">
     <input type="hidden" name="variant_id[]" value="<?= $row['id'] ?>">
 
     <div class="row">
         <div class="col-md-4">
             <label>ชื่อ</label>
-            <input type="text" name="variant_name[]" value="<?= $row['variant_name'] ?>" class="form-control">
+            <input type="text" name="variant_name[]" value="<?= htmlspecialchars($row['variant_name']) ?>" class="form-control">
         </div>
 
         <div class="col-md-3">

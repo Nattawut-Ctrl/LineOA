@@ -1,11 +1,13 @@
 <?php
 // session_start();
-require_once '../../config.php';
+require_once '../../utils/db_with_log.php';
+include_once '../../bootstrap.php';
 $conn = connectDB();
 
 // โหลดรายการสินค้าเดิมไว้สำหรับ dropdown
 $products = [];
-$res = $conn->query("SELECT id, name FROM products ORDER BY id DESC");
+$res = db_query($conn, "SELECT id, name FROM products ORDER BY id DESC");
+
 while ($row = $res->fetch_assoc()) {
     $products[] = $row;
 }
@@ -16,8 +18,13 @@ while ($row = $res->fetch_assoc()) {
 <head>
     <meta charset="UTF-8">
     <title>เพิ่มสินค้า / เพิ่มสต็อก</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+
     <style>
+        body {
+            background-color: #f5f6fa;
+        }
+
         .variant-row {
             background: #fafafa;
             border: 1px solid #ddd;
@@ -25,11 +32,33 @@ while ($row = $res->fetch_assoc()) {
             padding: 12px;
             margin-bottom: 10px;
         }
+
+        .table td img {
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .page-title {
+            font-weight: 600;
+        }
+
+        .card {
+            border-radius: 0.75rem;
+        }
     </style>
 </head>
 
-<body class="bg-light">
-    <div class="container py-4">
+<body>
+    <!-- Top bar / Navbar แบบเรียบ ๆ -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-3">
+        <div class="container">
+            <a class="navbar-brand fw-semibold" href="#">
+                ระบบจัดการสินค้า
+            </a>
+        </div>
+    </nav>
+
+    <div class="container pb-4">
 
         <?php
         // --------------------------
@@ -62,80 +91,19 @@ while ($row = $res->fetch_assoc()) {
         ");
         ?>
 
-        <h3 class="mt-5">📦 รายการสินค้า</h3>
+        <!-- Header Page -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h1 class="h3 page-title mb-1">จัดการสินค้า</h1>
+                <p class="text-muted mb-0">
+                    เพิ่ม / แก้ไข / จัดการสต็อกสินค้าให้พร้อมสำหรับการใช้งานจริง
+                </p>
+            </div>
+            <!-- ถ้ามีหน้า dashboard หลักสามารถใส่ลิงก์กลับได้ -->
+            <!-- <a href="ad_dashboard.php" class="btn btn-outline-light text-dark btn-sm">กลับแดชบอร์ด</a> -->
+        </div>
 
-        <table class="table table-bordered bg-white mt-3">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>รูป</th>
-                    <th>ชื่อสินค้า</th>
-                    <th>ราคา</th>
-                    <th>สต็อก</th>
-                    <th>ตัวเลือก</th>
-                    <th width="200">จัดการ</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                <?php while ($p = $productsList->fetch_assoc()): ?>
-                    <tr>
-                        <td><?= $p['id'] ?></td>
-                        <td><img src="<?= $p['image'] ?>" width="60"></td>
-                        <td><?= $p['name'] ?></td>
-                        <td><?= $p['price'] ?></td>
-                        <td><?= $p['stock'] ?></td>
-                        <td><?= $p['variant_count'] ?> รายการ</td>
-
-                        <td>
-
-                            <!-- ปุ่มแก้ไข เปิด Modal -->
-                            <button
-                                class="btn btn-warning btn-sm editProductBtn"
-                                data-id="<?= $p['id'] ?>">
-                                แก้ไข
-                            </button>
-
-                            <!-- ปุ่มลบ -->
-                            <button
-                                class="btn btn-danger btn-sm deleteProductBtn"
-                                data-id="<?= $p['id'] ?>">
-                                ลบ
-                            </button>
-
-                        </td>
-                    </tr>
-                <?php endwhile; ?>
-            </tbody>
-        </table>
-
-        <?php if ($totalPages > 1): ?>
-            <nav aria-label="Page navigation">
-                <ul class="pagination justify-content-center">
-
-                    <!-- ปุ่มก่อนหน้า -->
-                    <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
-                        <a class="page-link" href="?page=<?= $page - 1 ?>">ก่อนหน้า</a>
-                    </li>
-
-                    <!-- เลขหน้า -->
-                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                        <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
-                            <a class="page-link" href="?page=<?= $i ?>">
-                                <?= $i ?>
-                            </a>
-                        </li>
-                    <?php endfor; ?>
-
-                    <!-- ปุ่มถัดไป -->
-                    <li class="page-item <?= ($page >= $totalPages) ? 'disabled' : '' ?>">
-                        <a class="page-link" href="?page=<?= $page + 1 ?>">ถัดไป</a>
-                    </li>
-
-                </ul>
-            </nav>
-        <?php endif; ?>
-
+        <!-- แสดงผลสำเร็จ / error -->
         <?php if (isset($_GET['success'])): ?>
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 <?php
@@ -171,174 +139,246 @@ while ($row = $res->fetch_assoc()) {
             </div>
         <?php endif; ?>
 
-
-        <h3 class="mb-3">📦 จัดการสินค้า</h3>
-
-        <!-- ------------------------------ -->
-        <!-- 1) ฟอร์มเพิ่มสต็อกจากสินค้าเดิม -->
-        <!-- ------------------------------ -->
-        <div class="card p-3 mb-4">
-            <h5>➕ เพิ่มสต็อกจากสินค้าเดิม</h5>
-
-            <form action="save_new_stock.php" method="POST">
-
-                <div class="mb-3">
-                    <label class="form-label">เลือกสินค้า</label>
-                    <select name="product_id" id="productSelect" class="form-select" required>
-                        <option value="">-- เลือก --</option>
-                        <?php foreach ($products as $p): ?>
-                            <option value="<?= $p['id'] ?>"><?= $p['name'] ?></option>
-                        <?php endforeach; ?>
-                    </select>
+        <!-- รายการสินค้า -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="fw-semibold">📦 รายการสินค้า</span>
                 </div>
+                <span class="badge bg-secondary">
+                    ทั้งหมด <?= number_format($totalRows) ?> รายการ
+                </span>
+            </div>
 
-                <div id="variantArea"></div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">ID</th>
+                                <th scope="col">รูป</th>
+                                <th scope="col">ชื่อสินค้า</th>
+                                <th scope="col">ราคา</th>
+                                <th scope="col">สต็อก</th>
+                                <th scope="col">ตัวเลือก</th>
+                                <th scope="col" width="220" class="text-end">จัดการ</th>
+                            </tr>
+                        </thead>
 
-                <button class="btn btn-primary mt-3">เพิ่มสต็อก</button>
-            </form>
+                        <tbody>
+                            <?php while ($p = $productsList->fetch_assoc()): ?>
+                                <tr>
+                                    <td class="text-muted">#<?= $p['id'] ?></td>
+                                    <td>
+                                        <?php if (!empty($p['image'])): ?>
+                                            <img src="<?= $p['image'] ?>" width="60" height="60" alt="product-image">
+                                        <?php else: ?>
+                                            <span class="text-muted small">ไม่มีรูป</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold"><?= htmlspecialchars($p['name']) ?></div>
+                                        <?php if (!empty($p['category'])): ?>
+                                            <div class="small text-muted">หมวดหมู่: <?= htmlspecialchars($p['category']) ?></div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?= number_format($p['price'], 2) ?></td>
+                                    <td>
+                                        <?php if ($p['stock'] > 0): ?>
+                                            <span class="badge bg-success-subtle border border-success text-success">
+                                                <?= number_format($p['stock']) ?> ชิ้น
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge bg-danger-subtle border border-danger text-danger">
+                                                สต็อกหมด
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info-subtle border border-info text-info">
+                                            <?= $p['variant_count'] ?> ตัวเลือก
+                                        </span>
+                                    </td>
+
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <!-- ปุ่มแก้ไข เปิด Modal -->
+                                            <button
+                                                class="btn btn-outline-warning editProductBtn"
+                                                data-id="<?= $p['id'] ?>">
+                                                <i class="bi bi-pencil-square me-1"></i> แก้ไข
+                                            </button>
+
+                                            <!-- ปุ่มลบ -->
+                                            <button
+                                                class="btn btn-outline-danger deleteProductBtn"
+                                                data-id="<?= $p['id'] ?>">
+                                                <i class="bi bi-trash me-1"></i> ลบ
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endwhile; ?>
+
+                            <?php if ($totalRows === 0): ?>
+                                <tr>
+                                    <td colspan="7" class="text-center py-4 text-muted">
+                                        ยังไม่มีสินค้าในระบบ
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <?php if ($totalPages > 1): ?>
+                <div class="card-footer border-0">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
+
+                            <!-- ปุ่มก่อนหน้า -->
+                            <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
+                                <a class="page-link" href="?page=<?= $page - 1 ?>">ก่อนหน้า</a>
+                            </li>
+
+                            <!-- เลขหน้า -->
+                            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                                <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
+                                    <a class="page-link" href="?page=<?= $i ?>">
+                                        <?= $i ?>
+                                    </a>
+                                </li>
+                            <?php endfor; ?>
+
+                            <!-- ปุ่มถัดไป -->
+                            <li class="page-item <?= ($page >= $totalPages) ? 'disabled' : '' ?>">
+                                <a class="page-link" href="?page=<?= $page + 1 ?>">ถัดไป</a>
+                            </li>
+
+                        </ul>
+                    </nav>
+                </div>
+            <?php endif; ?>
         </div>
 
+        <!-- จัดการสินค้า: ฟอร์ม 2 ฝั่ง -->
+        <div class="row g-4 mt-1">
 
-        <!-- --------------------------------- -->
-        <!-- 2) ฟอร์มเพิ่มสินค้าใหม่ + variants -->
-        <!-- --------------------------------- -->
-        <div class="card p-3">
-            <h5>🆕 เพิ่มสินค้าใหม่</h5>
-
-            <form action="save_new_product.php" method="POST" enctype="multipart/form-data">
-
-                <div class="mb-3">
-                    <label class="form-label">ชื่อสินค้า</label>
-                    <input type="text" name="name" class="form-control" required>
-                </div>
-
-                <div class="row">
-                    <div class="mb-3 col-md-4">
-                        <label class="form-label">หมวดหมู่</label>
-                        <input type="text" name="category" class="form-control" required>
+            <!-- 1) ฟอร์มเพิ่มสต็อกจากสินค้าเดิม -->
+            <div class="col-lg-5">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0 fw-semibold">
+                            ➕ เพิ่มสต็อกจากสินค้าเดิม
+                        </h5>
                     </div>
+                    <div class="card-body">
+                        <form action="save_new_stock.php" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">เลือกสินค้า</label>
+                                <select name="product_id" id="productSelect" class="form-select" required>
+                                    <option value="">-- เลือกสินค้า --</option>
+                                    <?php foreach ($products as $p): ?>
+                                        <option value="<?= $p['id'] ?>">
+                                            <?= htmlspecialchars($p['name']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="form-text">
+                                    เลือกสินค้าที่ต้องการเพิ่มสต็อก และกำหนดจำนวนในตัวเลือกด้านล่าง
+                                </div>
+                            </div>
 
-                    <div class="mb-3 col-md-4">
-                        <label class="form-label">ราคาเริ่มต้น</label>
-                        <input type="number" name="price" step="0.01" class="form-control" required>
+                            <div id="variantArea"></div>
+
+                            <div class="d-grid">
+                                <button class="btn btn-primary mt-2">
+                                    <i class="bi bi-box-seam me-1"></i> เพิ่มสต็อก
+                                </button>
+                            </div>
+                        </form>
                     </div>
+                </div>
+            </div>
 
-                    <div class="mb-3 col-md-4">
-                        <label class="form-label">สต็อกเริ่มต้น</label>
-                        <input type="number" name="stock" class="form-control" value="0">
+            <!-- 2) ฟอร์มเพิ่มสินค้าใหม่ + variants -->
+            <div class="col-lg-7">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-semibold">🆕 เพิ่มสินค้าใหม่</h5>
+                        <span class="small text-muted">กรอกข้อมูลสินค้าให้ครบถ้วน</span>
+                    </div>
+                    <div class="card-body">
+                        <form action="save_new_product.php" method="POST" enctype="multipart/form-data">
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">ชื่อสินค้า</label>
+                                <input type="text" name="name" class="form-control" required placeholder="เช่น เสื้อยืด Oversize รุ่น A">
+                            </div>
+
+                            <div class="row">
+                                <div class="mb-3 col-md-4">
+                                    <label class="form-label fw-semibold">หมวดหมู่</label>
+                                    <input type="text" name="category" class="form-control" required placeholder="เช่น เสื้อผ้า, รองเท้า">
+                                </div>
+
+                                <div class="mb-3 col-md-4">
+                                    <label class="form-label fw-semibold">ราคาเริ่มต้น</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">฿</span>
+                                        <input type="number" name="price" step="0.01" class="form-control" required>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3 col-md-4">
+                                    <label class="form-label fw-semibold">สต็อกเริ่มต้น</label>
+                                    <input type="number" name="stock" class="form-control" value="0">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">คำอธิบาย</label>
+                                <textarea name="description" rows="3" class="form-control" placeholder="รายละเอียดสินค้า / เงื่อนไขเพิ่มเติม"></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">รูปภาพสินค้า</label>
+                                <input type="file" name="image" class="form-control">
+                                <div class="form-text">รองรับไฟล์ .jpg, .png ขนาดไม่เกิน 5 MB</div>
+                            </div>
+
+                            <hr class="my-3">
+
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="mb-0">ตัวเลือกสินค้า (Variants)</h5>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="addVariantBtn">
+                                    <i class="bi bi-plus-circle me-1"></i> เพิ่มตัวเลือก
+                                </button>
+                            </div>
+                            <p class="small text-muted mb-2">
+                                เช่น สี / ไซส์ / แพ็กเกจ ฯลฯ ถ้าไม่มีตัวเลือก สามารถเว้นว่างส่วนนี้ได้
+                            </p>
+
+                            <div id="variantsContainer"></div>
+
+                            <div class="d-grid mt-3">
+                                <button class="btn btn-success">
+                                    <i class="bi bi-save2 me-1"></i> บันทึกสินค้าใหม่
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
-
-                <div class="mb-3">
-                    <label class="form-label">คำอธิบาย</label>
-                    <textarea name="description" class="form-control"></textarea>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">รูปภาพสินค้า</label>
-                    <input type="file" name="image" class="form-control">
-                </div>
-
-                <hr>
-
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h5 class="mb-0">ตัวเลือกสินค้า (Variants)</h5>
-                    <button type="button" class="btn btn-sm btn-outline-primary" id="addVariantBtn">
-                        + เพิ่มตัวเลือก
-                    </button>
-                </div>
-
-                <div id="variantsContainer"></div>
-
-                <button class="btn btn-success mt-3">บันทึกสินค้าใหม่</button>
-            </form>
-        </div>
-
-    </div>
-
-
-    <script>
-        // ---------------------------
-        // โหลดตัวเลือก variant ของสินค้าเดิมเพื่อเพิ่มสต็อก
-        // ---------------------------
-        document.getElementById('productSelect').addEventListener('change', function() {
-            const productId = this.value;
-            const variantArea = document.getElementById('variantArea');
-
-            if (!productId) {
-                variantArea.innerHTML = "";
-                return;
-            }
-
-            fetch("load_variants.php?product_id=" + productId)
-                .then(res => res.text())
-                .then(html => {
-                    variantArea.innerHTML = html;
-                });
-        });
-
-
-        // ---------------------------
-        // เพิ่มตัวเลือกสินค้าใหม่
-        // ---------------------------
-        document.getElementById('addVariantBtn').addEventListener('click', () => {
-            const container = document.getElementById('variantsContainer');
-
-            const div = document.createElement('div');
-            div.className = 'variant-row';
-
-            div.innerHTML = `
-        <div class="d-flex justify-content-between mb-2">
-            <strong>ตัวเลือก</strong>
-            <button type="button" class="btn btn-sm btn-danger removeVariant">ลบ</button>
-        </div>
-
-        <div class="row">
-            <div class="col-md-4 mb-3">
-                <label>ชื่อ (เช่น สีแดง / ไซส์ M)</label>
-                <input type="text" name="variant_name[]" class="form-control" required>
             </div>
-            <div class="col-md-3 mb-3">
-                <label>ราคา</label>
-                <input type="number" step="0.01" name="variant_price[]" class="form-control">
-            </div>
-            <div class="col-md-3 mb-3">
-                <label>สต็อก</label>
-                <input type="number" name="variant_stock[]" class="form-control">
-            </div>
-            <div class="col-md-2 mb-3">
-                <label>รูป</label>
-                <input type="file" name="variant_image[]" class="form-control">
-            </div>
-        </div>
-    `;
 
-            container.appendChild(div);
+        </div><!-- row -->
 
-            // ปุ่มลบตัวเลือก
-            div.querySelector('.removeVariant').onclick = () => div.remove();
-        });
-    </script>
-
-    <script>
-        // รอหน้าโหลดครบก่อน
-        document.addEventListener("DOMContentLoaded", function() {
-            // ตั้งเวลา 3 วินาทีแล้วค่อยปิด alert
-            setTimeout(function() {
-                const alertList = document.querySelectorAll('.alert');
-
-                alertList.forEach(function(alert) {
-                    const bsAlert = new bootstrap.Alert(alert);
-                    bsAlert.close();
-                });
-
-            }, 3000); // 3000 ms = 3 วินาที
-        });
-    </script>
+    </div> <!-- container -->
 
     <!-- EDIT PRODUCT MODAL -->
     <div class="modal fade" id="editProductModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
 
                 <div class="modal-header">
@@ -355,6 +395,84 @@ while ($row = $res->fetch_assoc()) {
     </div>
 
     <script>
+        // ---------------------------
+        // โหลดตัวเลือก variant ของสินค้าเดิมเพื่อเพิ่มสต็อก
+        // ---------------------------
+        const productSelectEl = document.getElementById('productSelect');
+        if (productSelectEl) {
+            productSelectEl.addEventListener('change', function() {
+                const productId = this.value;
+                const variantArea = document.getElementById('variantArea');
+
+                if (!productId) {
+                    variantArea.innerHTML = "";
+                    return;
+                }
+
+                fetch("load_variants.php?product_id=" + productId)
+                    .then(res => res.text())
+                    .then(html => {
+                        variantArea.innerHTML = html;
+                    });
+            });
+        }
+
+        // ---------------------------
+        // เพิ่มตัวเลือกสินค้าใหม่
+        // ---------------------------
+        document.getElementById('addVariantBtn').addEventListener('click', () => {
+            const container = document.getElementById('variantsContainer');
+
+            const div = document.createElement('div');
+            div.className = 'variant-row';
+
+            div.innerHTML = `
+                <div class="d-flex justify-content-between mb-2">
+                    <strong>ตัวเลือกสินค้า</strong>
+                    <button type="button" class="btn btn-sm btn-outline-danger removeVariant">
+                        <i class="bi bi-x-circle"></i> ลบ
+                    </button>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">ชื่อ (เช่น สีแดง / ไซส์ M)</label>
+                        <input type="text" name="variant_name[]" class="form-control" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">ราคา</label>
+                        <input type="number" step="0.01" name="variant_price[]" class="form-control">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">สต็อก</label>
+                        <input type="number" name="variant_stock[]" class="form-control">
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label class="form-label">รูป</label>
+                        <input type="file" name="variant_image[]" class="form-control">
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(div);
+
+            // ปุ่มลบตัวเลือก
+            div.querySelector('.removeVariant').onclick = () => div.remove();
+        });
+
+        // auto close alert
+        document.addEventListener("DOMContentLoaded", function() {
+            setTimeout(function() {
+                const alertList = document.querySelectorAll('.alert');
+                alertList.forEach(function(alert) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
+            }, 3000);
+        });
+    </script>
+
+    <script>
         // เปิด modal สำหรับแก้ไขสินค้า
         document.querySelectorAll('.editProductBtn').forEach(btn => {
             btn.addEventListener('click', e => {
@@ -369,19 +487,24 @@ while ($row = $res->fetch_assoc()) {
                         myModal.show();
 
                         // form update
-                        document.getElementById("updateProductForm").onsubmit = function(ev) {
-                            ev.preventDefault();
+                        const updateForm = document.getElementById("updateProductForm");
+                        if (updateForm) {
+                            updateForm.onsubmit = function(ev) {
+                                ev.preventDefault();
 
-                            fetch("ajax_update_product.php", {
-                                    method: "POST",
-                                    body: new FormData(this)
-                                }).then(res => res.text())
-                                .then(result => {
-                                    if (result === "success") {
-                                        location.reload();
-                                    }
-                                });
-                        };
+                                fetch("ajax_update_product.php", {
+                                        method: "POST",
+                                        body: new FormData(this)
+                                    }).then(res => res.text())
+                                    .then(result => {
+                                        if (result.trim() === "success") {
+                                            location.reload();
+                                        } else {
+                                            console.error("Update failed:", result);
+                                        }
+                                    });
+                            };
+                        }
                     });
             });
         });
@@ -411,9 +534,9 @@ while ($row = $res->fetch_assoc()) {
         });
     </script>
 
-
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
 
 </body>
 

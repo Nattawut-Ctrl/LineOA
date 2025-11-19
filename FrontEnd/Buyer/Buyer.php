@@ -1,21 +1,31 @@
 <?php
 session_start();
 
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../Users/line-entry.php");
-    exit;
-}
-
 require_once '../../utils/db_with_log.php';
 include_once '../../bootstrap.php';
 
-$conn = connectDBWithLog();
-$user_id = (int)$_SESSION['user_id'];
+$conn    = connectDBWithLog();
+$user_id = (int)($_SESSION['user_id'] ?? 0);
+
+// ถ้ายังไม่มี session เลย → ส่งไปล็อกอิน / สมัครก่อน
+if ($user_id <= 0) {
+    header("Location: ../Users/line-entry.php?from=shop");
+    exit;
+}
 
 /* 1) โหลดชื่อผู้ใช้ */
 $sqlUser  = "SELECT first_name, last_name FROM users WHERE id = ?";
-$result   = db_query($conn, $sqlUser, [$user_id], "i");
-$user     = $result ? $result->fetch_assoc() : ['first_name' => '', 'last_name' => ''];
+$resUser  = db_query($conn, $sqlUser, [$user_id], "i");
+
+// ถ้า user_id ใน session แต่ไม่มีในตาราง users → เคยสมัครไม่ครบ / ถูกลบ → บังคับไปสมัครใหม่
+if (!$resUser || $resUser->num_rows === 0) {
+    unset($_SESSION['user_id']);  // เคลียร์ session เก่า
+    header("Location: ../Users/line-entry.php?from=register");
+    exit;
+}
+
+$user = $resUser->fetch_assoc();
+
 
 /* 2) โหลด products ทั้งหมด */
 $products = [];

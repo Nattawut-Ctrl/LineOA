@@ -1,30 +1,30 @@
 <?php
 session_start();
-require_once '../../config.php';
-$conn = connectDB();
+require_once '../../utils/db_with_log.php';
+$conn = connectDBWithLog();
 
 $userId = $_SESSION['user_id'] ?? null;
 
 // -----------------------
-// 1) รับค่าจากฟอร์มสินค้าใหม่
+// 1) รับค่าจากฟอร์ม
 // -----------------------
-$name        = $_POST['name'] ?? '';
-$category    = $_POST['category'] ?? '';
+$name        = trim($_POST['name'] ?? '');
+$category    = trim($_POST['category'] ?? '');
 $price       = floatval($_POST['price'] ?? 0);
 $stock       = intval($_POST['stock'] ?? 0);
-$description = $_POST['description'] ?? '';
+$description = trim($_POST['description'] ?? '');
 
+// ตรวจสอบ input
 if ($name == '' || $category == '' || $price <= 0) {
 
-    // log input ไม่ถูกต้อง
-    log_db_action(
+    // log case input ไม่ถูกต้อง
+    writeLog(
         $conn,
-        $userId,
-        'INSERT',
-        'products',
-        null,
-        'save_new_product: invalid product input',
-        'fail'
+        "INSERT products (invalid input)",
+        ['name' => $name, 'category' => $category, 'price' => $price],
+        '',
+        'error',
+        'save_new_product: invalid product input'
     );
 
     header("Location: addStock.php?error=invalid_product_input");
@@ -32,59 +32,43 @@ if ($name == '' || $category == '' || $price <= 0) {
 }
 
 // -----------------------
-// 2) อัปโหลดรูปหลักสินค้า & เก็บ Full Path
+// 2) อัปโหลดรูปสินค้า
 // -----------------------
 $productImage = null;
 
 if (!empty($_FILES['image']['name'])) {
 
     $targetDir = "../../uploads/products/";
-
-    if (!is_dir($targetDir)) {
-        mkdir($targetDir, 0777, true);
-    }
+    if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
 
     $fileName   = time() . "_" . basename($_FILES["image"]["name"]);
     $targetFile = $targetDir . $fileName;
 
     if (move_uploaded_file($_FILES["image"]["tmp_name"], $targetFile)) {
-        // 🟢 เก็บ full path
-        $productImage = $targetFile;
+        $productImage = $targetFile;  // full path
     }
 }
 
 // -----------------------
-// 3) บันทึกข้อมูลสินค้า
+// 3) INSERT สินค้า
 // -----------------------
-$sql = "INSERT INTO products (name, category, price, stock, description, image)
-        VALUES (?, ?, ?, ?, ?, ?)";
-
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("ssdiss", $name, $category, $price, $stock, $description, $productImage);
-$okProduct = $stmt->execute();
-
-$product_id = $stmt->insert_id;
-$stmt->close();
-
-// log การสร้างสินค้า
-log_db_action(
+$resultProduct = db_exec(
     $conn,
-    $userId,
-    'INSERT',
-    'products',
-    $product_id,
-    "save_new_product: create product id=$product_id (name=$name, category=$category, price=$price, stock=$stock)",
-    $okProduct ? 'success' : 'fail'
+    "INSERT INTO products (name, category, price, stock, description, image)
+     VALUES (?, ?, ?, ?, ?, ?)",
+    [$name, $category, $price, $stock, $description, $productImage],
+    "ssdiss"
 );
 
-// ถ้าบันทึกสินค้าไม่สำเร็จ ให้ redirect กลับพร้อม error
-if (!$okProduct || !$product_id) {
+$product_id = $conn->insert_id;
+
+if (!$resultProduct['ok'] || !$product_id) {
     header("Location: addStock.php?error=invalid_product_input");
     exit;
 }
 
 // -----------------------
-// 4) บันทึก Variants + รูป + Full Path
+// 4) INSERT Variants + รูป
 // -----------------------
 if (!empty($_POST['variant_name'])) {
 
@@ -94,9 +78,7 @@ if (!empty($_POST['variant_name'])) {
     $variant_images = $_FILES['variant_image'];
 
     $targetDir = "../../uploads/variants/";
-    if (!is_dir($targetDir)) {
-        mkdir($targetDir, 0777, true);
-    }
+    if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
 
     foreach ($variant_names as $i => $vname) {
 
@@ -106,42 +88,30 @@ if (!empty($_POST['variant_name'])) {
         $vstock = intval($variant_stocks[$i] ?? 0);
         $vimage = null;
 
-        // -------- อัปโหลดรูป variant & เก็บ full path
+        // --- upload รูป variant
         if (!empty($variant_images['name'][$i])) {
 
             $fileName   = time() . "_" . basename($variant_images['name'][$i]);
             $targetFile = $targetDir . $fileName;
 
             if (move_uploaded_file($variant_images['tmp_name'][$i], $targetFile)) {
-                $vimage = $targetFile;  // 🟢 บันทึก full path
+                $vimage = $targetFile;
             }
         }
 
-        // -------- บันทึกลง DB
-        $sql = "INSERT INTO product_variants (product_id, variant_name, price, stock, image)
-                VALUES (?, ?, ?, ?, ?)";
-
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("isdis", $product_id, $vname, $vprice, $vstock, $vimage);
-        $okVariant = $stmt->execute();
-        $variant_id = $stmt->insert_id;
-        $stmt->close();
-
-        // log การสร้าง variant ทีละตัว
-        log_db_action(
+        // --- insert variant
+        db_exec(
             $conn,
-            $userId,
-            'INSERT',
-            'product_variants',
-            $variant_id,
-            "save_new_product: create variant id=$variant_id for product id=$product_id (name=$vname, price=$vprice, stock=$vstock)",
-            $okVariant ? 'success' : 'fail'
+            "INSERT INTO product_variants (product_id, variant_name, price, stock, image)
+             VALUES (?, ?, ?, ?, ?)",
+            [$product_id, $vname, $vprice, $vstock, $vimage],
+            "isdis"
         );
     }
 }
 
 // -----------------------
-// 5) เสร็จ
+// 5) เสร็จ → redirect
 // -----------------------
 header("Location: addStock.php?success=new_product_created");
 exit;

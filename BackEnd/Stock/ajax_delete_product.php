@@ -1,9 +1,7 @@
 <?php
 session_start();
-require_once '../../config.php';
-$conn = connectDB();
-
-$userId = $_SESSION['user_id'] ?? null;
+require_once '../../utils/db_with_log.php';
+$conn = connectDBWithLog();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -12,16 +10,19 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 
+// ------------------------
+// ตรวจ ID ให้ถูกต้องก่อน
+// ------------------------
 if ($id <= 0) {
-
-    log_db_action(
+    // ถ้าอยาก log case นี้ด้วย (ไม่มี SQL จริง) ก็ใช้ writeLog ได้
+    writeLog(
         $conn,
-        $userId,
-        'DELETE',
-        'products',
-        $id,
+        'DELETE products (invalid id)',
+        [],
+        '',
+        'error',
         'Invalid product id in ajax_delete_product',
-        'fail'
+        $id
     );
 
     http_response_code(400);
@@ -31,7 +32,15 @@ if ($id <= 0) {
 // ------------------------
 // 1) ลบไฟล์รูปสินค้า
 // ------------------------
-$p = $conn->query("SELECT image FROM products WHERE id = $id")->fetch_assoc();
+$resP = db_query(
+    $conn,
+    "SELECT image FROM products WHERE id = ?",
+    [$id],
+    "i"
+);
+
+$p = $resP ? $resP->fetch_assoc() : null;
+
 if ($p && !empty($p['image']) && file_exists($p['image'])) {
     unlink($p['image']);
 }
@@ -39,8 +48,14 @@ if ($p && !empty($p['image']) && file_exists($p['image'])) {
 // ------------------------
 // 2) ลบไฟล์รูป variant ทั้งหมด
 // ------------------------
-$v = $conn->query("SELECT image FROM product_variants WHERE product_id = $id");
-while ($row = $v->fetch_assoc()) {
+$resV = db_query(
+    $conn,
+    "SELECT image FROM product_variants WHERE product_id = ?",
+    [$id],
+    "i"
+);
+
+while ($row = $resV->fetch_assoc()) {
     if (!empty($row['image']) && file_exists($row['image'])) {
         unlink($row['image']);
     }
@@ -48,24 +63,35 @@ while ($row = $v->fetch_assoc()) {
 
 // ------------------------
 // 3) ลบข้อมูลที่เกี่ยวข้องใน DB
+//    ใช้ db_exec → log ให้เอง
 // ------------------------
-$okCart    = $conn->query("DELETE FROM cart_items WHERE product_id = $id");
-$okVariant = $conn->query("DELETE FROM product_variants WHERE product_id = $id");
-$okProduct = $conn->query("DELETE FROM products WHERE id = $id");
-
-// ประเมินสถานะ
-$status = ($okCart && $okVariant && $okProduct) ? 'success' : 'fail';
-
-// บันทึก log
-log_db_action(
+$resultCart = db_exec(
     $conn,
-    $userId,
-    'DELETE',
-    'products',
-    $id,
-    "Delete product id=$id from products, product_variants, cart_items",
-    $status
+    "DELETE FROM cart_items WHERE product_id = ?",
+    [$id],
+    "i"
 );
+
+$resultVariant = db_exec(
+    $conn,
+    "DELETE FROM product_variants WHERE product_id = ?",
+    [$id],
+    "i"
+);
+
+$resultProduct = db_exec(
+    $conn,
+    "DELETE FROM products WHERE id = ?",
+    [$id],
+    "i"
+);
+
+// ประเมินสถานะจากทั้ง 3 คำสั่ง
+$status = (
+    $resultCart['ok'] &&
+    $resultVariant['ok'] &&
+    $resultProduct['ok']
+) ? 'success' : 'error';
 
 // ถ้าลบไม่สำเร็จ ส่ง error
 if ($status !== 'success') {
@@ -78,4 +104,3 @@ if ($status !== 'success') {
 // ตอบกลับปกติ
 header('Content-Type: text/plain; charset=utf-8');
 echo "success";
-?>

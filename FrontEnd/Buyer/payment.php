@@ -73,7 +73,7 @@ if ($mode === 'cart') {
         ");
         $res = db_query($conn, $sql, [$variant_id, $product_id], "ii");
     } else {
-        $sql("
+        $sql = ("
             SELECT price, name AS product_name
             FROM products 
             WHERE id = ?

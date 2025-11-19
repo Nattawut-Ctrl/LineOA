@@ -8,14 +8,13 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 require_once '../../utils/db_with_log.php';
+
 $conn = connectDBWithLog();
+$user_id = $_SESSION['user_id'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $user_id = $_SESSION['user_id'];
 
-    // mode = single | cart (มาจาก payment.php)
     $mode = $_POST['mode'] ?? 'single';
-
     $payment_time = $_POST['payment_time'] ?? null;
 
     // ตรวจสอบการอัปโหลดไฟล์
@@ -43,19 +42,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $prices        = $_POST['price']        ?? [];
                 $total_all     = (float)($_POST['total'] ?? 0); // ถ้าอยากใช้ทีหลัง
 
-                db_query(
-                    $conn,
+                $sqlInsertPay = 
                     "INSERT INTO payments
                     (user_id, product_id, variant_id, product_name, variant_name, quantity, price, total, slip_image, payment_time)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    [], // จะใช้ prepare statement ด้านล่างแทน
-                    ""
-                );
-                // $stmt = $conn->prepare("
-                //     INSERT INTO payments
-                //     (user_id, product_id, variant_id, product_name, variant_name, quantity, price, total, slip_image, payment_time)
-                //     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                // ");
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
                 foreach ($product_ids as $i => $pid) {
                     $pid   = (int)$pid;
@@ -66,36 +56,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $price = (float)($prices[$i] ?? 0);
                     $lineTotal = $price * $qty;   // เก็บยอดของแต่ละชิ้น
 
-                    $stmt->bind_param(
-                        "iiissiddss",
-                        $user_id,
-                        $pid,
-                        $vid,
-                        $name,
-                        $vname,
-                        $qty,
-                        $price,
-                        $lineTotal,
-                        $fileName,
-                        $payment_time
-                    );
-                    $stmt->execute();
+                    try {
+                        db_query(
+                            $conn,
+                            $sqlInsertPay,
+                            [
+                                $user_id,
+                                $pid,
+                                $vid,
+                                $name,
+                                $vname,
+                                $qty,
+                                $price,
+                                $lineTotal,
+                                $fileName,
+                                $payment_time
+                            ],
+                            "iiissiddss"
+                        );
+                    } catch (Exception $e) {
+                        die('DB ERROR (Insert payments cart):' . $e->getMessage());
+                    }
                 }
 
-                $stmt->close();
-
                 // 🧹 หลังบันทึก payment เสร็จ — ลบสินค้าที่จ่ายออกจากตะกร้า
-                $delete = $conn->prepare("
-                        DELETE FROM cart_items 
-                        WHERE user_id = ? AND product_id = ?
-                    ");
+                $sqlDelCart = "
+                    DELETE FROM cart_items 
+                    WHERE user_id = ? AND product_id = ?
+                ";
 
                 foreach ($product_ids as $i => $pid) {
                     $pid = (int)$pid;
-                    $delete->bind_param("ii", $user_id, $pid);
-                    $delete->execute();
+                    db_query(
+                        $conn,
+                        $sqlDelCart,
+                        [$user_id, $pid],
+                        "ii"
+                    );
                 }
-                $delete->close();
                 $message = "<div class='alert alert-success text-center'>✅ อัปโหลดสลิปเรียบร้อย (ตะกร้าทั้งหมด) รอตรวจสอบการชำระเงิน</div>";
             } else {
                 // ---------- ซื้อทีละชิ้น ----------
@@ -108,36 +106,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $price    = (float)($_POST['price'] ?? 0);
                 $total    = (float)($_POST['total'] ?? 0);
 
-                $stmt = $conn->prepare("
-                    INSERT INTO payments 
-                    (user_id, product_id, variant_id, product_name, variant_name, quantity, price, total, slip_image, payment_time)  
+                $sqlInsertSingle = "
+                    INSERT INTO payments
+                    (user_id, product_id, variant_id, product_name, variant_name, quantity, price, total, slip_image, payment_time)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ");
-                $stmt->bind_param(
-                    "iiissiddss",
-                    $user_id,
-                    $product_id,
-                    $variant_id,
-                    $product_name,
-                    $variant_name,
-                    $quantity,
-                    $price,
-                    $total,
-                    $fileName,
-                    $payment_time
+                ";
+
+                db_query(
+                    $conn,
+                    $sqlInsertSingle,
+                    [
+                        $user_id,
+                        $product_id,
+                        $variant_id,
+                        $product_name,
+                        $variant_name,
+                        $quantity,
+                        $price,
+                        $total,
+                        $fileName,
+                        $payment_time
+                    ],
+                    "iiissiddss"
                 );
-                $stmt->execute();
-                $stmt->close();
 
                 // 🧹 ลบรายการนี้ออกจากตะกร้า
-                $del = $conn->prepare("
+                $sqlDelSingle = "
                     DELETE FROM cart_items 
-                    WHERE user_id = ? AND product_id = ? AND variant_id = ?
-                ");
-                $del->bind_param("iii", $user_id, $product_id, $variant_id);
-                $del->execute();
-                $del->close();
-
+                    WHERE user_id = ? AND product_id = ? AND (variant_id = ?
+                ";
+                db_query(
+                    $conn,
+                    $sqlDelSingle,
+                    [$user_id, $product_id, $variant_id],
+                    "iii"
+                );
 
                 $message = "<div class='alert alert-success text-center'>✅ อัปโหลดสลิปเรียบร้อย รอตรวจสอบการชำระเงิน</div>";
             }

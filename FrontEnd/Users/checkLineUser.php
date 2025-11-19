@@ -1,8 +1,8 @@
 <?php
 session_start();
-require_once '../../config.php';  // ปรับ path ให้ตรงของจริง
+require_once '../../utils/db_with_log.php';
 
-$conn = connectDB();
+$conn = connectDBWithLog();
 
 $line_uid      = $_POST['line_uid']      ?? '';
 $display_name  = $_POST['display_name']  ?? '';

@@ -33,14 +33,7 @@ if (!empty($_GET['error'])) {
     <meta charset="UTF-8">
     <title>เข้าสู่ระบบผู้ดูแล</title>
 
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- ฟอนต์ Kanit -->
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
-
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <?php include '../partials/admin_head.php'; ?>
 
     <style>
         :root {
@@ -261,8 +254,6 @@ if (!empty($_GET['error'])) {
 
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
         // Auto hide alert (เช่น login error) หลัง 3 วิ

@@ -1,4 +1,12 @@
 <?php
+session_start(); // ต้องอยู่บรรทัดแรกสุดเสมอ
+
+// ถ้าไม่ได้ล็อกอิน (ไม่มี session admin_id) ให้เด้งไปหน้า login
+if (!isset($_SESSION['admin_id'])) {
+    header('Location: ../Users/ad_login.php');
+    exit;
+}
+
 // session_start();
 require_once '../../utils/db_with_log.php';
 include_once '../../bootstrap.php';

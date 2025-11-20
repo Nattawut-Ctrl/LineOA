@@ -7,31 +7,26 @@ include_once '../../bootstrap.php';
 $conn    = connectDBWithLog();
 $user_id = (int)($_SESSION['user_id'] ?? 0);
 
-// ถ้ายังไม่มี session เลย → ส่งไปล็อกอิน / สมัครก่อน
 if ($user_id <= 0) {
     header("Location: ../Users/line-entry.php?from=shop");
     exit;
 }
 
-/* 1) โหลดชื่อผู้ใช้ */
 $sqlUser  = "SELECT first_name, last_name FROM users WHERE id = ?";
 $resUser  = db_query($conn, $sqlUser, [$user_id], "i");
 
-// ถ้า user_id ใน session แต่ไม่มีในตาราง users → เคยสมัครไม่ครบ / ถูกลบ → บังคับไปสมัครใหม่
 if (!$resUser || $resUser->num_rows === 0) {
-    unset($_SESSION['user_id']);  // เคลียร์ session เก่า
+    unset($_SESSION['user_id']);
     header("Location: ../Users/line-entry.php?from=register");
     exit;
 }
 
 $user = $resUser->fetch_assoc();
 
-
-/* 2) โหลด products ทั้งหมด */
 $products = [];
 
 $sqlProducts = "SELECT id, name, price, image, description, category, stock FROM products";
-$resProd     = db_query($conn, $sqlProducts);   // ไม่มี params
+$resProd     = db_query($conn, $sqlProducts);
 
 if ($resProd && $resProd->num_rows > 0) {
     while ($row = $resProd->fetch_assoc()) {
@@ -42,7 +37,6 @@ if ($resProd && $resProd->num_rows > 0) {
     $products = [];
 }
 
-/* 3) โหลด cart items ของ user คนนี้ */
 $cart_items = [];
 $sqlCart = "
     SELECT c.*, p.name AS name, p.image AS image,
@@ -60,7 +54,6 @@ if ($resCart && $resCart->num_rows > 0) {
     }
 }
 
-/* 4) โหลด variants ทั้งหมด */
 $variant_sql   = "SELECT id, product_id, variant_name, price, stock, image FROM product_variants";
 $variant_result = db_query($conn, $variant_sql);
 
@@ -75,7 +68,6 @@ if ($variant_result && $variant_result->num_rows > 0) {
 
 $products = array_values($products);
 
-/* 5) โหลดหมวดหมู่ */
 $categories = ['ทั้งหมด'];
 $cat_sql    = "SELECT DISTINCT category FROM products";
 $cat_result = db_query($conn, $cat_sql);
@@ -99,16 +91,18 @@ if ($cat_result && $cat_result->num_rows > 0) {
         body {
             min-height: 100vh;
             background: radial-gradient(circle at top left, #ffe0e3 0, #fffaf1 35%, #e3f2fd 100%);
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
         }
 
-        .navbar {
+        /* Navbar */
+        .navbar-glass {
+            background: linear-gradient(90deg,
+                    rgba(238, 77, 45, 0.95),
+                    rgba(255, 143, 90, 0.95));
             backdrop-filter: blur(12px);
         }
 
-        .navbar-glass {
-            background: linear-gradient(90deg, rgba(238, 77, 45, 0.95), rgba(255, 143, 90, 0.95));
-        }
-
+        /* Hero */
         .hero-section {
             background: linear-gradient(135deg, #ee4d2d 0%, #ff7043 40%, #ffb74d 100%);
         }
@@ -123,6 +117,7 @@ if ($cat_result && $cat_result->num_rows > 0) {
             backdrop-filter: blur(8px);
         }
 
+        /* Product Card */
         .product-card {
             cursor: pointer;
             transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
@@ -158,10 +153,12 @@ if ($cat_result && $cat_result->num_rows > 0) {
             background: linear-gradient(135deg, #ff7043, #ffb74d) !important;
         }
 
+        /* Cart bar */
         #cartBar {
             box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.12);
         }
 
+        /* Variants */
         .variant-pill {
             border-radius: 999px;
         }
@@ -179,6 +176,41 @@ if ($cat_result && $cat_result->num_rows > 0) {
         .cart-row {
             background: linear-gradient(135deg, #fafafa, #fff);
             border-radius: 0.75rem;
+        }
+
+        .fly-img {
+            position: fixed;
+            z-index: 2000;
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1),
+                opacity 0.6s ease;
+            pointer-events: none;
+        }
+
+        @keyframes cart-bounce {
+            0% {
+                transform: translateY(0);
+            }
+
+            30% {
+                transform: translateY(-3px);
+            }
+
+            60% {
+                transform: translateY(1px);
+            }
+
+            100% {
+                transform: translateY(0);
+            }
+        }
+
+        .shake-cart {
+            animation: cart-bounce 0.3s ease;
         }
     </style>
 </head>
@@ -200,11 +232,11 @@ if ($cat_result && $cat_result->num_rows > 0) {
                     <i class="bi bi-person-circle me-1"></i>
                     <?php echo htmlspecialchars($user['first_name']); ?>
                 </span>
-                <button class="btn btn-light btn-sm rounded-circle position-relative shadow-sm" id="cartIcon" type="button">
+                <button class="btn btn-light btn-sm rounded-circle position-relative shadow-sm" id="cartIcon"
+                    type="button">
                     <i class="bi bi-cart3 text-danger"></i>
                     <span class="position-absolute top-0 start-100 translate-middle badge bg-warning text-dark rounded-pill"
-                        id="cartCountBadge"
-                        style="font-size:0.65rem; display:none;">
+                        id="cartCountBadge" style="font-size:0.65rem; display:none;">
                         0
                     </span>
                 </button>
@@ -216,10 +248,13 @@ if ($cat_result && $cat_result->num_rows > 0) {
     <section class="hero-section py-4 py-md-5 text-center text-white">
         <div class="container">
             <h3 class="fw-bold mb-2">
-                สวัสดีคุณ <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?> 👋
+                สวัสดีคุณ
+                <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?> 👋
             </h3>
-            <p class="text-white-50 mb-3 mb-md-4">เลือกช้อปสินค้าแสนสะดวก พร้อมดีลพิเศษสำหรับคุณ</p>
-            <div class="hero-chip">
+            <p class="text-white-50 mb-3 mb-md-4">
+                เลือกช้อปสินค้าแสนสะดวก พร้อมดีลพิเศษสำหรับคุณ
+            </p>
+            <div class="hero-chip shadow-sm">
                 <i class="bi bi-stars text-warning"></i>
                 <span class="small">ช้อปง่าย • จ่ายสะดวก • ดูสลิปได้</span>
             </div>
@@ -260,9 +295,8 @@ if ($cat_result && $cat_result->num_rows > 0) {
 
             <div id="categoryCollapse" class="collapse d-md-block show">
                 <div class="d-flex category-chip overflow-x-auto gap-2 py-1">
-                    <?php foreach ($categories as $index => $cat): ?>
-                        <button
-                            type="button"
+                    <?php foreach ($categories as $cat): ?>
+                        <button type="button"
                             class="btn btn-sm btn-outline-secondary rounded-pill text-nowrap flex-shrink-0 category-item <?php echo $cat === 'ทั้งหมด' ? 'active' : ''; ?>"
                             data-category="<?php echo $cat; ?>">
                             <?php if ($cat === 'ทั้งหมด'): ?>
@@ -280,33 +314,37 @@ if ($cat_result && $cat_result->num_rows > 0) {
 
     <!-- Products Grid -->
     <main class="container py-4">
-        <div class="row g-3" id="product-list">
+        <div class="row g-3 g-md-4" id="product-list">
             <?php foreach ($products as $product): ?>
-                <div class="col-6 col-md-4 col-lg-3 product-item" data-category="<?php echo $product['category']; ?>">
-                    <div class="card product-card h-100 border-0 shadow-sm">
+                <div class="col-6 col-md-4 col-lg-3 product-item mb-2 mb-md-3"
+                    data-category="<?php echo $product['category']; ?>">
+                    <div class="card product-card h-100 border-0 shadow-sm bg-white">
                         <div class="position-relative product-img-wrap rounded-top-4 overflow-hidden">
                             <img src="<?php echo $product['image']; ?>"
                                 class="card-img-top w-100 h-100"
-                                alt="<?php echo $product['name']; ?>"
+                                alt="<?php echo htmlspecialchars($product['name']); ?>"
                                 loading="lazy">
                             <?php if (!empty($product['category'])): ?>
-                                <span class="badge text-bg-light position-absolute top-2 start-2 rounded-pill shadow-sm small">
-                                    <i class="bi bi-tag me-1 text-danger"></i><?php echo $product['category']; ?>
+                                <span
+                                    class="badge text-bg-light position-absolute top-0 start-0 m-2 rounded-pill shadow-sm small">
+                                    <i class="bi bi-tag me-1 text-danger"></i>
+                                    <?php echo htmlspecialchars($product['category']); ?>
                                 </span>
                             <?php endif; ?>
-                            <span class="badge bg-success-subtle text-success-emphasis position-absolute bottom-2 end-2 badge-stock shadow-sm">
+                            <span
+                                class="badge bg-success-subtle text-success-emphasis position-absolute bottom-0 end-0 m-2 badge-stock shadow-sm">
                                 คงเหลือ <?php echo (int)$product['stock']; ?>
                             </span>
                         </div>
-                        <div class="card-body d-flex flex-column p-2">
+                        <div class="card-body d-flex flex-column p-2 p-md-3">
                             <h6 class="card-title text-truncate small fw-semibold mb-1">
-                                <?php echo $product['name']; ?>
+                                <?php echo htmlspecialchars($product['name']); ?>
                             </h6>
                             <p class="text-danger fw-bold fs-6 mb-1">
                                 ฿<?php echo number_format($product['price']); ?>
                             </p>
                             <small class="text-muted text-truncate flex-grow-1 mb-2">
-                                <?php echo $product['description']; ?>
+                                <?php echo htmlspecialchars($product['description']); ?>
                             </small>
                             <div class="d-grid gap-1 mt-1">
                                 <button
@@ -332,7 +370,7 @@ if ($cat_result && $cat_result->num_rows > 0) {
     <div class="position-fixed bottom-0 start-0 end-0 bg-white border-top border-3"
         id="cartBar"
         style="border-top-color: #ee4d2d!important; transform: translateY(100%); transition: transform 0.3s ease; z-index: 1050; border-top-left-radius: 20px; border-top-right-radius: 20px;">
-        <div class="p-3">
+        <div class="container py-3">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="d-flex align-items-center gap-2">
                     <span class="badge rounded-pill text-bg-danger-subtle text-danger-emphasis">
@@ -343,7 +381,8 @@ if ($cat_result && $cat_result->num_rows > 0) {
             </div>
 
             <div class="d-flex gap-3 mb-3">
-                <div class="rounded-3 overflow-hidden bg-light" style="width:80px;height:80px;">
+                <div class="rounded-3 overflow-hidden bg-light flex-shrink-0"
+                    style="width:80px;height:80px;">
                     <img id="cartProductImage" src="" class="w-100 h-100" style="object-fit: cover;">
                 </div>
                 <div class="flex-grow-1">
@@ -379,7 +418,8 @@ if ($cat_result && $cat_result->num_rows > 0) {
             </div>
 
             <div class="d-grid gap-2">
-                <button type="button" class="btn btn-outline-danger fw-bold rounded-3" onclick="addCurrentToCart()">
+                <button type="button" class="btn btn-outline-danger fw-bold rounded-3"
+                    onclick="addCurrentToCart()">
                     <i class="bi bi-cart-plus me-1"></i> เพิ่มลงตะกร้า
                 </button>
                 <button type="button"
@@ -398,18 +438,21 @@ if ($cat_result && $cat_result->num_rows > 0) {
             <div class="modal-content border-0 rounded-4 shadow-lg">
                 <div class="modal-header border-0">
                     <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
-                        <span class="bg-danger-subtle text-danger-emphasis rounded-circle d-inline-flex align-items-center justify-content-center"
+                        <span
+                            class="bg-danger-subtle text-danger-emphasis rounded-circle d-inline-flex align-items-center justify-content-center"
                             style="width:32px;height:32px;">
                             <i class="bi bi-bag-check-fill"></i>
                         </span>
                         <span>ตะกร้าสินค้า</span>
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div id="cartItemsContainer"></div>
                 </div>
-                <div class="modal-footer border-0 d-flex justify-content-between align-items-center pt-0">
+                <div
+                    class="modal-footer border-0 d-flex justify-content-between align-items-center pt-0">
                     <div class="fw-bold fs-6">
                         รวมทั้งหมด:
                         <span class="text-danger" id="cartTotal">0 บาท</span>
@@ -425,6 +468,21 @@ if ($cat_result && $cat_result->num_rows > 0) {
         </div>
     </div>
 
+    <!-- Toast แจ้งเตือนเพิ่มสินค้า -->
+    <div class="position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 1100;">
+        <div id="cartToast" class="toast align-items-center text-bg-success border-0 shadow-lg" role="alert"
+            aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body small fw-semibold" id="cartToastBody">
+                    เพิ่มสินค้าลงตะกร้าแล้ว
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                    aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+
     <!-- SCRIPTS -->
     <script>
         let selectedProduct = null;
@@ -432,6 +490,7 @@ if ($cat_result && $cat_result->num_rows > 0) {
 
         let cart = <?php echo json_encode($cart_items, JSON_UNESCAPED_UNICODE); ?> || [];
         let cartModal = null;
+        let cartToast = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.open-cart-bar').forEach(btn => {
@@ -441,16 +500,41 @@ if ($cat_result && $cat_result->num_rows > 0) {
                 });
             });
 
+            // ปุ่ม "เพิ่มตะกร้า" = Quick add + animation บินเข้าตะกร้า
             document.querySelectorAll('.add-cart-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    selectedProduct = JSON.parse(btn.getAttribute('data-product'));
-                    openCartBar(selectedProduct);
+                    const product = JSON.parse(btn.getAttribute('data-product'));
+
+                    // ถ้ามี variants ให้บังคับเลือกเหมือนเดิม (เปิด cartBar)
+                    if (product.variants && product.variants.length > 0) {
+                        selectedProduct = product;
+                        openCartBar(selectedProduct);
+                        return;
+                    }
+
+                    // ถ้าไม่มี variant -> เพิ่มลง cart ทันที 1 ชิ้น
+                    quickAddToCart(product);
+
+                    // เล่น animation บินเข้าตะกร้า
+                    const cardImg = btn.closest('.product-card')
+                        .querySelector('.product-img-wrap img');
+                    const cartIcon = document.getElementById('cartIcon');
+                    if (cardImg && cartIcon) {
+                        flyToCart(cardImg, cartIcon);
+                    }
                 });
             });
 
             const modalEl = document.getElementById('cartModal');
             if (modalEl) {
                 cartModal = new bootstrap.Modal(modalEl);
+            }
+
+            const toastEl = document.getElementById('cartToast');
+            if (toastEl) {
+                cartToast = new bootstrap.Toast(toastEl, {
+                    delay: 2000
+                });
             }
 
             const cartIcon = document.getElementById('cartIcon');
@@ -501,7 +585,67 @@ if ($cat_result && $cat_result->num_rows > 0) {
                 document.body.appendChild(form);
                 form.submit();
             });
+
+            document.querySelectorAll('.category-item').forEach(item => {
+                item.addEventListener('click', e => {
+                    e.preventDefault();
+                    const selected = item.getAttribute('data-category');
+                    document.querySelectorAll('.category-item').forEach(a => {
+                        a.classList.remove('active');
+                    });
+                    item.classList.add('active');
+
+                    document.querySelectorAll('.product-item').forEach(card => {
+                        const cat = card.getAttribute('data-category');
+                        card.style.display = (selected === 'ทั้งหมด' || cat === selected) ? 'block' : 'none';
+                    });
+                });
+            });
         });
+
+        function flyToCart(sourceImgEl, cartIconEl) {
+            const imgRect = sourceImgEl.getBoundingClientRect();
+            const cartRect = cartIconEl.getBoundingClientRect();
+
+            // clone รูป
+            const flyImg = sourceImgEl.cloneNode(true);
+            flyImg.classList.add('fly-img');
+            document.body.appendChild(flyImg);
+
+            // จุดเริ่มต้น (ที่รูปจริงอยู่)
+            flyImg.style.left = imgRect.left + 'px';
+            flyImg.style.top = imgRect.top + 'px';
+            flyImg.style.transform = 'translate(0, 0)';
+            flyImg.style.opacity = '1';
+
+            // บังคับให้ browser คำนวณ layout ก่อน transition
+            requestAnimationFrame(() => {
+                const deltaX = cartRect.left + cartRect.width / 2 - (imgRect.left + imgRect.width / 2);
+                const deltaY = cartRect.top + cartRect.height / 2 - (imgRect.top + imgRect.height / 2);
+
+                flyImg.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0.3)`;
+                flyImg.style.opacity = '0';
+            });
+
+            flyImg.addEventListener('transitionend', () => {
+                flyImg.remove();
+
+                // แถม effect กระดิก icon ตะกร้านิดหน่อย
+                cartIconEl.classList.add('shake-cart');
+                setTimeout(() => cartIconEl.classList.remove('shake-cart'), 300);
+            }, {
+                once: true
+            });
+        }
+
+        function showCartToast(message) {
+            const bodyEl = document.getElementById('cartToastBody');
+            if (!cartToast || !bodyEl) return;
+
+            bodyEl.textContent = message;
+            cartToast.show();
+        }
+
 
         function openCartBar(product) {
             const bar = document.getElementById('cartBar');
@@ -624,9 +768,39 @@ if ($cat_result && $cat_result->num_rows > 0) {
             }
 
             updateCartBadge();
-            alert('เพิ่มสินค้าในตะกร้าแล้ว');
+            showCartToast('เพิ่มสินค้าลงตะกร้าแล้ว');
             syncCartToServer();
         }
+
+        function quickAddToCart(base) {
+            const qty = 1; // เพิ่มทีละ 1 ชิ้น
+            const productId = base.id;
+            const variantId = null;
+            const price = Number(base.price);
+            const name = base.name;
+            const image = base.image;
+
+            const existing = cart.find(
+                item => item.product_id == productId && item.variant_id == variantId
+            );
+
+            if (existing) {
+                existing.quantity += qty;
+            } else {
+                cart.push({
+                    product_id: productId,
+                    variant_id: variantId,
+                    name: name,
+                    price: price,
+                    image: image,
+                    quantity: qty
+                });
+            }
+
+            updateCartBadge();
+            syncCartToServer();
+        }
+
 
         function removeCartItem(index) {
             if (index < 0 || index >= cart.length) return;
@@ -736,22 +910,6 @@ if ($cat_result && $cat_result->num_rows > 0) {
             document.body.appendChild(form);
             form.submit();
         }
-
-        document.querySelectorAll('.category-item').forEach(item => {
-            item.addEventListener('click', e => {
-                e.preventDefault();
-                const selected = item.getAttribute('data-category');
-                document.querySelectorAll('.category-item').forEach(a => {
-                    a.classList.remove('active');
-                });
-                item.classList.add('active');
-
-                document.querySelectorAll('.product-item').forEach(card => {
-                    const cat = card.getAttribute('data-category');
-                    card.style.display = (selected === 'ทั้งหมด' || cat === selected) ? 'block' : 'none';
-                });
-            });
-        });
 
         function searchCategory(e) {
             e.preventDefault();

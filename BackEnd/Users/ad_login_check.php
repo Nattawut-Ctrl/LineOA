@@ -2,123 +2,70 @@
 session_start();
 
 require_once '../../utils/db_with_log.php';
-$conn = connectDBWithLog();
+$conn = connectDB();
 
-// รับเฉพาะ POST เท่านั้น
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    exit('Method Not Allowed');
-}
-
-$email    = trim($_POST['email']    ?? '');
-$password =       $_POST['password'] ?? '';
-
-// ถ้าขาดข้อมูล → redirect กลับไปพร้อม error=required
-if ($email === '' || $password === '') {
-
-    // log เคส input ไม่ครบ
-    writeLog(
-        $conn,
-        "SELECT * FROM admins (login required error)",
-        ['identity' => $email],
-        '',
-        'error',
-        'ad_login_check: required fields missing'
-    );
-
-    header('Location: ad_login.php?error=required');
+function redirectWithError($code) {
+    header('Location: ad_login.php?error=' . $code);
     exit;
 }
 
-// -----------------------------
-// 1) หา admin จาก email / username
-//    (ปรับชื่อ table/column ให้ตรงกับของจริง)
-// -----------------------------
+// รับค่าจากฟอร์ม
+$emailOrUsername = trim($_POST['email'] ?? '');
+$password        = trim($_POST['password'] ?? '');
 
-$sql  = "SELECT id, email, username, password, status 
-         FROM admins 
-         WHERE email = ? OR username = ?
-         LIMIT 1";
-
-$res = db_query($conn, $sql, [$email, $email], "ss");
-
-if (!$res || $res->num_rows === 0) {
-    // ไม่เจอผู้ใช้ → invalid
-
-    writeLog(
-        $conn,
-        "SELECT * FROM admins (login invalid user)",
-        ['identity' => $email],
-        '',
-        'error',
-        'ad_login_check: invalid email/username'
-    );
-
-    header('Location: ad_login.php?error=invalid');
-    exit;
+// เช็กกรอกครบไหม
+if ($emailOrUsername === '' || $password === '') {
+    redirectWithError('required'); // ไปเข้า case 'required' ใน ad_login.php
 }
 
-$admin = $res->fetch_assoc();
+try {
+    // ใช้ email หรือ username ก็ได้
+    $sql = "
+        SELECT id, username, email, password_hash, status
+        FROM admins
+        WHERE email = ? OR username = ?
+        LIMIT 1
+    ";
 
-// -----------------------------
-// 2) เช็คสถานะบัญชี (ถ้ามีคอลัมน์ status)
-//    สมมุติใช้ค่า 'active' = เปิดใช้งาน
-// -----------------------------
-if (isset($admin['status']) && $admin['status'] !== 'active') {
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        // ถ้า prepare ไม่ได้ ให้ถือว่า error ทั่วไป
+        redirectWithError('unknown');
+    }
 
-    writeLog(
-        $conn,
-        "SELECT * FROM admins (login inactive)",
-        ['admin_id' => $admin['id'], 'identity' => $email],
-        '',
-        'error',
-        'ad_login_check: inactive account'
-    );
+    $stmt->bind_param('ss', $emailOrUsername, $emailOrUsername);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $admin = $result->fetch_assoc();
+    $stmt->close();
 
-    header('Location: ad_login.php?error=inactive');
+    // ไม่พบผู้ใช้
+    if (!$admin) {
+        redirectWithError('invalid');
+    }
+
+    // สถานะ inactive
+    if ($admin['status'] !== 'active') {
+        redirectWithError('inactive');
+    }
+
+    // ตรวจรหัสผ่าน (hash)
+    if (!password_verify($password, $admin['password_hash'])) {
+        redirectWithError('invalid');
+    }
+
+    // ถ้าผ่านทุกอย่าง -> login สำเร็จ
+    $_SESSION['admin_id']    = $admin['id'];
+    $_SESSION['admin_name']  = $admin['username'];
+    $_SESSION['admin_email'] = $admin['email'];
+
+    // TODO: ถ้าจะทำ remember me แบบจริงจังควรทำตาราง token แยก
+    // ตอนนี้ยังไม่ทำก็ได้ ใช้แค่ session ปกติ
+
+    // เด้งไปหน้า addStock (ตรงกับใน ad_login.php)
+    header('Location: ../Stock/addStock.php');
     exit;
+} catch (Exception $e) {
+    // ผิดพลาดอื่น ๆ
+    redirectWithError('unknown');
 }
-
-// -----------------------------
-// 3) ตรวจรหัสผ่าน
-//    สมมติคอลัมน์ password เก็บ password_hash()
-// -----------------------------
-
-$hash = $admin['password'];
-
-if (!password_verify($password, $hash)) {
-
-    writeLog(
-        $conn,
-        "SELECT * FROM admins (login wrong password)",
-        ['admin_id' => $admin['id'], 'identity' => $email],
-        '',
-        'error',
-        'ad_login_check: wrong password'
-    );
-
-    header('Location: ad_login.php?error=invalid');
-    exit;
-}
-
-// -----------------------------
-// 4) ล็อกอินสำเร็จ → set session
-// -----------------------------
-$_SESSION['admin_id'] = (int)$admin['id'];
-
-// ถ้าอยากทำ remember me จริง ๆ ให้ไปทำระบบ token + cookie เพิ่มได้
-// ตอนนี้ถือว่าเช็คเฉพาะ session พอ
-
-writeLog(
-    $conn,
-    "SELECT * FROM admins (login success)",
-    ['admin_id' => $admin['id'], 'identity' => $email],
-    '',
-    'success',
-    null,
-    (int)$admin['id']
-);
-
-// เด้งเข้าแดชบอร์ด
-header('Location: ../Stock/addStock.php');
-exit;

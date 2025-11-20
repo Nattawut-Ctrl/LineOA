@@ -18,11 +18,18 @@ $line_uid     = clean($_GET['line_uid']     ?? '');
 $display_name = clean($_GET['display_name'] ?? '');
 $picture_url  = clean($_GET['picture_url']  ?? '');
 
+$first_name = '';
+$last_name  = '';
+$phone      = '';
+$citizen_id = '';
+$title      = '';
+
 // ถ้า POST (กดปุ่มสมัคร)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $line_uid     = clean($_POST['line_uid']     ?? '');
     $display_name = clean($_POST['display_name'] ?? '');
     $picture_url  = clean($_POST['picture_url']  ?? '');
+    $title        = clean($_POST['title']        ?? '');
     $first_name   = clean($_POST['first_name']   ?? '');
     $last_name    = clean($_POST['last_name']    ?? '');
     $phone        = clean($_POST['phone']        ?? '');
@@ -44,6 +51,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($line_uid === '') {
         $errors[] = "ไม่พบ LINE UID กรุณาเข้าสมัครผ่านปุ่มใน LINE อีกครั้ง";
     }
+    if ($title === '') {
+        $errors[] = "กรุณาเลือกคำนำหน้า";
+    }
     if ($first_name === '') {
         $errors[] = "กรุณากรอกชื่อจริง";
     }
@@ -62,8 +72,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // ✅ INSERT ผ่าน db_query → จะเขียน log ให้อัตโนมัติ (action=insert, table=users)
         $sql = "
             INSERT INTO users 
-                (line_uid, display_name, picture_url, first_name, last_name, phone, citizen_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                (line_uid, display_name, picture_url, title, first_name, last_name, phone, citizen_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ";
 
         try {
@@ -74,12 +84,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $line_uid,
                     $display_name,
                     $picture_url,
+                    $title,
                     $first_name,
                     $last_name,
                     $phone,
                     $citizen_id
                 ],
-                "sssssss"
+                "ssssssss"
             );
 
             // ดึง id ที่เพิ่ง insert
@@ -104,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>สมัครสมาชิก</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <?php include '../../bootstrap.php'; ?>
 </head>
 
 <body class="bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">
@@ -151,6 +162,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <!-- Form fields -->
+                    
+                    <div class="mb-4">
+                            <label class="form-label fw-bold fs-6 text-dark">คำนำหน้า <span class="text-danger">*</span></label>
+                            <select name="title" class="form-select">
+                                <option value="">--เลือกคำนำหน้า--</option>
+                                <option value="นาย" <?php echo (isset($title) && $title === 'นาย') ? 'selected' : '' ?>>นาย</option>
+                                <option value="นาง" <?php echo (isset($title) && $title === 'นาง') ? 'selected' : '' ?>>นาง</option>
+                                <option value="นางสาว" <?php echo (isset($title) && $title === 'นางสาว') ? 'selected' : '' ?>>นางสาว</option>
+                            </select>
+                        </div>
+
                     <div class="mb-4">
                         <label class="form-label fw-bold fs-6 text-dark">ชื่อจริง <span class="text-danger">*</span></label>
                         <input type="text" class="form-control form-control-lg rounded-2 border-2" name="first_name" required
@@ -246,8 +268,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             this.value = result;
         });
     </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>

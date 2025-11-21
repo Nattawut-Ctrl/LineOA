@@ -67,7 +67,7 @@ while ($row = $res->fetch_assoc()) {
                     <i class="bi bi-person-circle me-1"></i>
                     <?= htmlspecialchars($_SESSION['admin_name'] ?? 'Admin') ?>
                 </span>
-                <a href="../Users/logout.php" class="btn btn-sm btn-outline-light">
+                <a href="../Users/ad_logout.php" class="btn btn-sm btn-outline-light">
                     <i class="bi bi-box-arrow-right"></i> ออกจากระบบ
                 </a>
             </div>

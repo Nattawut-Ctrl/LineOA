@@ -16,13 +16,14 @@ function redirectWithError($code)
 $emailOrUsername = trim($_POST['email'] ?? '');
 $password        = trim($_POST['password'] ?? '');
 
-// ✅ เช็กกรอกครบไหม
+// เช็กกรอกครบไหม
 if ($emailOrUsername === '' || $password === '') {
     redirectWithError('required');
 }
 
 try {
-    // ✅ ใช้ password (ตามตารางจริงของคุณ)
+
+    // ดึง admin ตาม username/email
     $sql = "
         SELECT id, username, email, password, status
         FROM admins
@@ -37,17 +38,17 @@ try {
 
     $admin = $res->fetch_assoc();
 
-    // ✅ เช็คสถานะ
+    // สถานะไม่ active
     if ($admin['status'] !== 'active') {
         redirectWithError('inactive');
     }
 
-    // ✅ เช็ค password hash
+    // verify password hash
     if (!password_verify($password, $admin['password'])) {
         redirectWithError('invalid');
     }
 
-    // ✅ login สำเร็จ
+    // login สำเร็จ
     $_SESSION['admin_id']    = $admin['id'];
     $_SESSION['admin_name']  = $admin['username'];
     $_SESSION['admin_email'] = $admin['email'];

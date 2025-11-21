@@ -1,5 +1,7 @@
 <?php
 session_start();
+require_once __DIR__ . '/../../config.php';
+require_once UTILS_PATH . '/db_with_log.php';
 
 // ถ้าล็อกอินอยู่แล้ว ให้เด้งเข้าแดชบอร์ดเลย
 if (isset($_SESSION['admin_id'])) {

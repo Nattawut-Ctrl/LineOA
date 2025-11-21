@@ -6,6 +6,7 @@ define('BASE_PATH', __DIR__);
 define('UTILS_PATH', BASE_PATH . '/utils');
 define('FRONTEND_PATH', BASE_PATH . '/FrontEnd');
 define('BACKEND_PATH', BASE_PATH . '/BackEnd');
+define('SERVICES_PATH', BASE_PATH . '/services');
 
 function connectDB() {
     $host = "localhost";

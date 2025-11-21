@@ -1,5 +1,4 @@
 <!-- partials/admin_head.php -->
-<meta charset="UTF-8">
 <title><?= $pageTitle ?? 'แดชบอร์ดผู้ดูแล' ?></title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">

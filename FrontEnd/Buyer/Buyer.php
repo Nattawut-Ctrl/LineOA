@@ -3,6 +3,10 @@ session_start();
 
 require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
+require_once SERVICES_PATH . '/productService.php';
+require_once SERVICES_PATH . '/cartService.php';
+// require_once SERVICES_PATH . '/userService.php';
+
 
 $conn    = connectDBWithLog();
 $user_id = (int)($_SESSION['user_id'] ?? 0);

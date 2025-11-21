@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once __DIR__ . '/../../config.php';
 
 // ถ้า login อยู่แล้ว ไม่ต้องสมัครซ้ำ
 if (isset($_SESSION['admin_id'])) {

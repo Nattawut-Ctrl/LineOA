@@ -1,8 +1,8 @@
 <?php
 session_start();
 
-require_once '../../utils/db_with_log.php';
-include_once '../../bootstrap.php';
+require_once UTILS_PATH . '/db_with_log.php';
+include_once BACKEND_PATH . '/partials/bootstrap.php';
 
 $conn    = connectDBWithLog();
 $user_id = (int)($_SESSION['user_id'] ?? 0);
@@ -492,6 +492,19 @@ if ($cat_result && $cat_result->num_rows > 0) {
         let cartModal = null;
         let cartToast = null;
 
+        function getMaxStockForCurrent() {
+            if (!selectedProduct) return Infinity;
+
+            // ถ้าเลือก variant อยู่ ใช้ stock ของ variant
+            if (selectedVariant && selectedVariant.stock != null) {
+                return Number(selectedVariant.stock) || 0;
+            }
+
+            // ถ้าไม่มี variant ใช้ stock ของตัว product
+            return Number(selectedProduct.stock ?? 0);
+        }
+
+
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.open-cart-bar').forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -601,6 +614,18 @@ if ($cat_result && $cat_result->num_rows > 0) {
                     });
                 });
             });
+
+            const qtyInput = document.getElementById('quantity');
+            qtyInput.addEventListener('change', () => {
+                let val = parseInt(qtyInput.value) || 1;
+                const maxStock = getMaxStockForCurrent();
+                if (val < 1) val = 1;
+                if (maxStock > 0 && val > maxStock) {
+                    val = maxStock;
+                    alert('มีสินค้าในสต็อกสูงสุด ' + maxStock + ' ชิ้น');
+                }
+                qtyInput.value = val;
+            });
         });
 
         function flyToCart(sourceImgEl, cartIconEl) {
@@ -703,7 +728,8 @@ if ($cat_result && $cat_result->num_rows > 0) {
                             id: btn.dataset.id,
                             name: btn.dataset.name,
                             price: newPrice,
-                            image: newImage
+                            image: newImage,
+                            stock: variant.stock
                         };
 
                         const stockEl = document.getElementById("stockInfo");
@@ -732,10 +758,21 @@ if ($cat_result && $cat_result->num_rows > 0) {
 
         function changeQuantity(change) {
             const input = document.getElementById('quantity');
-            let value = parseInt(input.value);
-            value = Math.max(1, value + change);
+            let value = parseInt(input.value) || 1;
+
+            const maxStock = getMaxStockForCurrent();
+
+            value += change;
+            if (value < 1) value = 1;
+
+            if (maxStock > 0 && value > maxStock) {
+                value = maxStock;
+                alert('มีสินค้าในสต็อกสูงสุด ' + maxStock + ' ชิ้น');
+            }
+
             input.value = value;
         }
+
 
         function addCurrentToCart() {
             if (!selectedProduct) return;
@@ -754,8 +791,26 @@ if ($cat_result && $cat_result->num_rows > 0) {
                 item => item.product_id == productId && item.variant_id == variantId
             );
 
+            const maxStock = getMaxStockForCurrent();
+            const inCartQty = existing ? existing.quantity : 0;
+            const newTotal = inCartQty + qty;
+
+            if (maxStock > 0 && newTotal > maxStock) {
+                const canAdd = maxStock - inCartQty;
+                if (canAdd <= 0) {
+                    alert('คุณมีสินค้านี้ในตะกร้าครบจำนวนสต็อกแล้ว (' + maxStock + ' ชิ้น)');
+                } else {
+                    alert(
+                        'มีสินค้าในสต็อก ' + maxStock +
+                        ' ชิ้น ตอนนี้ในตะกร้าคุณมี ' + inCartQty +
+                        ' ชิ้น สามารถเพิ่มได้อีกสูงสุด ' + canAdd + ' ชิ้น'
+                    );
+                }
+                return;
+            }
+
             if (existing) {
-                existing.quantity += qty;
+                existing.quantity = newTotal;
             } else {
                 cart.push({
                     product_id: productId,
@@ -784,8 +839,25 @@ if ($cat_result && $cat_result->num_rows > 0) {
                 item => item.product_id == productId && item.variant_id == variantId
             );
 
+            const maxStock = Number(base.stock ?? 0);
+            const inCartQty = existing ? existing.quantity : 0;
+            const newTotal = inCartQty + qty;
+
+            if (maxStock > 0 && newTotal > maxStock) {
+                if (inCartQty >= maxStock) {
+                    alert('คุณมีสินค้านี้ในตะกร้าครบจำนวนสต็อกแล้ว (' + maxStock + ' ชิ้น)');
+                } else {
+                    alert(
+                        'มีสินค้าในสต็อก ' + maxStock +
+                        ' ชิ้น ตอนนี้ในตะกร้าคุณมี ' + inCartQty +
+                        ' ชิ้น สามารถเพิ่มได้อีกสูงสุด ' + (maxStock - inCartQty) + ' ชิ้น'
+                    );
+                }
+                return;
+            }
+
             if (existing) {
-                existing.quantity += qty;
+                existing.quantity = newTotal;
             } else {
                 cart.push({
                     product_id: productId,
@@ -800,7 +872,6 @@ if ($cat_result && $cat_result->num_rows > 0) {
             updateCartBadge();
             syncCartToServer();
         }
-
 
         function removeCartItem(index) {
             if (index < 0 || index >= cart.length) return;
@@ -878,7 +949,16 @@ if ($cat_result && $cat_result->num_rows > 0) {
         }
 
         function confirmPurchase() {
-            const qty = document.getElementById('quantity').value;
+            if (!selectedProduct) return;
+
+            const qty = parseInt(document.getElementById('quantity').value) || 1;
+            const maxStock = getMaxStockForCurrent();
+
+            if (maxStock > 0 && qty > maxStock) {
+                alert('เลือกจำนวนเกินสต็อก (มีแค่ ' + maxStock + ' ชิ้น)');
+                return;
+            }
+
             const product = selectedProduct;
 
             syncCartToServer();

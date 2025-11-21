@@ -40,7 +40,7 @@ if (!empty($_GET['error'])) {
     <meta charset="UTF-8">
     <title>สมัครผู้ดูแลระบบ</title>
 
-    <?php include '../partials/admin_head.php'; ?>
+    <?php include_once '../../bootstrap.php'; ?>
 
     <style>
         :root {

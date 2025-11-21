@@ -7,7 +7,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-require_once '../../utils/db_with_log.php';
+require_once UTILS_PATH . '/db_with_log.php';
 
 $conn = connectDBWithLog();
 $user_id = $_SESSION['user_id'];
@@ -160,7 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>อัปโหลดสลิปสำเร็จ</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <?php include '../../partials/bootstrap.php'; ?>
 </head>
 
 <body class="bg-light d-flex flex-column justify-content-center align-items-center vh-100">

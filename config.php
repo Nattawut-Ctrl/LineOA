@@ -1,6 +1,12 @@
 <?php
 require_once __DIR__ . '/utils/log.php';
 
+// config_path.php
+define('BASE_PATH', __DIR__);
+define('UTILS_PATH', BASE_PATH . '/utils');
+define('FRONTEND_PATH', BASE_PATH . '/FrontEnd');
+define('BACKEND_PATH', BASE_PATH . '/BackEnd');
+
 function connectDB() {
     $host = "localhost";
     $user = "root";

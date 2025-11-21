@@ -7,7 +7,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-require_once '../../utils/db_with_log.php';
+require_once UTILS_PATH . '/db_with_log.php';
 
 $conn    = connectDBWithLog();
 $user_id = (int)$_SESSION['user_id'];

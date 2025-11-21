@@ -96,7 +96,8 @@ if ($mode === 'cart') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ชำระเงิน | Line-Shop</title>
-    <?php include_once BACKEND_PATH . '/partials/admin_head.php'; ?>
+    <?php include BASE_PATH . '/partials/bootstrap.php'; ?>
+
 </head>
 
 <body class="bg-light">

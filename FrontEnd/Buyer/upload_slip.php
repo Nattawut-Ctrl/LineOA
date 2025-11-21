@@ -163,7 +163,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>อัปโหลดสลิปสำเร็จ</title>
-    <?php include '../../partials/bootstrap.php'; ?>
+    <?php include BASE_PATH . '/partials/bootstrap.php'; ?>
+
 </head>
 
 <body class="bg-light d-flex flex-column justify-content-center align-items-center vh-100">

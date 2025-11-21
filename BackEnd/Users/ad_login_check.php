@@ -1,52 +1,60 @@
 <?php
 session_start();
+
 require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 
 $conn = connectDBWithLog();
 
-function clean($s) { return trim($s ?? ''); }
-
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ad_login.php');
+function redirectWithError($code)
+{
+    header('Location: ad_login.php?error=' . $code);
     exit;
 }
 
-$usernameOrEmail = clean($_POST['username'] ?? '');
-$password        = $_POST['password'] ?? '';
+// รับค่าจากฟอร์ม
+$emailOrUsername = trim($_POST['email'] ?? '');
+$password        = trim($_POST['password'] ?? '');
 
-if ($usernameOrEmail === '' || $password === '') {
-    header('Location: ad_login.php?error=required');
-    exit;
+// ✅ เช็กกรอกครบไหม
+if ($emailOrUsername === '' || $password === '') {
+    redirectWithError('required');
 }
 
-// ตัวอย่างสมมติ: ตาราง admins มีฟิลด์ username, email, password_hash, is_active
-$sql  = "SELECT id, password_hash, is_active FROM admins 
-         WHERE username = ? OR email = ? LIMIT 1";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("ss", $usernameOrEmail, $usernameOrEmail);
-$stmt->execute();
-$res = $stmt->get_result();
-$admin = $res->fetch_assoc();
-$stmt->close();
+try {
+    // ✅ ใช้ password (ตามตารางจริงของคุณ)
+    $sql = "
+        SELECT id, username, email, password, status
+        FROM admins
+        WHERE email = ? OR username = ?
+        LIMIT 1
+    ";
+    $res = db_query($conn, $sql, [$emailOrUsername, $emailOrUsername], "ss");
 
-if (!$admin) {
-    header('Location: ad_login.php?error=invalid');
+    if (!$res || $res->num_rows === 0) {
+        redirectWithError('invalid');
+    }
+
+    $admin = $res->fetch_assoc();
+
+    // ✅ เช็คสถานะ
+    if ($admin['status'] !== 'active') {
+        redirectWithError('inactive');
+    }
+
+    // ✅ เช็ค password hash
+    if (!password_verify($password, $admin['password'])) {
+        redirectWithError('invalid');
+    }
+
+    // ✅ login สำเร็จ
+    $_SESSION['admin_id']    = $admin['id'];
+    $_SESSION['admin_name']  = $admin['username'];
+    $_SESSION['admin_email'] = $admin['email'];
+
+    header('Location: ../Stock/addStock.php');
     exit;
-}
 
-if ((int)$admin['is_active'] !== 1) {
-    header('Location: ad_login.php?error=inactive');
-    exit;
+} catch (Exception $e) {
+    redirectWithError('unknown');
 }
-
-// ถ้าใช้ password_hash()
-if (!password_verify($password, $admin['password_hash'])) {
-    header('Location: ad_login.php?error=invalid');
-    exit;
-}
-
-// login สำเร็จ
-$_SESSION['admin_id'] = $admin['id'];
-header('Location: ../Stock/addStock.php');
-exit;

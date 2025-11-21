@@ -1,5 +1,6 @@
 <?php
 session_start(); // ต้องอยู่บรรทัดแรกสุดเสมอ
+require_once __DIR__ . '/../../config.php';
 
 // ถ้าไม่ได้ล็อกอิน (ไม่มี session admin_id) ให้เด้งไปหน้า login
 if (!isset($_SESSION['admin_id'])) {
@@ -7,7 +8,7 @@ if (!isset($_SESSION['admin_id'])) {
     exit;
 }
 
-require_once __DIR__ . '/../../config.php';
+
 require_once UTILS_PATH . '/db_with_log.php';
 
 $conn = connectDBWithLog();

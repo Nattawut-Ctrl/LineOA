@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 
 // ใช้ตัวเชื่อมต่อที่มี log

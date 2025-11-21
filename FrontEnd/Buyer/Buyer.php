@@ -12,6 +12,8 @@ if ($user_id <= 0) {
     exit;
 }
 
+// ----------------------- Fetch User Info -----------------------
+
 $sqlUser  = "SELECT first_name, last_name FROM users WHERE id = ?";
 $resUser  = db_query($conn, $sqlUser, [$user_id], "i");
 
@@ -77,6 +79,8 @@ if ($cat_result && $cat_result->num_rows > 0) {
         $categories[] = $cat_row['category'];
     }
 }
+
+// ------------------------ View Part ------------------------
 ?>
 
 <!DOCTYPE html>

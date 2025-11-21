@@ -7,6 +7,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 
 $conn = connectDBWithLog();
@@ -42,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $prices        = $_POST['price']        ?? [];
                 $total_all     = (float)($_POST['total'] ?? 0); // ถ้าอยากใช้ทีหลัง
 
-                $sqlInsertPay = 
+                $sqlInsertPay =
                     "INSERT INTO payments
                     (user_id, product_id, variant_id, product_name, variant_name, quantity, price, total, slip_image, payment_time)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -130,16 +131,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     "iiissiddss"
                 );
 
-                // 🧹 ลบรายการนี้ออกจากตะกร้า
                 $sqlDelSingle = "
                     DELETE FROM cart_items 
-                    WHERE user_id = ? AND product_id = ? AND (variant_id = ?
+                    WHERE user_id = ? 
+                        AND product_id = ? 
+                        AND (variant_id = ? OR ? = 0)
                 ";
+
                 db_query(
                     $conn,
                     $sqlDelSingle,
-                    [$user_id, $product_id, $variant_id],
-                    "iii"
+                    [$user_id, $product_id, $variant_id, $variant_id],
+                    "iiii"
                 );
 
                 $message = "<div class='alert alert-success text-center'>✅ อัปโหลดสลิปเรียบร้อย รอตรวจสอบการชำระเงิน</div>";

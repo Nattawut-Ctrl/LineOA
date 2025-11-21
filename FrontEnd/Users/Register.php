@@ -1,7 +1,6 @@
 <?php
 session_start();
-
-// ✅ ใช้ db_with_log (มี connectDBWithLog + db_query + writeLog ในตัว)
+require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 
 $conn = connectDBWithLog();
@@ -115,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>สมัครสมาชิก</title>
-    <?php include_once BACKEND_PATH . '/partials/bootstrap.php'; ?>
+    <?php include_once BACKEND_PATH . '/../partials/bootstrap.php'; ?>
 </head>
 
 <body class="bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">

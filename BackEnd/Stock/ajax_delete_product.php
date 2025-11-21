@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once '../../utils/db_with_log.php';
+require_once UTILS_PATH . '/db_with_log.php';
 $conn = connectDBWithLog();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

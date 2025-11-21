@@ -33,7 +33,7 @@ if (!empty($_GET['error'])) {
     <meta charset="UTF-8">
     <title>เข้าสู่ระบบผู้ดูแล</title>
 
-    <?php include_once '../../bootstrap.php'; ?>
+    <?php include BACKEND_PATH . '/partials/admin_head.php'; ?>
 
     <style>
         :root {

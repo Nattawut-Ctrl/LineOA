@@ -6,8 +6,8 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
-include_once BACKEND_PATH . '/partials/admin_head.php';
 
 $conn = connectDBWithLog();
 $user_id = $_SESSION['user_id'];
@@ -96,6 +96,7 @@ if ($mode === 'cart') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ชำระเงิน | Line-Shop</title>
+    <?php include_once BACKEND_PATH . '/partials/admin_head.php'; ?>
 </head>
 
 <body class="bg-light">

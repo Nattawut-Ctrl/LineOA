@@ -1,5 +1,5 @@
 <?php
-require_once '../../utils/db_with_log.php';
+require_once UTILS_PATH . '/db_with_log.php';
 
 // ใช้ตัวเชื่อมต่อที่มี log
 $conn = connectDBWithLog();

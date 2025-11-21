@@ -7,9 +7,9 @@ if (!isset($_SESSION['admin_id'])) {
     exit;
 }
 
-// session_start();
-require_once '../../utils/db_with_log.php';
-include_once '../../bootstrap.php';
+require_once __DIR__ . '/../../config.php';
+require_once UTILS_PATH . '/db_with_log.php';
+
 $conn = connectDBWithLog();
 
 // โหลดรายการสินค้าเดิมไว้สำหรับ dropdown
@@ -27,12 +27,9 @@ while ($row = $res->fetch_assoc()) {
     <meta charset="UTF-8">
     <title>เพิ่มสินค้า / เพิ่มสต็อก</title>
 
-
+    <?php $pageTitle = 'เพิ่มสินค้า / เพิ่มสต็อก'; ?>
+    <?php include BACKEND_PATH . '/partials/admin_head.php'; ?>
     <style>
-        body {
-            background-color: #f5f6fa;
-        }
-
         .variant-row {
             background: #fafafa;
             border: 1px solid #ddd;

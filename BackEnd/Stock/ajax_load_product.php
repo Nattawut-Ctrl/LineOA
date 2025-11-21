@@ -1,5 +1,5 @@
 <?php
-require_once '../../utils/db_with_log.php';
+require_once UTILS_PATH . '/db_with_log.php';
 $conn = connectDBWithLog();
 
 // รับ id แบบปลอดภัย

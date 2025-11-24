@@ -14,17 +14,14 @@ if ($line_uid === '') {
     die("ไม่พบ LINE UID");
 }
 
-// ✅ ใช้ service เช็ค user แทน SQL ตรง ๆ
 $user = getUserByLineUid($conn, $line_uid);
 
 if ($user) {
-    // มีอยู่แล้ว → เซ็ต session เข้า shop
     $_SESSION['user_id'] = $user['id'];
     header("Location: ../Buyer/Buyer.php");
     exit;
 }
 
-// ไม่มี user → ไปหน้า Register (ชื่อไฟล์ต้องตรงเคส!)
 $params = http_build_query([
     'line_uid'     => $line_uid,
     'display_name' => $display_name,

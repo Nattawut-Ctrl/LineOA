@@ -1,28 +1,40 @@
-<div class="sidebar">
-    <div class="px-4 mb-3 text-muted text-uppercase small">Navigation</div>
+<aside class="app-sidebar bg-dark text-white shadow" data-bs-theme="dark">
 
-    <a href="../dashboard.php"
-       class="nav-link <?= ($activeMenu ?? '') === 'dashboard' ? 'active' : '' ?>">
-        <i class="bi bi-house"></i> Home
-    </a>
+    <!-- Brand -->
+    <div class="sidebar-brand d-flex align-items-center px-3 py-2">
+        <span class="brand-text fw-bold">Line-Shop Admin</span>
+    </div>
 
-    <!-- <a href="../Users/manage_users.php"
-       class="nav-link <?= ($activeMenu ?? '') === 'users' ? 'active' : '' ?>">
-        <i class="bi bi-people"></i> Users
-    </a> -->
+    <div class="sidebar-wrapper">
+        <nav class="mt-2">
+            <ul class="nav flex-column" role="menu">
 
-    <a href="/Stock/addStock.php"
-       class="nav-link <?= ($activeMenu ?? '') === 'stock' ? 'active' : '' ?>">
-        <i class="bi bi-box-seam"></i> Items
-    </a>
+                <li class="nav-item">
+                    <a href="<?= BACKEND_URL ?>/dashboard.php"
+                       class="nav-link <?= ($activeMenu ?? '')==='dashboard' ? 'active' : '' ?>">
+                        <i class="nav-icon bi bi-house"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
 
-    <a href="../payments/list.php"
-       class="nav-link <?= ($activeMenu ?? '') === 'slip' ? 'active' : '' ?>">
-        <i class="bi bi-receipt"></i> Payment Slips
-    </a>
+                <li class="nav-item">
+                    <a href="<?= BACKEND_URL ?>/Stock/addStock.php"
+                       class="nav-link <?= ($activeMenu ?? '')==='stock' ? 'active' : '' ?>">
+                        <i class="nav-icon bi bi-box-seam"></i>
+                        <span>Items / Stock</span>
+                    </a>
+                </li>
 
-    <a href="../settings/backup.php"
-       class="nav-link">
-        <i class="bi bi-arrow-repeat"></i> Backup & Restore
-    </a>
-</div>
+                <li class="nav-item">
+                    <a href="<?= BACKEND_URL ?>/payments/list.php"
+                       class="nav-link <?= ($activeMenu ?? '')==='slip' ? 'active' : '' ?>">
+                        <i class="nav-icon bi bi-receipt"></i>
+                        <span>Payment Slips</span>
+                    </a>
+                </li>
+
+            </ul>
+        </nav>
+    </div>
+
+</aside>

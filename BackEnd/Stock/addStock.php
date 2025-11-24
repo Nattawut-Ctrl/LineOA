@@ -60,13 +60,25 @@ $activeMenu = "stock";
     </style>
 </head>
 
-<body class="hold-transition sidebar-mini layout-fixed">
-    <div class="wrapper">
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+    <div class="app-wrapper">
         <!-- Top bar / Navbar -->
         <?php include BACKEND_PATH . '/partials/admin_navbar.php'; ?>
         <?php include BACKEND_PATH . '/partials/admin_sidebar.php'; ?>
 
-        <div class="content-wrapper">
+        <main class="app-main">
+  <div class="app-content-header">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+      <h3 class="mb-0"><?= htmlspecialchars($pageTitle ?? "") ?></h3>
+      <ol class="breadcrumb float-sm-end">
+        <li class="breadcrumb-item"><a href="<?= BACKEND_URL ?>/dashboard.php">Home</a></li>
+        <li class="breadcrumb-item active"><?= htmlspecialchars($pageTitle ?? "") ?></li>
+      </ol>
+    </div>
+  </div>
+  <div class="app-content">
+    <div class="container-fluid">
+
             <section class="content pt-3">
                 <div class="container-fluid">
 
@@ -714,9 +726,11 @@ $activeMenu = "stock";
                     </script>
                 </div>
             </section>
-        </div>
+    </div>
+  </div>
+</main>
 
-        <?php include BACKEND_PATH . '/partials/admin_footer.php'; ?>
+<?php include BACKEND_PATH . '/partials/admin_footer.php'; ?>
     </div>
 
     <?php include BACKEND_PATH . '/partials/admin_script.php'; ?>

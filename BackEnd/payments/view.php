@@ -2,10 +2,10 @@
 session_start();
 require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
-require_once SERVICES_PATH . '/SlipService.php';
+require_once SERVICES_PATH . '/slipService.php';
 
 if (!isset($_SESSION['admin_id'])) {
-  header('Location: ../Users/ad_login.php');
+  header('Location: ' . BACKEND_URL . '/Users/ad_login.php');
   exit;
 }
 
@@ -22,13 +22,25 @@ if (!$payment) die("Payment not found");
 <head>
   <?php include BACKEND_PATH . '/partials/admin_head.php'; ?>
 </head>
-<body class="hold-transition sidebar-mini layout-fixed" side>
-<div class="wrapper">
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary" side>
+<div class="app-wrapper">
 
   <?php include BACKEND_PATH . '/partials/admin_navbar.php'; ?>
   <?php include BACKEND_PATH . '/partials/admin_sidebar.php'; ?>
 
-  <div class="content-wrapper">
+  <main class="app-main">
+  <div class="app-content-header">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+      <h3 class="mb-0"><?= htmlspecialchars($pageTitle ?? "") ?></h3>
+      <ol class="breadcrumb float-sm-end">
+        <li class="breadcrumb-item"><a href="<?= BACKEND_URL ?>/dashboard.php">Home</a></li>
+        <li class="breadcrumb-item active"><?= htmlspecialchars($pageTitle ?? "") ?></li>
+      </ol>
+    </div>
+  </div>
+  <div class="app-content">
+    <div class="container-fluid">
+
     <section class="content pt-3">
       <div class="container-fluid">
 
@@ -57,7 +69,9 @@ if (!$payment) die("Payment not found");
 
       </div>
     </section>
+    </div>
   </div>
+</main>
 
   <?php include BACKEND_PATH . '/partials/admin_footer.php'; ?>
 </div>

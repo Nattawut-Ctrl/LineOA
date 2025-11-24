@@ -15,22 +15,25 @@
  */
 function createPayment(mysqli $conn, array $data): int
 {
+    $product_id = $data['product_id'] ?? 0;
+    $variant_id = $data['variant_id'] ?? 0;
+
     $sql = "
         INSERT INTO payments
             (user_id, product_id, variant_id, items_json, amount, slip_path, status, mode)
         VALUES
-            (?, ?, ?, ?, ?, ?, 'pending', ?)
+            (?, NULLIF(?,0), NULLIF(?,0), ?, ?, ?, 'pending', ?)
     ";
 
     $ok = db_exec($conn, $sql, [
         $data['user_id'],
-        $data['product_id'],
-        $data['variant_id'],
+        $product_id,
+        $variant_id,
         $data['items_json'],
         $data['amount'],
         $data['slip_path'],
         $data['mode']
-    ], "iiissss");
+    ], "iiisdss");
 
     if (!$ok) {
         throw new Exception("Failed to create payment");

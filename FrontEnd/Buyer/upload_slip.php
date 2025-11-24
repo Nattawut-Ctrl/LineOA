@@ -4,8 +4,8 @@ session_start();
 require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 
-require_once SERVICES_PATH . '/SlipService.php';
-require_once SERVICES_PATH . '/CartService.php';
+require_once SERVICES_PATH . '/slipService.php';
+require_once SERVICES_PATH . '/cartService.php';
 
 $conn = connectDBWithLog();
 $user_id = $_SESSION['user_id'];

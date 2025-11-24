@@ -1,4 +1,3 @@
-<!-- BackEnd/partials/admin_navbar.php -->
 <nav class="main-header navbar navbar-expand navbar-white navbar-light border-bottom">
   <div class="container-fluid">
     <a class="navbar-brand fw-bold" href="../Stock/addStock.php">Line-Shop Admin</a>

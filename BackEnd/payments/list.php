@@ -1,54 +1,71 @@
 <?php
 session_start();
-
 require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
-require_once SERVICES_PATH . '/slipService.php';
+require_once SERVICES_PATH . '/SlipService.php';
+
+if (!isset($_SESSION['admin_id'])) {
+  header('Location: ../Users/ad_login.php');
+  exit;
+}
+
+$pageTitle  = "ตรวจสลิปการโอน";
+$activeMenu = "slip";
 
 $conn = connectDBWithLog();
 $payments = getAllPayments($conn);
 ?>
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <title>ตรวจสลิปทั้งหมด</title>
-    <?php include BASE_PATH . '/partials/bootstrap.php'; ?>
+  <?php include BACKEND_PATH . '/partials/admin_head.php'; ?>
 </head>
+<body class="hold-transition sidebar-mini layout-fixed">
+<div class="wrapper">
 
-<body>
-<div class="container py-4">
+  <?php include BACKEND_PATH . '/partials/admin_navbar.php'; ?>
+  <?php include BACKEND_PATH . '/partials/admin_sidebar.php'; ?>
 
-    <h3 class="mb-4">รายการสลิปทั้งหมด</h3>
+  <div class="content-wrapper">
+    <section class="content pt-3">
+      <div class="container-fluid">
 
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>User</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>ดูรายละเอียด</th>
-            </tr>
-        </thead>
+        <div class="card">
+          <div class="card-header"><h5 class="mb-0">รายการสลิปทั้งหมด</h5></div>
+          <div class="card-body">
+            <table class="table table-bordered table-hover align-middle">
+              <thead>
+                <tr>
+                  <th>ID</th><th>User</th><th>Amount</th><th>Status</th><th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($payments as $p): ?>
+                  <tr>
+                    <td><?= $p['id'] ?></td>
+                    <td><?= htmlspecialchars($p['display_name']) ?></td>
+                    <td><?= number_format($p['amount'],2) ?></td>
+                    <td>
+                      <span class="badge bg-<?= $p['status']==='pending'?'warning':($p['status']==='approved'?'success':'danger') ?>">
+                        <?= $p['status'] ?>
+                      </span>
+                    </td>
+                    <td>
+                      <a class="btn btn-sm btn-info" href="view.php?id=<?= $p['id'] ?>">ดูสลิป</a>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-        <tbody>
-        <?php foreach ($payments as $p): ?>
-            <tr>
-                <td><?= $p['id'] ?></td>
-                <td><?= $p['display_name'] ?></td>
-                <td><?= number_format($p['amount'], 2) ?></td>
-                <td><?= $p['status'] ?></td>
-                <td>
-                    <a href="view.php?id=<?= $p['id'] ?>" class="btn btn-info btn-sm">เปิด</a>
-                </td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
+      </div>
+    </section>
+  </div>
 
-    </table>
-
+  <?php include BACKEND_PATH . '/partials/admin_footer.php'; ?>
 </div>
+<?php include BACKEND_PATH . '/partials/admin_script.php'; ?>
 </body>
 </html>

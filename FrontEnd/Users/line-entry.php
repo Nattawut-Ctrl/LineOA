@@ -37,18 +37,15 @@
 
     async function main() {
       try {
-        // เริ่มต้น LIFF
         await liff.init({
           liffId
         });
 
-        // ถ้ายังไม่ล็อกอิน ให้ไป login ก่อน
         if (!liff.isLoggedIn()) {
           liff.login();
           return;
         }
 
-        // ดึงข้อมูลโปรไฟล์ของผู้ใช้
         const profile = await liff.getProfile();
         const userId = profile.userId;
         const name = profile.displayName;

@@ -53,7 +53,7 @@ try {
     $_SESSION['admin_name']  = $admin['username'];
     $_SESSION['admin_email'] = $admin['email'];
 
-    header('Location: ../Stock/addStock.php');
+    header('Location: ../dashboard.php');
     exit;
 
 } catch (Exception $e) {

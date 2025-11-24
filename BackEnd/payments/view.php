@@ -22,7 +22,7 @@ if (!$payment) die("Payment not found");
 <head>
   <?php include BACKEND_PATH . '/partials/admin_head.php'; ?>
 </head>
-<body class="hold-transition sidebar-mini layout-fixed">
+<body class="hold-transition sidebar-mini layout-fixed" side>
 <div class="wrapper">
 
   <?php include BACKEND_PATH . '/partials/admin_navbar.php'; ?>

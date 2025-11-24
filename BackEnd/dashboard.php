@@ -31,7 +31,7 @@ $activeMenu = "dashboard";
   <?php include BACKEND_PATH . "/partials/admin_navbar.php"; ?>
   <?php include BACKEND_PATH . "/partials/admin_sidebar.php"; ?>
 
-  <main class="app-main">
+  <main class="app-main" style="margin-left: 250px; padding: 20px;">
 
     <div class="app-content-header">
       <div class="container-fluid">

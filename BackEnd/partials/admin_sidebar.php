@@ -1,4 +1,4 @@
-<aside class="app-sidebar bg-dark text-white shadow" data-bs-theme="dark">
+<aside class="app-sidebar bg-dark text-white shadow" data-bs-theme="dark" style="width: 250px; position: fixed; height: 100%;">
 
     <!-- Brand -->
     <div class="sidebar-brand d-flex align-items-center px-3 py-2">

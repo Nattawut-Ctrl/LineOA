@@ -1,0 +1,48 @@
+/* assets/css/admin.css */
+:root {
+  --brand: #F57B39;
+}
+
+body {
+  font-family: "Kanit", sans-serif;
+}
+
+/* --- Sidebar dark full --- */
+.app-sidebar {
+  background: #000 !important;
+  color: #fff !important;
+}
+
+.app-sidebar .nav-link {
+  color: #ccc;
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+.app-sidebar .nav-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.app-sidebar .nav-link.active {
+  background: #F57B39 !important;
+  color: #fff !important;
+  font-weight: 600;
+}
+
+
+
+.small-box .small-box-footer {
+  text-decoration: none;
+}
+
+.card {
+  border-radius: 14px;
+}
+
+/* responsive tweak */
+@media (max-width: 991.98px) {
+  .app-sidebar {
+    width: auto;
+  }
+}

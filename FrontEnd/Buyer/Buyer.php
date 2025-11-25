@@ -277,7 +277,9 @@ $cart_items = getCartItems($conn, $user_id);
             <?php foreach ($products as $product): ?>
                 <div class="col-6 col-md-4 col-lg-3 product-item mb-2 mb-md-3"
                     data-category="<?php echo $product['category']; ?>">
-                    <div class="card product-card h-100 border-0 shadow-sm bg-white">
+
+                    <div class="card product-card clickable-card h-100 border-0 shadow-sm bg-white"
+                        data-href="product-detail.php?id=<?php echo (int)$product['id']; ?>">
                         <div class="position-relative product-img-wrap rounded-top-4 overflow-hidden">
                             <img src="<?php echo $product['image']; ?>"
                                 class="card-img-top w-100 h-100"
@@ -465,8 +467,18 @@ $cart_items = getCartItems($conn, $user_id);
 
 
         document.addEventListener('DOMContentLoaded', () => {
+
+            // ✅ คลิกที่การ์ดเพื่อไปหน้ารายละเอียด
+            document.querySelectorAll('.product-card.clickable-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const href = card.dataset.href;
+                    if (href) window.location.href = href;
+                });
+            });
+
             document.querySelectorAll('.open-cart-bar').forEach(btn => {
-                btn.addEventListener('click', () => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
                     selectedProduct = JSON.parse(btn.getAttribute('data-product'));
                     openCartBar(selectedProduct);
                 });
@@ -474,7 +486,8 @@ $cart_items = getCartItems($conn, $user_id);
 
             // ปุ่ม "เพิ่มตะกร้า" = Quick add + animation บินเข้าตะกร้า
             document.querySelectorAll('.add-cart-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
                     const product = JSON.parse(btn.getAttribute('data-product'));
 
                     // ถ้ามี variants ให้บังคับเลือกเหมือนเดิม (เปิด cartBar)

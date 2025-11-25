@@ -1,4 +1,4 @@
-<aside class="app-sidebar sidebar-dark-primary elevation-2" data-bs-theme="dark">
+<aside class="app-sidebar sidebar-dark-primary elevation-2 " data-bs-theme="dark">
   <!-- Brand -->
   <div class="sidebar-brand">
     <a href="<?= BACKEND_URL ?>/dashboard.php" class="brand-link">
@@ -9,7 +9,7 @@
   <!-- Sidebar -->
   <div class="sidebar-wrapper">
     <nav class="mt-2">
-      <ul class="nav sidebar-menu flex-column" role="menu">
+      <ul class="nav sidebar-menu flex-column nav" role="menu">
 
         <li class="nav-item">
           <a href="<?= BACKEND_URL ?>/dashboard.php"

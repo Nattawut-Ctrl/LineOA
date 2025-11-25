@@ -1,4 +1,4 @@
-<nav class="app-header navbar navbar-expand bg-dark" data-bs-theme="dark">
+<nav class="app-header navbar navbar-expand bg-dark sticky-top" data-bs-theme="dark">
   <div class="container-fluid">
 
     <ul class="navbar-nav">
@@ -15,6 +15,18 @@
     </ul>
 
     <ul class="navbar-nav ms-auto align-items-center">
+      <!-- แจ้งเตือน -->
+      <li class="nav-item dropdown">
+        <a class="nav-link" data-bs-toggle="dropdown" href="#">
+          <i class="bi bi-bell"></i>
+          <span class="badge text-bg-danger navbar-badge"></span>
+        </a>
+        <div class="dropdown-menu dropdown-menu-end p-0">
+          <span class="dropdown-item dropdown-header">No new notifications</span>
+        </div>
+      </li>
+
+      <!-- ชื่อผู้ใช้ และ ปุ่มออกจากระบบ -->
       <li class="nav-item me-2 small text-muted">
         <?= htmlspecialchars($_SESSION['admin_name'] ?? 'Admin') ?>
       </li>

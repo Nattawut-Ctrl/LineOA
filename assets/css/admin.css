@@ -1,0 +1,29 @@
+/* assets/css/admin.css */
+:root{
+  --brand: #F57B39;
+}
+
+body{
+  font-family: "Kanit", sans-serif;
+}
+
+.app-sidebar .nav-link.active{
+  background: rgba(245,123,57,.15);
+  color: #fff;
+  font-weight: 600;
+}
+
+.small-box .small-box-footer{
+  text-decoration: none;
+}
+
+.card{
+  border-radius: 14px;
+}
+
+/* responsive tweak */
+@media (max-width: 991.98px){
+  .app-sidebar{
+    width: auto;
+  }
+}

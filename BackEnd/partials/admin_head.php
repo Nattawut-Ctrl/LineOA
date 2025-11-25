@@ -19,6 +19,8 @@ $extraHead = $extraHead ?? '';
 <!-- AdminLTE 4 -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@4.0.0/dist/css/adminlte.min.css">
 
+<link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/admin.css?v=<?= filemtime(BASE_PATH.'/assets/css/admin.css') ?>">
+
 <style>
   body { font-family: 'Kanit', sans-serif; }
   .app-sidebar .nav-link.active { font-weight: 600; }

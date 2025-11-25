@@ -10,6 +10,7 @@ if (!isset($_SESSION['admin_id'])) {
 
 
 require_once UTILS_PATH . '/db_with_log.php';
+require_once UTILS_PATH.'/admin_guard.php'; require_admin();
 
 $conn = connectDBWithLog();
 

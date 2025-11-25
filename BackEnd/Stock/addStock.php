@@ -62,7 +62,7 @@ $activeMenu = "stock";
     </style>
 </head>
 
-<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary sidebar-mini">
     <div class="app-wrapper">
         <!-- Top bar / Navbar -->
         <?php include BACKEND_PATH . '/partials/admin_navbar.php'; ?>

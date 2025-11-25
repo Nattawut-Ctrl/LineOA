@@ -2,9 +2,12 @@
 session_start();
 require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
-$conn = connectDBWithLog();
+require_once UTILS_PATH . '/admin_guard.php';
 
-$userId = $_SESSION['user_id'] ?? null;
+require_admin();
+$conn = connectDBWithLog();
+$adminId = $_SESSION['admin_id'] ?? null;
+
 
 // รับค่าจากฟอร์ม
 $product_id = isset($_POST['product_id']) ? intval($_POST['product_id']) : 0;

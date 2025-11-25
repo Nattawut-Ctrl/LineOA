@@ -2,7 +2,6 @@
 // utils/admin_guard.php
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/../config.php';
-require_once UTILS_PATH.'/admin_guard.php'; require_admin();
 
 function require_admin(): void
 {

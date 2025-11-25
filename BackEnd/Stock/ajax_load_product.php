@@ -1,6 +1,10 @@
 <?php
+session_start();
 require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
+require_once UTILS_PATH . '/admin_guard.php';
+
+require_admin();
 $conn = connectDBWithLog();
 
 // รับ id แบบปลอดภัย

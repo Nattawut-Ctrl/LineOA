@@ -9,7 +9,7 @@
   <!-- Sidebar -->
   <div class="sidebar-wrapper">
     <nav class="mt-2">
-      <ul class="nav sidebar-menu flex-column nav" role="menu">
+      <ul class="nav sidebar-menu flex-column" role="menu">
 
         <li class="nav-item">
           <a href="<?= BACKEND_URL ?>/dashboard.php"

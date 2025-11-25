@@ -26,7 +26,7 @@ $activeMenu = "dashboard";
   <?php include BACKEND_PATH . "/partials/admin_head.php"; ?>
 </head>
 
-<body class="layout-fixed sidebar-expand-lg bg-body-tertiary sidebar-mini">
+<body class="hold-transition layout-fixed sidebar-expand-lg bg-body-tertiary sidebar-mini">
   <div class="app-wrapper">
 
     <?php include BACKEND_PATH . "/partials/admin_navbar.php"; ?>

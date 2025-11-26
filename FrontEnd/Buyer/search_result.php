@@ -3,16 +3,12 @@ session_start();
 
 require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
+require_once UTILS_PATH . '/user_guard.php';
 require_once SERVICES_PATH . '/productService.php';
 require_once SERVICES_PATH . '/userService.php';
 
 $conn    = connectDBWithLog();
-$user_id = (int)($_SESSION['user_id'] ?? 0);
-
-if ($user_id <= 0) {
-    header("Location: ../Users/line-entry.php?from=shop");
-    exit;
-}
+$user_id = require_user_id();
 
 $user     = getUserById($conn, $user_id);
 $products = array_values(getAllProductsWithVariants($conn));

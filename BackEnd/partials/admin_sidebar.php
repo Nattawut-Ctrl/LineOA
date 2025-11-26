@@ -20,6 +20,14 @@
         </li>
 
         <li class="nav-item">
+          <a href="<?= BACKEND_URL ?>/order.php"
+             class="nav-link <?= ($activeMenu ?? '')==='order' ? 'active' : '' ?>">
+            <i class="nav-icon bi bi-cart"></i>
+            <p>Orders</p>
+          </a>
+        </li>
+
+        <li class="nav-item">
           <a href="<?= BACKEND_URL ?>/Stock/addStock.php"
              class="nav-link <?= ($activeMenu ?? '')==='stock' ? 'active' : '' ?>">
             <i class="nav-icon bi bi-box-seam"></i>

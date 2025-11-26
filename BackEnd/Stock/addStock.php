@@ -434,27 +434,6 @@ $activeMenu = "stock";
                                                         </div>
                                                     </div>
 
-                                                    <div class="row">
-                                                        <div class="mb-3 col-md-4">
-                                                            <label class="form-label fw-semibold">รหัสสินค้า (SKU)</label>
-                                                            <input type="text" name="sku" class="form-control" placeholder="เช่น SHIRT-A01">
-                                                        </div>
-
-                                                        <div class="mb-3 col-md-4">
-                                                            <label class="form-label fw-semibold">หน่วย</label>
-                                                            <input type="text" name="unit" class="form-control" placeholder="เช่น ชิ้น, กล่อง">
-                                                        </div>
-
-                                                        <div class="mb-3 col-md-4">
-                                                            <label class="form-label fw-semibold">สถานะสินค้า</label>
-                                                            <select name="status" class="form-select">
-                                                                <option value="active">แสดงบนระบบ</option>
-                                                                <option value="inactive">ซ่อนชั่วคราว</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-
-
                                                     <div class="mb-3">
                                                         <label class="form-label fw-semibold">คำอธิบาย</label>
                                                         <textarea name="description" rows="3" class="form-control" placeholder="รายละเอียดสินค้า / เงื่อนไขเพิ่มเติม"></textarea>
@@ -547,32 +526,32 @@ $activeMenu = "stock";
                                     div.className = 'variant-row';
 
                                     div.innerHTML = `
-                <div class="d-flex justify-content-between mb-2">
-                    <strong>ตัวเลือกสินค้า</strong>
-                    <button type="button" class="btn btn-sm btn-outline-danger removeVariant">
-                        <i class="bi bi-x-circle"></i> ลบ
-                    </button>
-                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <strong>ตัวเลือกสินค้า</strong>
+                                    <button type="button" class="btn btn-sm btn-outline-danger removeVariant">
+                                        <i class="bi bi-x-circle"></i> ลบ
+                                    </button>
+                                </div>
 
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">ชื่อ (เช่น สีแดง / ไซส์ M)</label>
-                        <input type="text" name="variant_name[]" class="form-control" required>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label">ราคา</label>
-                        <input type="number" step="0.01" name="variant_price[]" class="form-control">
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label">สต็อก</label>
-                        <input type="number" name="variant_stock[]" class="form-control">
-                    </div>
-                    <div class="col-md-2 mb-3">
-                        <label class="form-label">รูป</label>
-                        <input type="file" name="variant_image[]" class="form-control">
-                    </div>
-                </div>
-            `;
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">ชื่อ (เช่น สีแดง / ไซส์ M)</label>
+                                        <input type="text" name="variant_name[]" class="form-control" required>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">ราคา</label>
+                                        <input type="number" step="0.01" name="variant_price[]" class="form-control">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">สต็อก</label>
+                                        <input type="number" name="variant_stock[]" class="form-control">
+                                    </div>
+                                    <div class="col-md-2 mb-3">
+                                        <label class="form-label">รูป</label>
+                                        <input type="file" name="variant_image[]" class="form-control">
+                                    </div>
+                                </div>
+                            `;
 
                                     container.appendChild(div);
 
@@ -697,6 +676,49 @@ $activeMenu = "stock";
                                     };
                                 });
                             </script>
+                            <script>
+                                document.addEventListener('click', function(e) {
+                                    if (e.target && e.target.id === 'addNewVariantInEdit') {
+                                        const container = document.getElementById('newVariantContainer');
+                                        if (!container) return;
+
+                                        const div = document.createElement('div');
+                                        div.className = 'variant-row mb-2';
+
+                                        div.innerHTML = `
+      <div class="d-flex justify-content-between mb-2">
+        <strong>ตัวเลือกใหม่</strong>
+        <button type="button" class="btn btn-sm btn-outline-danger removeNewVariant">
+          <i class="bi bi-x-circle"></i> ลบ
+        </button>
+      </div>
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label class="form-label">ชื่อ</label>
+          <input type="text" name="new_variant_name[]" class="form-control" required>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="form-label">ราคา</label>
+          <input type="number" step="0.01" name="new_variant_price[]" class="form-control">
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="form-label">สต็อก</label>
+          <input type="number" name="new_variant_stock[]" class="form-control">
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="form-label">รูป (ถ้ามี)</label>
+          <input type="file" name="new_variant_image[]" class="form-control">
+        </div>
+      </div>
+    `;
+
+                                        container.appendChild(div);
+
+                                        div.querySelector('.removeNewVariant').onclick = () => div.remove();
+                                    }
+                                });
+                            </script>
+
 
                             <script>
                                 // Preview รูปภาพหลักก่อนบันทึก

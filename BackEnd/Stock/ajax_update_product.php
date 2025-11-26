@@ -2,7 +2,8 @@
 session_start();
 require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
-require_once UTILS_PATH.'/admin_guard.php'; require_admin();
+require_once UTILS_PATH . '/admin_guard.php';
+require_admin();
 $conn = connectDBWithLog();
 
 $userId = $_SESSION['user_id'] ?? null;
@@ -50,6 +51,57 @@ $resultProduct = db_exec(
 );
 
 // ----------------------
+// 3) เพิ่ม variants ใหม่ (รองรับอัปโหลดรูป)
+// ----------------------
+$okNewVariants = true;
+
+if (!empty($_POST['new_variant_name'])) {
+
+    foreach ($_POST['new_variant_name'] as $i => $nvName) {
+
+        $nvName = trim($nvName);
+        if ($nvName === '') continue;  // ข้ามถ้าว่าง
+
+        $nvPrice = floatval($_POST['new_variant_price'][$i] ?? 0);
+        $nvStock = intval($_POST['new_variant_stock'][$i] ?? 0);
+
+        // อัปโหลดรูป
+        $imagePath = null;
+
+        if (!empty($_FILES['new_variant_image']['name'][$i])) {
+
+            // โฟลเดอร์ที่จะเก็บรูป
+            $uploadDir = "../../uploads/";
+
+            // ชื่อไฟล์
+            $filename = time() . "_" . basename($_FILES['new_variant_image']['name'][$i]);
+
+            // path เต็ม
+            $targetPath = $uploadDir . $filename;
+
+            // ย้ายไฟล์จาก temp ไปโฟลเดอร์จริง
+            if (move_uploaded_file($_FILES['new_variant_image']['tmp_name'][$i], $targetPath)) {
+                // path แบบที่เก็บในฐานข้อมูล
+                $imagePath = "../../uploads/" . $filename;
+            }
+        }
+
+        // บันทึกลงฐานข้อมูล
+        $insert = db_exec(
+            $conn,
+            "INSERT INTO product_variants (product_id, variant_name, image, price, stock)
+             VALUES (?, ?, ?, ?, ?)",
+            [$id, $nvName, $imagePath, $nvPrice, $nvStock],
+            "issdi"
+        );
+
+        if (!$insert['ok']) {
+            $okNewVariants = false;
+        }
+    }
+}
+
+// ----------------------
 // 2) อัปเดต variants
 // ----------------------
 $okVariantsAll = true;
@@ -81,7 +133,7 @@ if (!empty($_POST['variant_id'])) {
 // ----------------------
 // 3) ประเมินผลทั้งหมด
 // ----------------------
-$statusOverall = ($resultProduct['ok'] && $okVariantsAll) ? 'success' : 'error';
+$statusOverall = ($resultProduct['ok'] && $okVariantsAll && $okNewVariants) ? 'success' : 'error';
 
 // Log final result ของการอัปเดต product
 writeLog(
@@ -107,4 +159,3 @@ if ($statusOverall !== 'success') {
 }
 
 echo "success";
-?>

@@ -559,6 +559,14 @@ $cart_items = getCartItems($conn, $user_id);
         let cartModal = null;
         let cartToast = null;
 
+        document.getElementById("nav-home")?.addEventListener("click", (e) => {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
+        });
+
         function getMaxStockForCurrent() {
             if (!selectedProduct) return Infinity;
 

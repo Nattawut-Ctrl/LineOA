@@ -61,6 +61,41 @@ $cart_items = getCartItems($conn, $user_id);
             backdrop-filter: blur(12px);
         }
 
+        /* Search ใน Navbar */
+        .navbar-search-form {
+            flex: 1;
+        }
+
+        .navbar-search-input-group {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 999px;
+            overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+        }
+
+        .navbar-search-input-group .form-control {
+            border: 0;
+            font-size: 0.9rem;
+            padding-top: .35rem;
+            padding-bottom: .35rem;
+        }
+
+        .navbar-search-input-group .input-group-text {
+            border: 0;
+            background: transparent;
+        }
+
+        .navbar-search-input-group .btn-search {
+            border-radius: 0;
+            font-size: 0.85rem;
+        }
+
+        @media (min-width: 768px) {
+            .navbar-search-input-group .form-control {
+                font-size: 0.95rem;
+            }
+        }
+
         /* Hero */
         .hero-section {
             background: linear-gradient(135deg, #ee4d2d 0%, #ff7043 40%, #ffb74d 100%);
@@ -171,6 +206,42 @@ $cart_items = getCartItems($conn, $user_id);
         .shake-cart {
             animation: cart-bounce 0.3s ease;
         }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 62px;
+            background: #fff;
+            border-top: 1px solid #ddd;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .bottom-nav .nav-item {
+            flex: 1;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #777;
+            text-decoration: none;
+            padding-top: 4px;
+        }
+
+        .bottom-nav .nav-item i {
+            font-size: 1.3rem;
+        }
+
+        .bottom-nav .nav-item.active,
+        .bottom-nav .nav-item:hover {
+            color: #ee4d2d;
+        }
+
+        .bottom-nav .nav-item.active i {
+            color: #ee4d2d;
+        }
     </style>
 </head>
 
@@ -178,22 +249,43 @@ $cart_items = getCartItems($conn, $user_id);
 
     <!-- Navbar -->
     <nav class="navbar navbar-dark navbar-glass sticky-top shadow-sm">
-        <div class="container-fluid px-3">
-            <a class="navbar-brand fw-bold fs-5 d-flex align-items-center gap-2" href="#">
+        <div class="container-fluid px-3 py-2">
+
+            <a class="navbar-brand fw-bold d-none d-md-flex align-items-center gap-2 me-3" href="#">
                 <span class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center"
                     style="width:32px;height:32px;">
                     <i class="bi bi-bag-check text-danger"></i>
                 </span>
                 <span>Line-Shop</span>
             </a>
-            <div class="d-flex align-items-center gap-2">
+
+            <form class="navbar-search-form" role="search">
+                <div class="input-group navbar-search-input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-search text-secondary"></i>
+                    </span>
+                    <input class="form-control"
+                        type="search"
+                        placeholder="ค้นหาสินค้า เช่น เสื้อยืด, รองเท้า, กระเป๋า..."
+                        aria-label="ค้นหา"
+                        id="searchInput"
+                        readonly>
+                    <!-- <button class="btn btn-light btn-search d-none d-sm-inline" type="button">
+                        <i class="bi bi-camera"></i>
+                    </button> -->
+                </div>
+            </form>
+
+
+            <!-- ขวาสุด: ชื่อ user + ตะกร้า -->
+            <div class="d-flex align-items-center ms-2 gap-2">
                 <span class="text-white-50 d-none d-md-inline small">
                     <i class="bi bi-person-circle me-1"></i>
                     <?php echo htmlspecialchars($user['first_name']); ?>
                 </span>
-                <button class="btn btn-light btn-sm rounded-circle position-relative shadow-sm" id="cartIcon"
-                    type="button">
-                    <i class="bi bi-cart3 text-danger"></i>
+
+                <button class="btn btn-link text-white position-relative p-0" id="cartIcon" type="button">
+                    <i class="bi bi-cart3 fs-4"></i>
                     <span class="position-absolute top-0 start-100 translate-middle badge bg-warning text-dark rounded-pill"
                         id="cartCountBadge" style="font-size:0.65rem; display:none;">
                         0
@@ -219,25 +311,6 @@ $cart_items = getCartItems($conn, $user_id);
             </div>
         </div>
     </section>
-
-    <!-- Search Bar -->
-    <div class="bg-white py-3 border-bottom border-light-subtle">
-        <div class="container">
-            <form role="search" onsubmit="searchCategory(event)">
-                <div class="input-group input-group-lg shadow-sm rounded-4 overflow-hidden">
-                    <span class="input-group-text bg-white border-0">
-                        <i class="bi bi-search text-secondary"></i>
-                    </span>
-                    <input class="form-control border-0" type="search"
-                        placeholder="ค้นหาสินค้า เช่น เสื้อยืด, รองเท้า, กระเป๋า..."
-                        aria-label="ค้นหา" id="searchInput">
-                    <button class="btn btn-danger fw-bold px-4" type="submit">
-                        ค้นหา
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
 
     <!-- Category Bar -->
     <div class="bg-white py-2 border-bottom border-light-subtle">
@@ -443,13 +516,46 @@ $cart_items = getCartItems($conn, $user_id);
         </div>
     </div>
 
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav d-md-none">
+        <a href="Buyer.php" class="nav-item active" id="nav-home">
+            <i class="bi bi-house-door"></i>
+            <span>หน้าแรก</span>
+        </a>
+
+        <a href="order-history.php" class="nav-item" id="nav-orders">
+            <i class="bi bi-receipt"></i>
+            <span>ออเดอร์</span>
+        </a>
+
+        <a href="notifications.php" class="nav-item" id="nav-noti">
+            <i class="bi bi-bell"></i>
+            <span>แจ้งเตือน</span>
+        </a>
+
+        <a href="profile.php" class="nav-item" id="nav-me">
+            <i class="bi bi-person"></i>
+            <span>ฉัน</span>
+        </a>
+    </nav>
 
     <!-- SCRIPTS -->
     <script>
         let selectedProduct = null;
         let selectedVariant = null;
 
-        let cart = <?php echo json_encode($cart_items, JSON_UNESCAPED_UNICODE); ?> || [];
+        const initialCart = <?php echo json_encode($cart_items, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?> || [];
+        let cart = Array.isArray(initialCart) ?
+            initialCart.map(it => ({
+                product_id: it.product_id,
+                // ถ้าในฐานข้อมูลเป็น 0 แต่เราอยากถือว่า "ไม่มี variant" ให้แปลงเป็น null
+                variant_id: (it.variant_id ? it.variant_id : null),
+                name: it.name,
+                image: it.image,
+                price: Number(it.price || 0),
+                quantity: Number(it.quantity || 0),
+            })) : [];
+
         let cartModal = null;
         let cartToast = null;
 
@@ -475,6 +581,16 @@ $cart_items = getCartItems($conn, $user_id);
                     if (href) window.location.href = href;
                 });
             });
+
+            const navSearchInput = document.getElementById('searchInput');
+            if (navSearchInput) {
+                navSearchInput.addEventListener('focus', () => {
+                    window.location.href = 'search.php';
+                });
+                navSearchInput.addEventListener('click', () => {
+                    window.location.href = 'search.php';
+                });
+            }
 
             document.querySelectorAll('.open-cart-bar').forEach(btn => {
                 btn.addEventListener('click', (e) => {
@@ -963,29 +1079,29 @@ $cart_items = getCartItems($conn, $user_id);
             form.submit();
         }
 
-        function searchCategory(e) {
-            e.preventDefault();
-            const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
-            const products = document.querySelectorAll('.product-item');
+        // function searchCategory(e) {
+        //     e.preventDefault();
+        //     const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+        //     const products = document.querySelectorAll('.product-item');
 
-            let found = false;
+        //     let found = false;
 
-            products.forEach(product => {
-                const productName = product.querySelector('.card-title').textContent.toLowerCase();
-                const match = productName.includes(keyword);
+        //     products.forEach(product => {
+        //         const productName = product.querySelector('.card-title').textContent.toLowerCase();
+        //         const match = productName.includes(keyword);
 
-                if (match) {
-                    product.style.display = 'block';
-                    found = true;
-                } else {
-                    product.style.display = 'none';
-                }
-            });
+        //         if (match) {
+        //             product.style.display = 'block';
+        //             found = true;
+        //         } else {
+        //             product.style.display = 'none';
+        //         }
+        //     });
 
-            if (!found) {
-                alert('ไม่พบสินค้าที่ค้นหา: ' + keyword);
-            }
-        }
+        //     if (!found) {
+        //         alert('ไม่พบสินค้าที่ค้นหา: ' + keyword);
+        //     }
+        // }
 
         function syncCartToServer() {
             // console.log('cart before sync', cart);

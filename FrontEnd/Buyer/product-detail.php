@@ -12,15 +12,15 @@ $conn    = connectDBWithLog();
 $user_id = (int)($_SESSION['user_id'] ?? 0);
 
 if ($user_id <= 0) {
-    header("Location: ../Users/line-entry.php?from=shop");
-    exit;
+  header("Location: ../Users/line-entry.php?from=shop");
+  exit;
 }
 
 $user = getUserById($conn, $user_id);
 if (!$user) {
-    unset($_SESSION['user_id']);
-    header("Location: ../Users/line-entry.php?from=register");
-    exit;
+  unset($_SESSION['user_id']);
+  header("Location: ../Users/line-entry.php?from=register");
+  exit;
 }
 
 // ───────────────────── สินค้าหลัก ─────────────────────
@@ -28,9 +28,9 @@ $pid     = (int)($_GET['id'] ?? 0);
 $product = $pid > 0 ? getProductByIdWithVariants($conn, $pid) : null;
 
 if (!$product) {
-    http_response_code(404);
-    echo "ไม่พบสินค้า";
-    exit;
+  http_response_code(404);
+  echo "ไม่พบสินค้า";
+  exit;
 }
 
 $variants   = $product['variants'] ?? [];
@@ -40,26 +40,26 @@ $cart_items = getCartItems($conn, $user_id);
 // ใช้ getAllProductsWithVariants() ที่มีอยู่แล้ว
 $recommended = [];
 try {
-    $allProducts = getAllProductsWithVariants($conn); // คืนแบบ [product_id => [...]]
-    foreach ($allProducts as $p) {
-        if ((int)$p['id'] === (int)$product['id']) {
-            continue; // ไม่เอาตัวเดียวกัน
-        }
-
-        // ถ้ามี category ให้แนะนำในหมวดเดียวกันก่อน
-        if (!empty($product['category']) && !empty($p['category'])) {
-            if ($p['category'] !== $product['category']) {
-                continue;
-            }
-        }
-
-        $recommended[] = $p;
-        if (count($recommended) >= 8) {
-            break;
-        }
+  $allProducts = getAllProductsWithVariants($conn); // คืนแบบ [product_id => [...]]
+  foreach ($allProducts as $p) {
+    if ((int)$p['id'] === (int)$product['id']) {
+      continue; // ไม่เอาตัวเดียวกัน
     }
+
+    // ถ้ามี category ให้แนะนำในหมวดเดียวกันก่อน
+    if (!empty($product['category']) && !empty($p['category'])) {
+      if ($p['category'] !== $product['category']) {
+        continue;
+      }
+    }
+
+    $recommended[] = $p;
+    if (count($recommended) >= 8) {
+      break;
+    }
+  }
 } catch (Throwable $e) {
-    // ถ้ามี error ก็ปล่อย $recommended ว่าง ๆ ไป ไม่ต้องทำให้หน้าเด้ง
+  // ถ้ามี error ก็ปล่อย $recommended ว่าง ๆ ไป ไม่ต้องทำให้หน้าเด้ง
 }
 
 ?>
@@ -71,9 +71,7 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?php echo htmlspecialchars($product['name']); ?> | Line Shop</title>
 
-  <!-- Bootstrap 5 + Icons -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <?php include BASE_PATH . '/partials/bootstrap.php'; ?>
 
   <style>
     body {
@@ -202,11 +200,11 @@ try {
 
       <!-- ปุ่มตะกร้า (กดแล้วเปิด Modal ดูได้) -->
       <button type="button"
-              id="openCartBtn"
-              class="btn btn-link text-white position-relative text-decoration-none p-0 border-0">
+        id="openCartBtn"
+        class="btn btn-link text-white position-relative text-decoration-none p-0 border-0">
         <i class="bi bi-cart3 fs-4"></i>
         <span id="cartBadge"
-              class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark d-none">
+          class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark d-none">
           0
         </span>
       </button>
@@ -220,9 +218,9 @@ try {
     <div class="bg-white rounded-4 p-2 shadow-sm mb-3">
       <div class="ratio ratio-1x1 rounded-4 overflow-hidden">
         <img id="mainImage"
-             src="<?php echo htmlspecialchars($product['image']); ?>"
-             class="w-100 h-100 object-fit-cover"
-             alt="<?php echo htmlspecialchars($product['name']); ?>">
+          src="<?php echo htmlspecialchars($product['image']); ?>"
+          class="w-100 h-100 object-fit-cover"
+          alt="<?php echo htmlspecialchars($product['name']); ?>">
       </div>
     </div>
 
@@ -256,8 +254,8 @@ try {
         <div class="d-flex flex-wrap gap-2" id="variantListMain">
           <?php foreach ($variants as $v): ?>
             <button type="button"
-                    class="btn btn-outline-secondary btn-sm rounded-pill variant-chip-main"
-                    data-variant='<?php echo json_encode($v, JSON_UNESCAPED_UNICODE); ?>'>
+              class="btn btn-outline-secondary btn-sm rounded-pill variant-chip-main"
+              data-variant='<?php echo json_encode($v, JSON_UNESCAPED_UNICODE); ?>'>
               <?php echo htmlspecialchars($v['variant_name']); ?>
             </button>
           <?php endforeach; ?>
@@ -285,10 +283,10 @@ try {
           <?php foreach ($recommended as $rp): ?>
             <div class="col-6 col-md-3">
               <div class="card reco-card h-100"
-                   onclick="window.location.href='product-detail.php?id=<?php echo (int)$rp['id']; ?>'">
+                onclick="window.location.href='product-detail.php?id=<?php echo (int)$rp['id']; ?>'">
                 <img src="<?php echo htmlspecialchars($rp['image']); ?>"
-                     class="reco-img"
-                     alt="<?php echo htmlspecialchars($rp['name']); ?>">
+                  class="reco-img"
+                  alt="<?php echo htmlspecialchars($rp['name']); ?>">
                 <div class="card-body p-2">
                   <div class="small text-truncate">
                     <?php echo htmlspecialchars($rp['name']); ?>
@@ -334,8 +332,8 @@ try {
     <!-- Header -->
     <div class="cart-bar-header d-flex align-items-center gap-3 pb-3">
       <img id="cartThumb" class="cart-thumb"
-           src="<?php echo htmlspecialchars($product['image']); ?>"
-           alt="<?php echo htmlspecialchars($product['name']); ?>">
+        src="<?php echo htmlspecialchars($product['image']); ?>"
+        alt="<?php echo htmlspecialchars($product['name']); ?>">
       <div class="flex-grow-1">
         <div class="small text-muted mb-1">กำลังสั่งซื้อ</div>
         <div class="fw-semibold text-truncate">
@@ -346,8 +344,8 @@ try {
         </div>
       </div>
       <button type="button"
-              class="btn btn-sm btn-outline-secondary rounded-circle"
-              onclick="closeCartBar()">
+        class="btn btn-sm btn-outline-secondary rounded-circle"
+        onclick="closeCartBar()">
         <i class="bi bi-x-lg"></i>
       </button>
     </div>
@@ -373,11 +371,11 @@ try {
       </div>
       <div class="d-flex align-items-center gap-2">
         <button class="btn btn-outline-secondary btn-sm rounded-circle fw-bold"
-                style="width:36px;height:36px;" onclick="changeCartQty(-1)">−</button>
+          style="width:36px;height:36px;" onclick="changeCartQty(-1)">−</button>
         <input id="cartQtyInput" type="number" class="form-control text-center"
-               style="width:90px;" min="1" value="1">
+          style="width:90px;" min="1" value="1">
         <button class="btn btn-outline-secondary btn-sm rounded-circle fw-bold"
-                style="width:36px;height:36px;" onclick="changeCartQty(1)">+</button>
+          style="width:36px;height:36px;" onclick="changeCartQty(1)">+</button>
       </div>
     </div>
 
@@ -396,77 +394,91 @@ try {
     </div>
   </div>
 
-  <!-- Modal ตะกร้า -->
+  <!-- Cart Modal (เหมือน Buyer.php) -->
   <div class="modal fade" id="cartModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">ตะกร้าสินค้า</h5>
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow-lg">
+        <div class="modal-header border-0">
+          <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
+            <span
+              class="bg-danger-subtle text-danger-emphasis rounded-circle d-inline-flex align-items-center justify-content-center"
+              style="width:32px;height:32px;">
+              <i class="bi bi-bag-check-fill"></i>
+            </span>
+            <span>ตะกร้าสินค้า</span>
+          </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"
-                  aria-label="Close"></button>
+            aria-label="Close"></button>
         </div>
-        <div class="modal-body" id="cartModalBody">
-          <!-- render ด้วย JS -->
+        <div class="modal-body">
+          <div id="cartItemsContainer"></div>
         </div>
-        <div class="modal-footer">
-          <a href="payment.php?mode=cart" class="btn btn-danger w-100">
-            ไปชำระค่าสินค้าทั้งตะกร้า
-          </a>
+        <div
+          class="modal-footer border-0 d-flex justify-content-between align-items-center pt-0">
+          <div class="fw-bold fs-6">
+            รวมทั้งหมด:
+            <span class="text-danger" id="cartTotal">0 บาท</span>
+          </div>
+          <button type="button"
+            class="btn fw-bold text-white rounded-3 px-4"
+            style="background: linear-gradient(135deg, #ff7043, #ff9800);"
+            id="goPaymentBtn">
+            <i class="bi bi-credit-card me-1"></i> ชำระเงิน
+          </button>
         </div>
       </div>
     </div>
   </div>
 
+
   <!-- Toast แจ้งเตือน -->
   <div class="position-fixed bottom-50 start-50 translate-middle bg-dark text-white px-3 py-2 rounded-3 small d-none"
-       id="cartToast">
+    id="cartToast">
     เพิ่มลงตะกร้าเรียบร้อยแล้ว
   </div>
 
   <!-- JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    const product  = <?php echo json_encode($product, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const product = <?php echo json_encode($product, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     const variants = product.variants || [];
 
-    // แปลง cart จาก PHP -> JS ให้รูปเหมือนหน้า Buyer.php
     const initialCart = <?php echo json_encode($cart_items, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?> || [];
-    let cart = Array.isArray(initialCart)
-        ? initialCart.map(it => ({
-            product_id: it.product_id,
-            variant_id: (it.variant_id ?? null),
-            name: it.name,
-            image: it.image,
-            price: Number(it.price || 0),
-            quantity: Number(it.quantity || 0)
-          }))
-        : [];
+    let cart = Array.isArray(initialCart) ?
+      initialCart.map(it => ({
+        product_id: it.product_id,
+        // ถ้าเป็น 0 ให้ถือว่าไม่มี variant → แปลงเป็น null
+        variant_id: it.variant_id ? it.variant_id : null,
+        name: it.name,
+        image: it.image,
+        price: Number(it.price || 0),
+        quantity: Number(it.quantity || 0)
+      })) : [];
 
     let selectedVariant = null;
     let cartQty = 1;
     let cartMode = 'add'; // 'add' หรือ 'buy'
 
-    const mainImageEl      = document.getElementById('mainImage');
-    const priceTextEl      = document.getElementById('priceText');
-    const stockTextEl      = document.getElementById('stockText');
-    const cartThumbEl      = document.getElementById('cartThumb');
-    const cartPriceTextEl  = document.getElementById('cartPriceText');
-    const cartStockTextEl  = document.getElementById('cartStockText');
-    const cartQtyInputEl   = document.getElementById('cartQtyInput');
-    const cartBarEl        = document.getElementById('cartBar');
+    const mainImageEl = document.getElementById('mainImage');
+    const priceTextEl = document.getElementById('priceText');
+    const stockTextEl = document.getElementById('stockText');
+    const cartThumbEl = document.getElementById('cartThumb');
+    const cartPriceTextEl = document.getElementById('cartPriceText');
+    const cartStockTextEl = document.getElementById('cartStockText');
+    const cartQtyInputEl = document.getElementById('cartQtyInput');
+    const cartBarEl = document.getElementById('cartBar');
     const cartBarOverlayEl = document.getElementById('cartBarOverlay');
-    const cartToastEl      = document.getElementById('cartToast');
-    const cartBadgeEl      = document.getElementById('cartBadge');
+    const cartToastEl = document.getElementById('cartToast');
+    const cartBadgeEl = document.getElementById('cartBadge');
     const variantListBarEl = document.getElementById('variantListBar');
     const variantHintBarEl = document.getElementById('variantHintBar');
-    const scrollTopBtn     = document.getElementById('scrollTopBtn');
+    const scrollTopBtn = document.getElementById('scrollTopBtn');
     const cartAddConfirmBtn = document.getElementById('cartAddConfirmBtn');
     const cartBuyConfirmBtn = document.getElementById('cartBuyConfirmBtn');
 
-    const openCartBtnEl    = document.getElementById('openCartBtn');
-    const cartModalEl      = document.getElementById('cartModal');
-    const cartModalBodyEl  = document.getElementById('cartModalBody');
-    let cartModalInstance  = null;
+    const openCartBtnEl = document.getElementById('openCartBtn');
+    const cartModalEl = document.getElementById('cartModal');
+    let cartModalInstance = null;
 
     // ───────────────────── Helpers ─────────────────────
     function formatPrice(p) {
@@ -494,17 +506,17 @@ try {
       const price = getCurrentPrice();
       const stock = getCurrentStock();
 
-      priceTextEl.textContent     = formatPrice(price);
+      priceTextEl.textContent = formatPrice(price);
       cartPriceTextEl.textContent = formatPrice(price);
 
-      stockTextEl.textContent     = stock;
+      stockTextEl.textContent = stock;
       cartStockTextEl.textContent = stock;
 
       // รูป
       const img = (selectedVariant && selectedVariant.image) ? selectedVariant.image : product.image;
       if (img) {
-        mainImageEl.src  = img;
-        cartThumbEl.src  = img;
+        mainImageEl.src = img;
+        cartThumbEl.src = img;
       }
 
       // จำกัดจำนวนไม่เกินสต็อก
@@ -679,36 +691,43 @@ try {
     // ─────────────── syncCartToServer (ใช้ format เดียวกับ Buyer.php) ───────────────
     function syncCartToServer() {
       fetch('save_cart.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cart })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.status !== 'ok') {
-          console.error('Sync error:', data);
-        }
-      })
-      .catch(err => {
-        console.error('Fetch error:', err);
-      });
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            cart
+          })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status !== 'ok') {
+            console.error('Sync error:', data);
+            throw new Error(data.message || 'sync_failed');
+          }
+          return data;
+        })
+        .catch(err => {
+          console.error('Fetch error:', err);
+          throw err;
+        });
     }
 
     // เพิ่มของลง array cart แล้ว sync ไป server
     function addCartLogic(qty) {
       const variantId = selectedVariant ? selectedVariant.id : null;
-      const price     = getCurrentPrice();
-      const imageUrl  = (selectedVariant && selectedVariant.image) ? selectedVariant.image : product.image;
-      const stock     = getCurrentStock();
+      const price = getCurrentPrice();
+      const imageUrl = (selectedVariant && selectedVariant.image) ? selectedVariant.image : product.image;
+      const stock = getCurrentStock();
 
       const existing = cart.find(
         item =>
-          String(item.product_id) === String(product.id) &&
-          String(item.variant_id ?? '') === String(variantId ?? '')
+        String(item.product_id) === String(product.id) &&
+        String(item.variant_id ?? '') === String(variantId ?? '')
       );
 
       const currentQty = existing ? Number(existing.quantity) || 0 : 0;
-      const newTotal   = currentQty + qty;
+      const newTotal = currentQty + qty;
 
       if (stock > 0 && newTotal > stock) {
         const canAdd = stock - currentQty;
@@ -727,6 +746,7 @@ try {
           product_id: product.id,
           variant_id: variantId,
           name: product.name,
+          variant_name: selectedVariant ? selectedVariant.variant_name : null,
           image: imageUrl,
           price: price,
           quantity: qty
@@ -735,71 +755,115 @@ try {
 
       updateCartBadge();
       renderCartModal();
-      syncCartToServer();
+
       return true;
     }
 
     async function addToCart() {
       if (!requireVariantIfNeeded()) return;
       const qty = Number(cartQtyInputEl.value || 1);
-      const ok  = addCartLogic(qty);
-      if (ok) {
-        showToast('เพิ่มลงตะกร้าแล้ว');
+      const ok = addCartLogic(qty);
+      if (!ok) return;
+
+      try {
+        await syncCartToServer();
+        showToast('เพิ่มลงตะกร้าเรียบร้อยแล้ว');
         closeCartBar();
+      } catch (err) {
+        alert('เกิดข้อผิดพลาดในการบันทึกตะกร้า กรุณาลองใหม่อีกครั้ง');
+        console.error(err);
       }
     }
 
-    function buyNow() {
+    async function buyNow() {
       if (!requireVariantIfNeeded()) return;
 
       const qty = Number(cartQtyInputEl.value || 1);
-      const ok  = addCartLogic(qty); // ให้ตะกร้าตรงกับที่ซื้อ
+      const ok = addCartLogic(qty); // ให้ตะกร้าตรงกับที่ซื้อ
       if (!ok) return;
 
       const pid = product.id;
       const vid = selectedVariant ? selectedVariant.id : 0;
+
+      try {
+        await syncCartToServer();
+      } catch (e) {
+        console.error(e);
+        alert('บันทึกตะกร้าล้มเหลว ลองใหม่อีกครั้งได้ไหม');
+        return;
+      }
 
       const url =
         `payment.php?mode=single&product_id=${encodeURIComponent(pid)}&variant_id=${encodeURIComponent(vid)}&quantity=${encodeURIComponent(qty)}`;
       window.location.href = url;
     }
 
-    // ───────────────────── Modal ตะกร้า ─────────────────────
+    function removeCartItem(index) {
+      if (index < 0 || index >= cart.length) return;
+
+      cart.splice(index, 1);
+      updateCartBadge();
+      renderCartModal();
+      syncCartToServer();
+    }
+
     function renderCartModal() {
-      if (!cartModalBodyEl) return;
+      const container = document.getElementById('cartItemsContainer');
+      const totalEl = document.getElementById('cartTotal');
+
+      if (!container || !totalEl) return;
+
+      container.innerHTML = '';
 
       if (!cart || cart.length === 0) {
-        cartModalBodyEl.innerHTML = '<p class="text-muted mb-0">ยังไม่มีสินค้าในตะกร้า</p>';
+        container.innerHTML = '<div class="alert alert-info rounded-3 mb-0"><i class="bi bi-info-circle me-2"></i>ยังไม่มีสินค้าในตะกร้า</div>';
+        totalEl.textContent = '0 บาท';
         return;
       }
 
       let total = 0;
-      let html = '<ul class="list-group">';
-      cart.forEach(item => {
-        const qty   = Number(item.quantity || 0);
+
+      cart.forEach((item, index) => {
+        const qty = Number(item.quantity || 0);
         const price = Number(item.price || 0);
         const lineTotal = price * qty;
         total += lineTotal;
 
-        const vName = item.variant_name ? ` (${item.variant_name})` : '';
+        const row = document.createElement('div');
+        row.className = 'd-flex align-items-center gap-2 mb-3 p-2 cart-row';
 
-        html += `
-          <li class="list-group-item d-flex justify-content-between align-items-start">
-            <div>
-              <div class="fw-semibold">${item.name || ''}${vName}</div>
-              <div class="small text-muted">จำนวน: ${qty}</div>
-            </div>
-            <div class="text-end">
-              <div class="fw-semibold">${formatPrice(price)}</div>
-              <div class="small text-muted">รวม ${formatPrice(lineTotal)}</div>
-            </div>
-          </li>
-        `;
+        const name = item.name || '';
+        const variantName = item.variant_name ? ` (${item.variant_name})` : '';
+
+        row.innerHTML = `
+      <div class="rounded-3 overflow-hidden bg-light" style="width:60px;height:60px;">
+        <img src="${item.image}" class="w-100 h-100" style="object-fit: cover;">
+      </div>
+      <div class="flex-grow-1 min-width-0">
+        <div class="small fw-semibold text-truncate">${name}${variantName}</div>
+        <div class="small text-muted">จำนวน: <span class="fw-bold">${qty}</span> ชิ้น</div>
+      </div>
+      <div class="text-end me-2">
+        <div class="small text-muted">฿${lineTotal.toLocaleString()}</div>
+      </div>
+      <button type="button"
+        class="btn btn-sm btn-outline-danger rounded-3 remove-cart-item"
+        data-index="${index}">
+        <i class="bi bi-trash"></i>
+      </button>
+    `;
+
+        container.appendChild(row);
       });
-      html += '</ul>';
-      html += `<div class="mt-3 text-end fw-semibold">รวมทั้งหมด ${formatPrice(total)}</div>`;
 
-      cartModalBodyEl.innerHTML = html;
+      totalEl.textContent = total.toLocaleString() + ' บาท';
+
+      container.querySelectorAll('.remove-cart-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.index);
+          removeCartItem(idx);
+        });
+      });
     }
 
     // ───────────────────── Scroll to top ─────────────────────
@@ -812,16 +876,19 @@ try {
     });
 
     scrollTopBtn.addEventListener('click', () => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
     });
 
     // ───────────────────── Event ปุ่มหลัก ─────────────────────
     document.getElementById('addCartBtn').addEventListener('click', () => {
-      openCartBar('add');  // จะโชว์เฉพาะปุ่ม "เพิ่มลงตะกร้า"
+      openCartBar('add'); // จะโชว์เฉพาะปุ่ม "เพิ่มลงตะกร้า"
     });
 
     document.getElementById('buyNowBtn').addEventListener('click', () => {
-      openCartBar('buy');  // จะโชว์เฉพาะปุ่ม "ซื้อเลย"
+      openCartBar('buy'); // จะโชว์เฉพาะปุ่ม "ซื้อเลย"
     });
 
     cartAddConfirmBtn.addEventListener('click', addToCart);
@@ -847,4 +914,5 @@ try {
   </script>
 
 </body>
+
 </html>

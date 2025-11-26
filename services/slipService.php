@@ -49,7 +49,12 @@ function createPayment(mysqli $conn, array $data): int
 function getAllPayments(mysqli $conn): array
 {
     $sql = "
-        SELECT p.*, u.first_name, u.last_name, u.display_name
+        SELECT 
+        p.*, 
+        u.first_name, 
+        u.last_name, 
+        u.display_name,
+        CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) AS user_name
         FROM payments p
         JOIN users u ON p.user_id = u.id
         ORDER BY p.id DESC
@@ -73,7 +78,12 @@ function getAllPayments(mysqli $conn): array
 function getPaymentById(mysqli $conn, int $payment_id): ?array
 {
     $sql = "
-        SELECT p.*, u.first_name, u.last_name, u.display_name
+        SELECT 
+        p.*, 
+        u.first_name, 
+        u.last_name, 
+        u.display_name,
+        CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) AS user_name
         FROM payments p
         JOIN users u ON p.user_id = u.id
         WHERE p.id = ?

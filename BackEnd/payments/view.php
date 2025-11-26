@@ -79,6 +79,52 @@ if (!$payment) die("Payment not found");
 
                   <img src="/<?= $payment['slip_path'] ?>" class="img-fluid my-3" style="max-width:420px">
 
+                  <?php
+                  // แสดงรายละเอียดรายการสินค้า (ถ้ามี)
+                  $items = [];
+                  if (!empty($payment['items_json'])) {
+                      $decoded = json_decode($payment['items_json'], true);
+                      if (is_array($decoded)) {
+                          $items = $decoded;
+                      }
+                  }
+
+                  if (!empty($items)): ?>
+                    <h5 class="mt-4 mb-3">รายการสินค้า</h5>
+                    <div class="table-responsive">
+                      <table class="table table-sm table-bordered align-middle">
+                        <thead class="table-light">
+                          <tr>
+                            <th>สินค้า</th>
+                            <th style="width:140px;">ตัวเลือก</th>
+                            <th style="width:80px;" class="text-center">จำนวน</th>
+                            <th style="width:140px;" class="text-end">ราคา/ชิ้น</th>
+                            <th style="width:140px;" class="text-end">รวม</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <?php foreach ($items as $it):
+                              $name   = $it['name'] ?? '-';
+                              $vname  = $it['variant_name'] ?? '';
+                              $qty    = (int)($it['quantity'] ?? 1);
+                              if ($qty < 1) $qty = 1;
+                              $price  = (float)($it['price'] ?? 0);
+                              $total  = $qty * $price;
+                          ?>
+                            <tr>
+                              <td><?= htmlspecialchars($name) ?></td>
+                              <td><?= htmlspecialchars($vname) ?></td>
+                              <td class="text-center"><?= $qty ?></td>
+                              <td class="text-end"><?= number_format($price, 2) ?></td>
+                              <td class="text-end"><?= number_format($total, 2) ?></td>
+                            </tr>
+                          <?php endforeach; ?>
+                        </tbody>
+                      </table>
+                    </div>
+                  <?php endif; ?>
+
+
                   <div class="mt-3">
                     <?= statusButton($id, 'approved', 'อนุมัติ', 'btn-success me-2', $csrf_token) ?>
                     <?= statusButton($id, 'rejected', 'ปฏิเสธ', 'btn-danger me-2', $csrf_token) ?>

@@ -14,8 +14,10 @@ $adminId = $_SESSION['admin_id'] ?? null;
 // -----------------------
 $name        = trim($_POST['name'] ?? '');
 $category    = trim($_POST['category'] ?? '');
+$sku         = trim($_POST['sku'] ?? '');
 $price       = floatval($_POST['price'] ?? 0);
 $stock       = intval($_POST['stock'] ?? 0);
+$unit        = trim($_POST['unit'] ?? '');
 $description = trim($_POST['description'] ?? '');
 
 // ตรวจสอบ input
@@ -25,7 +27,7 @@ if ($name == '' || $category == '' || $price <= 0) {
     writeLog(
         $conn,
         "INSERT products (invalid input)",
-        ['name' => $name, 'category' => $category, 'price' => $price],
+        ['name' => $name, 'category' => $category, 'sku' => $sku, 'unit' => $unit, 'price' => $price],
         '',
         'error',
         'save_new_product: invalid product input'
@@ -58,10 +60,10 @@ if (!empty($_FILES['image']['name'])) {
 // -----------------------
 $resultProduct = db_exec(
     $conn,
-    "INSERT INTO products (name, category, price, stock, description, image)
+    "INSERT INTO products (sku, name, category, price, stock, unit, description, image)
      VALUES (?, ?, ?, ?, ?, ?)",
-    [$name, $category, $price, $stock, $description, $productImage],
-    "ssdiss"
+    [$sku, $name, $category, $price, $stock, $unit, $description, $productImage],
+    "sssdisss"
 );
 
 $product_id = $conn->insert_id;

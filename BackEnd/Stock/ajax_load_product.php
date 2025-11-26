@@ -26,6 +26,9 @@ $resP = db_query(
 
 $p = $resP ? $resP->fetch_assoc() : null;
 
+$sku  = isset($p['sku'])  ? (string)$p['sku']  : '';
+$unit = isset($p['unit']) ? (string)$p['unit'] : '';
+
 if (!$p) {
     exit("<p class='text-danger'>ไม่พบสินค้า</p>");
 }
@@ -48,6 +51,21 @@ $resV = db_query(
     <div class="mb-3">
         <label>ชื่อสินค้า</label>
         <input type="text" name="name" value="<?= htmlspecialchars($p['name']) ?>" class="form-control">
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label>SKU</label>
+            <input type="text" name="sku"
+                value="<?= htmlspecialchars($sku, ENT_QUOTES, 'UTF-8') ?>"
+                class="form-control">
+        </div>
+        <div class="col-md-6 mb-3">
+            <label>หน่วยนับ (Unit)</label>
+            <input type="text" name="unit"
+                value="<?= htmlspecialchars($unit, ENT_QUOTES, 'UTF-8') ?>"
+                class="form-control">
+        </div>
     </div>
 
     <div class="row">

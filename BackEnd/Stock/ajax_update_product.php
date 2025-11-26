@@ -37,17 +37,25 @@ if ($id <= 0) {
 // 1) อัปเดต products
 // ----------------------
 $name        = $_POST['name'] ?? '';
+$sku         = trim($_POST['sku'] ?? '');
 $price       = floatval($_POST['price'] ?? 0);
 $stock       = intval($_POST['stock'] ?? 0);
+$unit        = trim($_POST['unit'] ?? '');
 $description = $_POST['description'] ?? '';
+
+if ($name === '' || $sku === '' || $unit === '' || $price <= 0) {
+    http_response_code(400);
+    echo "invalid_input";
+    exit;
+}
 
 $resultProduct = db_exec(
     $conn,
     "UPDATE products 
-     SET name = ?, price = ?, stock = ?, description = ?
+     SET sku = ?, name = ?, price = ?, stock = ?, unit = ?, description = ?
      WHERE id = ?",
-    [$name, $price, $stock, $description, $id],
-    "sdisi"
+    [$sku, $name, $price, $stock, $unit, $description, $id],
+    "ssdissi"
 );
 
 // ----------------------

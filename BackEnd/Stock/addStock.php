@@ -413,6 +413,17 @@ $activeMenu = "stock";
                                                         <label class="form-label fw-semibold">ชื่อสินค้า</label>
                                                         <input type="text" name="name" class="form-control" required placeholder="เช่น เสื้อยืด Oversize รุ่น A">
                                                     </div>
+                                                    <div class="row">
+                                                        <div class="mb-3 col-md-6">
+                                                            <label class="form-label fw-semibold">SKU</label>
+                                                            <input type="text" name="sku" class="form-control" placeholder="เช่น SHIRT-001">
+                                                        </div>
+                                                        <div class="mb-3 col-md-6">
+                                                            <label class="form-label fw-semibold">หน่วยนับ (Unit)</label>
+                                                            <input type="text" name="unit" class="form-control" placeholder="เช่น ตัว, ชิ้น, ขวด">
+                                                        </div>
+                                                    </div>
+
 
                                                     <div class="row">
                                                         <div class="mb-3 col-md-4">

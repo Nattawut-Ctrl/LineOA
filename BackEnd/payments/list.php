@@ -66,7 +66,11 @@ $payments = function_exists('getAllPayments') ? getAllPayments($conn) : [];
                     <?php foreach ($payments as $p): ?>
                       <tr>
                         <td><?= (int)($p['id'] ?? 0) ?></td>
-                        <td><?= htmlspecialchars($p['user_name'] ?? $p['display_name'] ?? '-') ?></td>
+                        <td><?php
+                        $displayName = $p['user_name'] ?? trim(($p['first_name'] ?? '') . ' ' . ($p['last_name'] ?? ''));
+                        if ($displayName === '') { $displayName = $p['display_name'] ?? '-'; }
+                        echo htmlspecialchars($displayName);
+                        ?></td>
                         <td><?= number_format((float)($p['amount'] ?? 0), 2) ?></td>
                         <td>
                           <?php

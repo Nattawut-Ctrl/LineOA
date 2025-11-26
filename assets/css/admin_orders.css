@@ -1,0 +1,11 @@
+/* Shared styles for Orders & Payment lists */
+.order-status-badge,
+.payment-status-badge {
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+.order-filter-card .form-label {
+  font-weight: 500;
+}

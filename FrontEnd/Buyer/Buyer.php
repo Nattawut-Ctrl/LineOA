@@ -235,6 +235,18 @@ $cart_items = getCartItems($conn, $user_id);
             color: #ee4d2d;
         }
 
+        
+        /* ให้ content ด้านบนไม่โดน bottom nav ทับบนจอเล็ก */
+        .buyer-main-padding {
+            padding-bottom: 5rem;
+        }
+
+        @media (min-width: 768px) {
+            .buyer-main-padding {
+                padding-bottom: 2rem;
+            }
+        }
+
         .bottom-nav .nav-item.active i {
             color: #ee4d2d;
         }
@@ -296,7 +308,7 @@ $cart_items = getCartItems($conn, $user_id);
     </div>
 
     <!-- Products Grid -->
-    <main class="container py-4">
+    <main class="container py-4 buyer-main-padding">
         <div class="row g-3 g-md-4" id="product-list">
             <?php foreach ($products as $product): ?>
                 <div class="col-6 col-md-4 col-lg-3 product-item mb-2 mb-md-3"

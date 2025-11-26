@@ -40,6 +40,19 @@ $activeMenu = "stock";
     <?php include BACKEND_PATH . '/partials/admin_head.php'; ?>
     <style>
         .variant-row {
+            margin-bottom: .75rem;
+        }
+
+        .stock-manage-wrapper {
+            padding-bottom: 1.5rem;
+        }
+        @media (max-width: 767.98px) {
+            .stock-manage-wrapper {
+                padding-inline: .5rem;
+            }
+        }
+
+        .variant-row-placeholder {
             background: #fafafa;
             border: 1px solid #ddd;
             border-radius: 10px;

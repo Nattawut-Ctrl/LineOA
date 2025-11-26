@@ -61,7 +61,7 @@ if (!empty($_FILES['image']['name'])) {
 $resultProduct = db_exec(
     $conn,
     "INSERT INTO products (sku, name, category, price, stock, unit, description, image)
-     VALUES (?, ?, ?, ?, ?, ?)",
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
     [$sku, $name, $category, $price, $stock, $unit, $description, $productImage],
     "sssdisss"
 );

@@ -171,22 +171,15 @@ $logoutUrl = "../Users/line-entry.php?logout=1";
 
                 <hr class="my-1">
 
-                <a href="#" class="d-flex justify-content-between align-items-center text-decoration-none text-dark menu-item">
+                <!-- <a href="#" class="d-flex justify-content-between align-items-center text-decoration-none text-dark menu-item">
                     <div>
                         <i class="bi bi-gear me-2 text-secondary"></i>
                         <span>ตั้งค่าบัญชี (เร็ว ๆ นี้)</span>
                     </div>
                     <i class="bi bi-chevron-right text-muted small"></i>
-                </a>
+                </a> -->
 
             </div>
-        </div>
-
-        <!-- logout -->
-        <div class="d-grid">
-            <a href="<?php echo htmlspecialchars($logoutUrl); ?>" class="btn btn-outline-danger">
-                <i class="bi bi-box-arrow-right me-1"></i> ออกจากระบบ
-            </a>
         </div>
 
     </main>

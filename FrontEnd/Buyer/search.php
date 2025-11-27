@@ -65,7 +65,7 @@ $user = getUserById($conn, $user_id);
     <!-- แถบค้นหาเต็มด้านบน -->
     <nav class="navbar top-search-bar navbar-dark sticky-top py-2">
         <div class="container-fluid px-2">
-            <button class="btn btn-link text-white me-2" type="button" onclick="history.back()">
+            <button class="btn btn-link text-white me-2" type="button" onclick="window.location.href='Buyer.php'">
                 <i class="bi bi-chevron-left fs-4"></i>
             </button>
 

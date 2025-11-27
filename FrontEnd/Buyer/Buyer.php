@@ -9,6 +9,27 @@ require_once SERVICES_PATH . '/productService.php';
 require_once SERVICES_PATH . '/cartService.php';
 require_once SERVICES_PATH . '/userService.php';
 
+// helper แปลง path ใน DB ให้เป็น URL เต็ม
+function buildImageUrl(?string $path): string
+{
+    if (empty($path)) {
+        return '';
+    }
+
+    // ถ้าเป็น URL เต็มอยู่แล้ว (เช่น https://profile.line-scdn.net/...) ก็ไม่ต้องทำอะไร
+    if (preg_match('#^https?://#', $path)) {
+        return $path;
+    }
+
+    // กันเคสเก่าที่อาจยังมี ../ ติดมา
+    while (strpos($path, '../') === 0) {
+        $path = substr($path, 3);
+    }
+
+    // ต่อกับ BASE_URL ให้กลายเป็น URL เต็ม
+    return rtrim(BASE_URL, '/') . '/' . ltrim($path, '/');
+}
+
 $conn    = connectDBWithLog();
 $user_id = require_user_id();
 
@@ -23,6 +44,24 @@ if (!$user) {
 // ----------------------- Fetch Products + Variants via Service -----------------------
 $productsAssoc = getAllProductsWithVariants($conn);
 $products      = array_values($productsAssoc);
+
+// แปลง image เป็น URL เต็ม ทั้งของ product และ variant
+foreach ($products as &$p) {
+    $p['image'] = buildImageUrl($p['image'] ?? '');
+
+    if (!empty($p['variants'])) {
+        foreach ($p['variants'] as &$v) {
+            if (!empty($v['image'])) {
+                $v['image'] = buildImageUrl($v['image']);
+            } else {
+                // ถ้า variant ไม่มีรูปใช้รูปหลักของสินค้าแทน
+                $v['image'] = $p['image'];
+            }
+        }
+        unset($v);
+    }
+}
+unset($p);
 
 // ----------------------- Fetch Categories via Service -----------------------
 $categories = array_merge(['ทั้งหมด'], getAllCategories($conn));
@@ -235,10 +274,10 @@ $cart_items = getCartItems($conn, $user_id);
             color: #ee4d2d;
         }
 
-        
+
         /* ให้ content ด้านบนไม่โดน bottom nav ทับบนจอเล็ก */
         .buyer-main-padding {
-            padding-bottom: 5rem;
+            padding-bottom: 8rem;
         }
 
         @media (min-width: 768px) {
@@ -249,6 +288,14 @@ $cart_items = getCartItems($conn, $user_id);
 
         .bottom-nav .nav-item.active i {
             color: #ee4d2d;
+        }
+
+        /* กันไม่ให้ปุ่มแถวล่างสุดโดน bottom-nav บัง บนจอเล็ก */
+        @media (max-width: 767.98px) {
+            body {
+                padding-bottom: 3rem;
+                /* ถ้ายังติดอยู่ ลองเพิ่มเป็น 110 หรือ 120px ได้เลย */
+            }
         }
     </style>
 </head>
@@ -311,48 +358,72 @@ $cart_items = getCartItems($conn, $user_id);
     <main class="container py-4 buyer-main-padding">
         <div class="row g-3 g-md-4" id="product-list">
             <?php foreach ($products as $product): ?>
+
+                <?php
+                // --- แปลง path รูปให้เป็น URL เต็ม ปลอดภัยบน iOS/LIFF ---
+                $imgPath = $product['image'] ?? '';
+
+                if ($imgPath !== '' && !preg_match('#^https?://#', $imgPath)) {
+                    // ตัด ../ ออกจากต้น path
+                    while (strpos($imgPath, '../') === 0) {
+                        $imgPath = substr($imgPath, 3);
+                    }
+
+                    // ต่อ BASE_URL ให้อยู่ในโดเมนเดียวกันเสมอ
+                    $imgPath = rtrim(BASE_URL, '/') . '/' . ltrim($imgPath, '/');
+                }
+
+                // ใช้รูปที่แก้แล้วให้ฝั่ง JS ด้วย
+                $productForJs          = $product;
+                $productForJs['image'] = $imgPath;
+                ?>
+
                 <div class="col-6 col-md-4 col-lg-3 product-item mb-2 mb-md-3"
                     data-category="<?php echo $product['category']; ?>">
 
                     <div class="card product-card clickable-card h-100 border-0 shadow-sm bg-white"
                         data-href="product-detail.php?id=<?php echo (int)$product['id']; ?>">
+
                         <div class="position-relative product-img-wrap rounded-top-4 overflow-hidden">
-                            <img src="<?php echo $product['image']; ?>"
+                            <img src="<?= htmlspecialchars($imgPath) ?>"
                                 class="card-img-top w-100 h-100"
-                                alt="<?php echo htmlspecialchars($product['name']); ?>"
+                                alt="<?= htmlspecialchars($product['name']); ?>"
                                 loading="lazy">
+
                             <?php if (!empty($product['category'])): ?>
                                 <span
                                     class="badge text-bg-light position-absolute top-0 start-0 m-2 rounded-pill shadow-sm small">
                                     <i class="bi bi-tag me-1 text-danger"></i>
-                                    <?php echo htmlspecialchars($product['category']); ?>
+                                    <?= htmlspecialchars($product['category']); ?>
                                 </span>
                             <?php endif; ?>
+
                             <span
                                 class="badge bg-success-subtle text-success-emphasis position-absolute bottom-0 end-0 m-2 badge-stock shadow-sm">
-                                คงเหลือ <?php echo (int)$product['stock']; ?>
+                                คงเหลือ <?= (int)$product['stock']; ?>
                             </span>
                         </div>
+
                         <div class="card-body d-flex flex-column p-2 p-md-3">
                             <h6 class="card-title text-truncate small fw-semibold mb-1">
-                                <?php echo htmlspecialchars($product['name']); ?>
+                                <?= htmlspecialchars($product['name']); ?>
                             </h6>
                             <p class="text-danger fw-bold fs-6 mb-1">
-                                ฿<?php echo number_format($product['price']); ?>
+                                ฿<?= number_format($product['price']); ?>
                             </p>
                             <small class="text-muted text-truncate flex-grow-1 mb-2">
-                                <?php echo htmlspecialchars($product['description']); ?>
+                                <?= htmlspecialchars($product['description']); ?>
                             </small>
                             <div class="d-grid gap-1 mt-1">
                                 <button
                                     class="btn btn-sm btn-outline-danger fw-semibold rounded-3 add-cart-btn"
-                                    data-product='<?php echo json_encode($product, JSON_UNESCAPED_UNICODE); ?>'>
+                                    data-product='<?= json_encode($productForJs, JSON_UNESCAPED_UNICODE); ?>'>
                                     <i class="bi bi-cart-plus me-1"></i> เพิ่มตะกร้า
                                 </button>
                                 <button
                                     class="btn btn-sm fw-semibold rounded-3 text-white open-cart-bar"
                                     style="background: linear-gradient(135deg, #ff7043, #ff9800);"
-                                    data-product='<?php echo json_encode($product, JSON_UNESCAPED_UNICODE); ?>'>
+                                    data-product='<?= json_encode($productForJs, JSON_UNESCAPED_UNICODE); ?>'>
                                     <i class="bi bi-lightning-charge me-1"></i> ซื้อเลย
                                 </button>
                             </div>
@@ -501,6 +572,8 @@ $cart_items = getCartItems($conn, $user_id);
             <span>ฉัน</span>
         </a>
     </nav>
+
+    <footer></footer>
 
     <!-- SCRIPTS -->
     <script>

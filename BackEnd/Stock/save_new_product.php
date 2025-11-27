@@ -44,16 +44,24 @@ $productImage = null;
 
 if (!empty($_FILES['image']['name'])) {
 
-    $targetDir = "../../uploads/products/";
-    if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
+    // โฟลเดอร์จริงในเครื่อง
+    $uploadDirFs = BASE_PATH . "/uploads/products/";   // เช่น C:\xampp\htdocs\LineOA\uploads\products\
+    if (!is_dir($uploadDirFs)) {
+        mkdir($uploadDirFs, 0777, true);
+    }
 
-    $fileName   = time() . "_" . basename($_FILES["image"]["name"]);
-    $targetFile = $targetDir . $fileName;
+    $ext      = pathinfo($_FILES["image"]["name"], PATHINFO_EXTENSION);
+    $fileName = time() . "_" . bin2hex(random_bytes(4)) . "." . $ext;
 
-    if (move_uploaded_file($_FILES["image"]["tmp_name"], $targetFile)) {
-        $productImage = $targetFile;  // full path
+    // path ที่ใช้ move_upload (ฝั่ง filesystem)
+    $targetFs = $uploadDirFs . $fileName;
+
+    if (move_uploaded_file($_FILES["image"]["tmp_name"], $targetFs)) {
+        // path ที่เก็บลงฐานข้อมูล (ไม่ใส่ ../../)
+        $productImage = "uploads/products/" . $fileName;
     }
 }
+
 
 // -----------------------
 // 3) INSERT สินค้า
@@ -83,8 +91,11 @@ if (!empty($_POST['variant_name'])) {
     $variant_stocks = $_POST['variant_stock'];
     $variant_images = $_FILES['variant_image'];
 
-    $targetDir = "../../uploads/variants/";
-    if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
+    // โฟลเดอร์จริงสำหรับ variant
+    $variantDirFs = BASE_PATH . "/uploads/variants/";
+    if (!is_dir($variantDirFs)) {
+        mkdir($variantDirFs, 0777, true);
+    }
 
     foreach ($variant_names as $i => $vname) {
 
@@ -97,11 +108,14 @@ if (!empty($_POST['variant_name'])) {
         // --- upload รูป variant
         if (!empty($variant_images['name'][$i])) {
 
-            $fileName   = time() . "_" . basename($variant_images['name'][$i]);
-            $targetFile = $targetDir . $fileName;
+            $ext      = pathinfo($variant_images['name'][$i], PATHINFO_EXTENSION);
+            $fileName = time() . "_" . bin2hex(random_bytes(4)) . "." . $ext;
 
-            if (move_uploaded_file($variant_images['tmp_name'][$i], $targetFile)) {
-                $vimage = $targetFile;
+            $targetFs = $variantDirFs . $fileName;
+
+            if (move_uploaded_file($variant_images['tmp_name'][$i], $targetFs)) {
+                // path ที่เก็บลง DB
+                $vimage = "uploads/variants/" . $fileName;
             }
         }
 
@@ -121,4 +135,3 @@ if (!empty($_POST['variant_name'])) {
 // -----------------------
 header("Location: addStock.php?success=new_product_created");
 exit;
-?>

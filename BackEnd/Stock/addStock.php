@@ -46,6 +46,7 @@ $activeMenu = "stock";
         .stock-manage-wrapper {
             padding-bottom: 1.5rem;
         }
+
         @media (max-width: 767.98px) {
             .stock-manage-wrapper {
                 padding-inline: .5rem;
@@ -268,9 +269,24 @@ $activeMenu = "stock";
                                                         <tr>
                                                             <td class="text-muted">#<?= $p['id'] ?></td>
                                                             <td>
+                                                                <?php
+                                                                if (!empty($p['image'])) {
+                                                                    $imgSrc = $p['image'];
+
+                                                                    // ถ้าไม่ใช่ http/https → แปลงเป็น URL เต็ม
+                                                                    if (!preg_match('#^https?://#', $imgSrc)) {
+                                                                        // ตัด ../ ทิ้งถ้ามี (กันเคสเก่า)
+                                                                        while (strpos($imgSrc, '../') === 0) {
+                                                                            $imgSrc = substr($imgSrc, 3);
+                                                                        }
+                                                                        $imgSrc = rtrim(BASE_URL, '/') . '/' . ltrim($imgSrc, '/');
+                                                                    }
+                                                                }
+                                                                ?>
+
                                                                 <?php if (!empty($p['image'])): ?>
                                                                     <img
-                                                                        src="<?= $p['image'] ?>"
+                                                                        src="<?= htmlspecialchars($imgSrc) ?>"
                                                                         width="60"
                                                                         height="60"
                                                                         class="img-thumbnail"
@@ -280,7 +296,6 @@ $activeMenu = "stock";
                                                                     <span class="text-muted small">ไม่มีรูป</span>
                                                                 <?php endif; ?>
                                                             </td>
-
                                                             <td>
                                                                 <div class="fw-semibold"><?= htmlspecialchars($p['name']) ?></div>
                                                                 <?php if (!empty($p['category'])): ?>

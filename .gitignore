@@ -1,23 +1,14 @@
-# Composer dependencies
 /vendor/
 
-# Local environment configs
-/config.php
-/utils/cloudinary_config.php
-/utils/db_with_log.php
+config.php
+utils/cloudinary_config.php
+utils/db_with_log.php
 
-# Uploaded images (local)
 uploads/
 uploads/*
+!uploads/.gitkeep
 
-# Log files
 *.log
 logs/
-storage/
-
-# IDE / OS junk
 .DS_Store
 Thumbs.db
-
-# Node (ถ้ามี)
-node_modules/

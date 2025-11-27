@@ -3,7 +3,7 @@ session_start();
 require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/admin_guard.php';
-// ถ้ามีไฟล์ cloudinary_config.php ให้โหลดเพื่อใช้อัปโหลดรูปไป Cloudinary
+// ถ้ามีไฟล์ cloudinary_config.php ให้โหลด (ใช้สำหรับอัปโหลดรูปไป Cloudinary)
 if (file_exists(UTILS_PATH . '/cloudinary_config.php')) {
     require_once UTILS_PATH . '/cloudinary_config.php';
 }
@@ -67,6 +67,14 @@ $resultProduct = db_exec(
 // 3) เพิ่ม variants ใหม่ (รองรับอัปโหลดรูป)
 // ----------------------
 $okNewVariants = true;
+$logDir  = __DIR__ . "/logs";   // ใช้ __DIR__ ง่ายสุดก่อน
+if (!is_dir($logDir)) {
+    mkdir($logDir, 0777, true);
+}
+$logFile = $logDir . "/cloudinary_debug.log";
+
+// เทสแบบบังคับเขียน log แน่นอน
+error_log("[" . date("Y-m-d H:i:s") . "] TEST: ajax_update_product reached\n", 3, $logFile);
 
 if (!empty($_POST['new_variant_name'])) {
 
@@ -83,27 +91,35 @@ if (!empty($_POST['new_variant_name'])) {
 
         if (!empty($_FILES['new_variant_image']['name'][$i]) && $_FILES['new_variant_image']['error'][$i] === UPLOAD_ERR_OK) {
 
-            // ถ้าเคยตั้งค่า Cloudinary แล้ว (มี class และ config)
-            if (class_exists('Cloudinary\\Uploader')) {
+            if (class_exists('\\Cloudinary\\Uploader')) {
+
+                error_log("[" . date("Y-m-d H:i:s") . "] FOUND: Cloudinary Uploader class OK\n", 3, $logFile);
+
                 try {
-                    $uploadResult = Cloudinary\Uploader::upload(
+                    $uploadResult = \Cloudinary\Uploader::upload(
                         $_FILES['new_variant_image']['tmp_name'][$i],
-                        [
-                            'folder' => 'line-shop/variants'
-                        ]
+                        ['folder' => 'line-shop/variants']
                     );
+
                     if (!empty($uploadResult['secure_url'])) {
-                        $imagePath = $uploadResult['secure_url']; // เก็บเป็น URL จาก Cloudinary
+                        $imagePath = $uploadResult['secure_url']; // เก็บเป็น URL
+
+                        error_log("[" . date("Y-m-d H:i:s") . "] SUCCESS: Uploaded to Cloudinary: {$imagePath}\n", 3, $logFile);
+                    } else {
+                        error_log("[" . date("Y-m-d H:i:s") . "] ERROR: Cloudinary returned no secure_url\n", 3, $logFile);
                     }
                 } catch (Exception $e) {
-                    // ถ้า Cloudinary ใช้ไม่ได้ ให้ fallback ไปใช้ uploads ในเครื่อง
+                    error_log("[" . date("Y-m-d H:i:s") . "] EXCEPTION: " . $e->getMessage() . "\n", 3, $logFile);
                 }
+            } else {
+                error_log("[" . date("Y-m-d H:i:s") . "] NOT FOUND: Cloudinary\\Uploader class missing\n", 3, $logFile);
             }
 
-            // ถ้ายังไม่ได้รูปจาก Cloudinary -> เก็บ local
+            // ถ้ายังไม่มีรูปจาก Cloudinary -> fallback เก็บ local
             if ($imagePath === null) {
-                // โฟลเดอร์ที่จะเก็บรูป (filesystem)
+                // โฟลเดอร์ที่จะเก็บรูป
                 $uploadDir = BASE_PATH . "/uploads/variants/";
+
                 if (!is_dir($uploadDir)) {
                     mkdir($uploadDir, 0777, true);
                 }
@@ -118,9 +134,14 @@ if (!empty($_POST['new_variant_name'])) {
                 if (move_uploaded_file($_FILES['new_variant_image']['tmp_name'][$i], $targetPath)) {
                     // path แบบที่เก็บในฐานข้อมูล (ไม่ใส่ ../../)
                     $imagePath = "uploads/variants/" . $filename;
+
+                    error_log("[" . date("Y-m-d H:i:s") . "] FALLBACK: saved local as {$imagePath}\n", 3, $logFile);
+                } else {
+                    error_log("[" . date("Y-m-d H:i:s") . "] ERROR: move_uploaded_file failed for local fallback\n", 3, $logFile);
                 }
             }
         }
+
 
         // บันทึกลงฐานข้อมูล
         $insert = db_exec(

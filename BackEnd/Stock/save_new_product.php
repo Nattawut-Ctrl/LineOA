@@ -4,16 +4,34 @@ require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/admin_guard.php';
 
-// ถ้ามีไฟล์ cloudinary_config.php ให้โหลดเพื่อใช้อัปโหลดรูปไป Cloudinary
+use Cloudinary\Api\Upload\UploadApi;
+use GuzzleHttp\RequestOptions;
+
+// ถ้ามีไฟล์ cloudinary_config.php ให้โหลด (ใช้สำหรับอัปโหลดรูปไป Cloudinary)
 if (file_exists(UTILS_PATH . '/cloudinary_config.php')) {
     require_once UTILS_PATH . '/cloudinary_config.php';
 }
-
 
 require_admin();
 $conn = connectDBWithLog();
 $adminId = $_SESSION['admin_id'] ?? null;
 
+// =======================
+// ตั้งค่าระบบ LOG ลงไฟล์
+// =======================
+$logDir = BASE_PATH . '/logs';
+if (!is_dir($logDir)) {
+    mkdir($logDir, 0777, true);
+}
+$logFile = $logDir . '/save_new_product.log';
+
+function logProductDebug(string $msg)
+{
+    global $logFile;
+    error_log("[" . date("Y-m-d H:i:s") . "] " . $msg . "\n", 3, $logFile);
+}
+
+logProductDebug("==== save_new_product.php CALLED ====");
 
 // -----------------------
 // 1) รับค่าจากฟอร์ม
@@ -26,10 +44,14 @@ $stock       = intval($_POST['stock'] ?? 0);
 $unit        = trim($_POST['unit'] ?? '');
 $description = trim($_POST['description'] ?? '');
 
+logProductDebug("INPUT: name={$name}, category={$category}, sku={$sku}, price={$price}, stock={$stock}, unit={$unit}");
+
 // ตรวจสอบ input
 if ($name == '' || $category == '' || $price <= 0) {
 
-    // log case input ไม่ถูกต้อง
+    logProductDebug("ERROR: invalid product input (name/category/price missing or invalid)");
+
+    // log case input ไม่ถูกต้อง (ใช้ DB log เดิม)
     writeLog(
         $conn,
         "INSERT products (invalid input)",
@@ -50,29 +72,43 @@ $productImage = null;
 
 if (!empty($_FILES['image']['name']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
 
-    // ถ้าเคยตั้งค่า Cloudinary แล้ว (มี class และ config)
-    if (class_exists('Cloudinary\\Uploader')) {
+    logProductDebug("PRODUCT IMAGE: file received: " . $_FILES['image']['name']);
+
+    // พยายามอัปโหลดไป Cloudinary ก่อน (ถ้ามีการตั้งค่าและติดตั้ง library แล้ว)
+    if (class_exists('\\Cloudinary\\Api\\Upload\\UploadApi')) {
+        logProductDebug("Cloudinary UploadApi class FOUND, trying to upload product image...");
         try {
-            $uploadResult = Cloudinary\Uploader::upload(
+            $uploadResult = (new UploadApi())->upload(
                 $_FILES['image']['tmp_name'],
                 [
-                    'folder' => 'line-shop/products'
+                    'folder' => 'line-shop/products',
+                    // ปิด SSL verify ของ Guzzle แค่ตรงนี้
+                    RequestOptions::VERIFY => false,
                 ]
             );
+
             if (!empty($uploadResult['secure_url'])) {
-                $productImage = $uploadResult['secure_url']; // เก็บเป็น URL ตรงจาก Cloudinary
+                $productImage = $uploadResult['secure_url'];
+                logProductDebug("Cloudinary PRODUCT upload SUCCESS: " . $productImage);
+            } else {
+                logProductDebug("ERROR: Cloudinary product upload has no secure_url, result=" . json_encode($uploadResult));
             }
         } catch (Exception $e) {
-            // ถ้า Cloudinary ใช้ไม่ได้ ให้ fallback ไปเก็บในโฟลเดอร์ local
+            logProductDebug("EXCEPTION: Cloudinary product upload failed: " . $e->getMessage());
         }
+    } else {
+        logProductDebug("Cloudinary\\Api\\Upload\\UploadApi class NOT FOUND, skip Cloudinary for product image.");
     }
-
-    // ถ้ายังไม่มีรูปจาก Cloudinary หรือใช้ Cloudinary ไม่ได้ -> ใช้เก็บ local แบบเดิม
+    
+    // ถ้ายังไม่มีรูปจาก Cloudinary -> fallback เก็บไฟล์ในเครื่องแบบเดิม
     if ($productImage === null) {
+        logProductDebug("FALLBACK: saving product image to local uploads/products");
+
         // โฟลเดอร์จริงในเครื่อง
         $uploadDirFs = BASE_PATH . "/uploads/products/";   // เช่น C:\xampp\htdocs\LineOA\uploads\products\
         if (!is_dir($uploadDirFs)) {
             mkdir($uploadDirFs, 0777, true);
+            logProductDebug("CREATED DIR: " . $uploadDirFs);
         }
 
         $ext      = pathinfo($_FILES["image"]["name"], PATHINFO_EXTENSION);
@@ -84,15 +120,20 @@ if (!empty($_FILES['image']['name']) && $_FILES['image']['error'] === UPLOAD_ERR
         if (move_uploaded_file($_FILES["image"]["tmp_name"], $targetFs)) {
             // path ที่เก็บลงฐานข้อมูล (ไม่ใส่ ../../)
             $productImage = "uploads/products/" . $fileName;
+            logProductDebug("LOCAL PRODUCT IMAGE SAVED: " . $productImage);
+        } else {
+            logProductDebug("ERROR: move_uploaded_file FAILED for product image (local fallback).");
         }
     }
+} else {
+    logProductDebug("PRODUCT IMAGE: no file uploaded or upload error code=" . ($_FILES['image']['error'] ?? 'N/A'));
 }
-
-
 
 // -----------------------
 // 3) INSERT สินค้า
 // -----------------------
+logProductDebug("INSERTING PRODUCT into DB...");
+
 $resultProduct = db_exec(
     $conn,
     "INSERT INTO products (sku, name, category, price, stock, unit, description, image)
@@ -104,9 +145,13 @@ $resultProduct = db_exec(
 $product_id = $conn->insert_id;
 
 if (!$resultProduct['ok'] || !$product_id) {
+    logProductDebug("ERROR: INSERT PRODUCT FAILED. result=" . json_encode($resultProduct) . ", product_id=" . $product_id);
+
     header("Location: addStock.php?error=invalid_product_input");
     exit;
 }
+
+logProductDebug("PRODUCT INSERT SUCCESS: product_id=" . $product_id . ", image=" . ($productImage ?? 'NULL'));
 
 // -----------------------
 // 4) INSERT Variants + รูป
@@ -116,24 +161,33 @@ if (!empty($_POST['variant_name'])) {
     $variant_names  = $_POST['variant_name'];
     $variant_prices = $_POST['variant_price'];
     $variant_stocks = $_POST['variant_stock'];
-    $variant_images = $_FILES['variant_image'];
+    $variant_images = $_FILES['variant_image'] ?? null;
+
+    logProductDebug("VARIANTS: received count=" . count($variant_names));
 
     // โฟลเดอร์จริงสำหรับ variant
     $variantDirFs = BASE_PATH . "/uploads/variants/";
     if (!is_dir($variantDirFs)) {
         mkdir($variantDirFs, 0777, true);
+        logProductDebug("CREATED DIR: " . $variantDirFs);
     }
 
     foreach ($variant_names as $i => $vname) {
 
-        if ($vname == '') continue;
+        $vnameTrim = trim($vname);
+        if ($vnameTrim == '') {
+            logProductDebug("VARIANT[$i]: skipped (empty name)");
+            continue;
+        }
 
         $vprice = floatval($variant_prices[$i] ?? 0);
         $vstock = intval($variant_stocks[$i] ?? 0);
         $vimage = null;
 
-        // --- upload รูป variant
-        if (!empty($variant_images['name'][$i])) {
+        logProductDebug("VARIANT[$i]: name={$vnameTrim}, price={$vprice}, stock={$vstock}");
+
+        // --- upload รูป variant (ตอนนี้ใช้ local, ยังไม่ใช้ Cloudinary)
+        if ($variant_images && !empty($variant_images['name'][$i])) {
 
             $ext      = pathinfo($variant_images['name'][$i], PATHINFO_EXTENSION);
             $fileName = time() . "_" . bin2hex(random_bytes(4)) . "." . $ext;
@@ -143,22 +197,36 @@ if (!empty($_POST['variant_name'])) {
             if (move_uploaded_file($variant_images['tmp_name'][$i], $targetFs)) {
                 // path ที่เก็บลง DB
                 $vimage = "uploads/variants/" . $fileName;
+                logProductDebug("VARIANT[$i]: LOCAL IMAGE SAVED: " . $vimage);
+            } else {
+                logProductDebug("VARIANT[$i]: ERROR move_uploaded_file FAILED for variant image");
             }
+        } else {
+            logProductDebug("VARIANT[$i]: no image uploaded");
         }
 
         // --- insert variant
-        db_exec(
+        $resVar = db_exec(
             $conn,
             "INSERT INTO product_variants (product_id, variant_name, price, stock, image)
              VALUES (?, ?, ?, ?, ?)",
-            [$product_id, $vname, $vprice, $vstock, $vimage],
+            [$product_id, $vnameTrim, $vprice, $vstock, $vimage],
             "isdis"
         );
+
+        if (!$resVar['ok']) {
+            logProductDebug("VARIANT[$i]: ERROR INSERT FAILED. result=" . json_encode($resVar));
+        } else {
+            logProductDebug("VARIANT[$i]: INSERT SUCCESS");
+        }
     }
+} else {
+    logProductDebug("NO VARIANTS SENT in form.");
 }
 
 // -----------------------
 // 5) เสร็จ → redirect
 // -----------------------
+logProductDebug("DONE: redirect to addStock.php?success=new_product_created");
 header("Location: addStock.php?success=new_product_created");
 exit;

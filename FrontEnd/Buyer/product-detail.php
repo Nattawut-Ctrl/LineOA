@@ -4,6 +4,7 @@ session_start();
 require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/user_guard.php';
+require_once UTILS_PATH . '/image_helper.php';
 
 require_once SERVICES_PATH . '/productService.php';
 require_once SERVICES_PATH . '/cartService.php';
@@ -36,6 +37,19 @@ if (!$product) {
 
 $variants   = $product['variants'] ?? [];
 $cart_items = getCartItems($conn, $user_id);
+// ปรับ path รูปของสินค้าหลักและตัวเลือกให้เป็น URL เต็ม ปลอดภัยบนทุก OS/เบราว์เซอร์
+$product['image'] = buildImageUrl($product['image'] ?? '');
+
+foreach ($variants as &$v) {
+  if (!empty($v['image'])) {
+    $v['image'] = buildImageUrl($v['image']);
+  } else {
+    // ถ้า variant ไม่มีรูป ให้ใช้รูปหลักของสินค้า
+    $v['image'] = $product['image'];
+  }
+}
+unset($v);
+
 
 // ───────────────────── สินค้าแนะนำ ─────────────────────
 // ใช้ getAllProductsWithVariants() ที่มีอยู่แล้ว
@@ -62,6 +76,14 @@ try {
 } catch (Throwable $e) {
   // ถ้ามี error ก็ปล่อย $recommended ว่าง ๆ ไป ไม่ต้องทำให้หน้าเด้ง
 }
+
+// ปรับ path รูปของสินค้าแนะนำให้เป็น URL เต็ม
+foreach ($recommended as &$rp) {
+  if (!empty($rp['image'])) {
+    $rp['image'] = buildImageUrl($rp['image']);
+  }
+}
+unset($rp);
 
 ?>
 <!DOCTYPE html>

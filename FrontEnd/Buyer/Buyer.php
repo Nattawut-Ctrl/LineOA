@@ -4,35 +4,12 @@ session_start();
 require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/user_guard.php';
+require_once UTILS_PATH . '/image_helper.php';
 
 require_once SERVICES_PATH . '/productService.php';
 require_once SERVICES_PATH . '/cartService.php';
 require_once SERVICES_PATH . '/userService.php';
 
-// helper แปลง path ใน DB ให้เป็น URL เต็ม
-function buildImageUrl(?string $path): string
-{
-    if (empty($path)) {
-        return '';
-    }
-
-    $path = trim($path);
-    $path = str_replace('\\', '/', $path);
-
-    if (preg_match('#^https?://#', $path)) {
-        return $path;
-    }
-
-    while (strpos($path, '../') === 0 || strpos($path, './') === 0) {
-        if (strpos($path, '../') === 0) {
-            $path = substr($path, 3);
-        } elseif (strpos($path, './') === 0) {
-            $path = substr($path, 2);
-        }
-    }
-
-    return rtrim(BASE_URL, '/') . '/' . ltrim($path, '/');
-}
 
 $conn    = connectDBWithLog();
 $user_id = require_user_id();

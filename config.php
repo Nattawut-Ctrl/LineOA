@@ -14,6 +14,7 @@ $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' :
 $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
 
 $subdir = '';
+
 define('BASE_URL', $scheme . '://' . $host . $subdir);
 define('BACKEND_URL', BASE_URL . '/BackEnd');
 define('FRONTEND_URL', BASE_URL . '/FrontEnd');

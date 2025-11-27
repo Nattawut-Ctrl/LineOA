@@ -4,15 +4,25 @@ session_start();
 require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/user_guard.php';
+require_once UTILS_PATH . '/image_helper.php';   // ✅ helper จัดการ path รูป
 require_once SERVICES_PATH . '/productService.php';
 require_once SERVICES_PATH . '/userService.php';
 
 $conn    = connectDBWithLog();
 $user_id = require_user_id();
 
-$user     = getUserById($conn, $user_id);
+$user = getUserById($conn, $user_id);
+
+// ดึงสินค้าทั้งหมด
 $products = array_values(getAllProductsWithVariants($conn));
-$q        = trim($_GET['q'] ?? '');
+
+// ✅ แปลง path รูปทุกชิ้นให้เป็น URL เต็ม ปลอดภัยบน iOS/LIFF
+foreach ($products as &$p) {
+    $p['image'] = buildImageUrl($p['image'] ?? '');
+}
+unset($p);
+
+$q = trim($_GET['q'] ?? '');
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -213,11 +223,16 @@ $q        = trim($_GET['q'] ?? '');
                 const col = document.createElement('div');
                 col.className = 'col-6 col-md-4 col-lg-3';
 
+                const safeName = (p.name || '').replace(/"/g, '&quot;');
+
                 col.innerHTML = `
                     <div class="card product-card h-100 border-0 bg-white"
                          onclick="window.location.href='product-detail.php?id=${encodeURIComponent(p.id)}'">
                         <div class="position-relative product-img-wrap rounded-top-4 overflow-hidden">
-                            <img src="${p.image}" class="w-100 h-100">
+                            <img src="${p.image || ''}"
+                                 class="card-img-top w-100 h-100"
+                                 alt="${safeName}"
+                                 loading="lazy">
                             ${p.category ? `
                                 <span class="badge text-bg-light position-absolute top-0 start-0 m-2 rounded-pill shadow-sm small">
                                     <i class="bi bi-tag me-1 text-danger"></i>${p.category}
@@ -227,7 +242,7 @@ $q        = trim($_GET['q'] ?? '');
                             </span>
                         </div>
                         <div class="card-body p-2 p-md-3 d-flex flex-column">
-                            <h6 class="small fw-semibold text-truncate mb-1">${p.name}</h6>
+                            <h6 class="small fw-semibold text-truncate mb-1">${p.name || ''}</h6>
                             <p class="text-danger fw-bold mb-1">฿${Number(p.price || 0).toLocaleString()}</p>
                             <small class="text-muted text-truncate flex-grow-1">${p.description || ''}</small>
                         </div>

@@ -7,11 +7,21 @@ define('UTILS_PATH', BASE_PATH . '/utils');
 define('FRONTEND_PATH', BASE_PATH . '/FrontEnd');
 define('BACKEND_PATH', BASE_PATH . '/BackEnd');
 define('SERVICES_PATH', BASE_PATH . '/services');
-define('BASE_URL', ''); // root url for assets, set to '' or '/' in production
+// define('BASE_URL', 'https://joline-garreted-fabiola.ngrok-free.dev');
+
+// ===== Auto BASE_URL ตาม host ปัจจุบัน (รองรับ ngrok ด้วย) =====
+$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
+
+$subdir = '';
+define('BASE_URL', $scheme . '://' . $host . $subdir);
 define('BACKEND_URL', BASE_URL . '/BackEnd');
 define('FRONTEND_URL', BASE_URL . '/FrontEnd');
 
-function connectDB() {
+
+
+function connectDB()
+{
     $host = "localhost";
     $user = "root";
     $pass = "";
@@ -24,4 +34,3 @@ function connectDB() {
     $conn->set_charset("utf8mb4");
     return $conn;
 }
-?>

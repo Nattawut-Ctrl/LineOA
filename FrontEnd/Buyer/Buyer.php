@@ -16,17 +16,21 @@ function buildImageUrl(?string $path): string
         return '';
     }
 
-    // ถ้าเป็น URL เต็มอยู่แล้ว (เช่น https://profile.line-scdn.net/...) ก็ไม่ต้องทำอะไร
+    $path = trim($path);
+    $path = str_replace('\\', '/', $path);
+
     if (preg_match('#^https?://#', $path)) {
         return $path;
     }
 
-    // กันเคสเก่าที่อาจยังมี ../ ติดมา
-    while (strpos($path, '../') === 0) {
-        $path = substr($path, 3);
+    while (strpos($path, '../') === 0 || strpos($path, './') === 0) {
+        if (strpos($path, '../') === 0) {
+            $path = substr($path, 3);
+        } elseif (strpos($path, './') === 0) {
+            $path = substr($path, 2);
+        }
     }
 
-    // ต่อกับ BASE_URL ให้กลายเป็น URL เต็ม
     return rtrim(BASE_URL, '/') . '/' . ltrim($path, '/');
 }
 
@@ -385,10 +389,11 @@ $cart_items = getCartItems($conn, $user_id);
                         data-href="product-detail.php?id=<?php echo (int)$product['id']; ?>">
 
                         <div class="position-relative product-img-wrap rounded-top-4 overflow-hidden">
-                            <img src="<?= htmlspecialchars($imgPath) ?>"
-                                class="card-img-top w-100 h-100"
-                                alt="<?= htmlspecialchars($product['name']); ?>"
-                                loading="lazy">
+                            <?php $img = buildImageUrl($product['image'] ?? ''); ?>
+                            <img src="<?= htmlspecialchars($img) ?>">
+                            class="card-img-top w-100 h-100"
+                            alt="<?= htmlspecialchars($product['name']); ?>"
+                            loading="lazy">
 
                             <?php if (!empty($product['category'])): ?>
                                 <span

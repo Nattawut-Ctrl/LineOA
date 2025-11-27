@@ -3,6 +3,11 @@ session_start();
 require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/admin_guard.php';
+// ถ้ามีไฟล์ cloudinary_config.php ให้โหลดเพื่อใช้อัปโหลดรูปไป Cloudinary
+if (file_exists(UTILS_PATH . '/cloudinary_config.php')) {
+    require_once UTILS_PATH . '/cloudinary_config.php';
+}
+
 require_admin();
 $conn = connectDBWithLog();
 
@@ -76,21 +81,44 @@ if (!empty($_POST['new_variant_name'])) {
         // อัปโหลดรูป
         $imagePath = null;
 
-        if (!empty($_FILES['new_variant_image']['name'][$i])) {
+        if (!empty($_FILES['new_variant_image']['name'][$i]) && $_FILES['new_variant_image']['error'][$i] === UPLOAD_ERR_OK) {
 
-            // โฟลเดอร์ที่จะเก็บรูป
-            $uploadDir = "../../uploads/";
+            // ถ้าเคยตั้งค่า Cloudinary แล้ว (มี class และ config)
+            if (class_exists('Cloudinary\\Uploader')) {
+                try {
+                    $uploadResult = Cloudinary\Uploader::upload(
+                        $_FILES['new_variant_image']['tmp_name'][$i],
+                        [
+                            'folder' => 'line-shop/variants'
+                        ]
+                    );
+                    if (!empty($uploadResult['secure_url'])) {
+                        $imagePath = $uploadResult['secure_url']; // เก็บเป็น URL จาก Cloudinary
+                    }
+                } catch (Exception $e) {
+                    // ถ้า Cloudinary ใช้ไม่ได้ ให้ fallback ไปใช้ uploads ในเครื่อง
+                }
+            }
 
-            // ชื่อไฟล์
-            $filename = time() . "_" . basename($_FILES['new_variant_image']['name'][$i]);
+            // ถ้ายังไม่ได้รูปจาก Cloudinary -> เก็บ local
+            if ($imagePath === null) {
+                // โฟลเดอร์ที่จะเก็บรูป (filesystem)
+                $uploadDir = BASE_PATH . "/uploads/variants/";
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
 
-            // path เต็ม
-            $targetPath = $uploadDir . $filename;
+                // ชื่อไฟล์
+                $filename = time() . "_" . basename($_FILES['new_variant_image']['name'][$i]);
 
-            // ย้ายไฟล์จาก temp ไปโฟลเดอร์จริง
-            if (move_uploaded_file($_FILES['new_variant_image']['tmp_name'][$i], $targetPath)) {
-                // path แบบที่เก็บในฐานข้อมูล
-                $imagePath = "../../uploads/" . $filename;
+                // path เต็ม
+                $targetPath = $uploadDir . $filename;
+
+                // ย้ายไฟล์จาก temp ไปโฟลเดอร์จริง
+                if (move_uploaded_file($_FILES['new_variant_image']['tmp_name'][$i], $targetPath)) {
+                    // path แบบที่เก็บในฐานข้อมูล (ไม่ใส่ ../../)
+                    $imagePath = "uploads/variants/" . $filename;
+                }
             }
         }
 

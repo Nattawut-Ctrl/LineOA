@@ -4,6 +4,12 @@ require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/admin_guard.php';
 
+// ถ้ามีไฟล์ cloudinary_config.php ให้โหลดเพื่อใช้อัปโหลดรูปไป Cloudinary
+if (file_exists(UTILS_PATH . '/cloudinary_config.php')) {
+    require_once UTILS_PATH . '/cloudinary_config.php';
+}
+
+
 require_admin();
 $conn = connectDBWithLog();
 $adminId = $_SESSION['admin_id'] ?? null;
@@ -42,25 +48,46 @@ if ($name == '' || $category == '' || $price <= 0) {
 // -----------------------
 $productImage = null;
 
-if (!empty($_FILES['image']['name'])) {
+if (!empty($_FILES['image']['name']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
 
-    // โฟลเดอร์จริงในเครื่อง
-    $uploadDirFs = BASE_PATH . "/uploads/products/";   // เช่น C:\xampp\htdocs\LineOA\uploads\products\
-    if (!is_dir($uploadDirFs)) {
-        mkdir($uploadDirFs, 0777, true);
+    // ถ้าเคยตั้งค่า Cloudinary แล้ว (มี class และ config)
+    if (class_exists('Cloudinary\\Uploader')) {
+        try {
+            $uploadResult = Cloudinary\Uploader::upload(
+                $_FILES['image']['tmp_name'],
+                [
+                    'folder' => 'line-shop/products'
+                ]
+            );
+            if (!empty($uploadResult['secure_url'])) {
+                $productImage = $uploadResult['secure_url']; // เก็บเป็น URL ตรงจาก Cloudinary
+            }
+        } catch (Exception $e) {
+            // ถ้า Cloudinary ใช้ไม่ได้ ให้ fallback ไปเก็บในโฟลเดอร์ local
+        }
     }
 
-    $ext      = pathinfo($_FILES["image"]["name"], PATHINFO_EXTENSION);
-    $fileName = time() . "_" . bin2hex(random_bytes(4)) . "." . $ext;
+    // ถ้ายังไม่มีรูปจาก Cloudinary หรือใช้ Cloudinary ไม่ได้ -> ใช้เก็บ local แบบเดิม
+    if ($productImage === null) {
+        // โฟลเดอร์จริงในเครื่อง
+        $uploadDirFs = BASE_PATH . "/uploads/products/";   // เช่น C:\xampp\htdocs\LineOA\uploads\products\
+        if (!is_dir($uploadDirFs)) {
+            mkdir($uploadDirFs, 0777, true);
+        }
 
-    // path ที่ใช้ move_upload (ฝั่ง filesystem)
-    $targetFs = $uploadDirFs . $fileName;
+        $ext      = pathinfo($_FILES["image"]["name"], PATHINFO_EXTENSION);
+        $fileName = time() . "_" . bin2hex(random_bytes(4)) . "." . $ext;
 
-    if (move_uploaded_file($_FILES["image"]["tmp_name"], $targetFs)) {
-        // path ที่เก็บลงฐานข้อมูล (ไม่ใส่ ../../)
-        $productImage = "uploads/products/" . $fileName;
+        // path ที่ใช้ move_upload (ฝั่ง filesystem)
+        $targetFs = $uploadDirFs . $fileName;
+
+        if (move_uploaded_file($_FILES["image"]["tmp_name"], $targetFs)) {
+            // path ที่เก็บลงฐานข้อมูล (ไม่ใส่ ../../)
+            $productImage = "uploads/products/" . $fileName;
+        }
     }
 }
+
 
 
 // -----------------------

@@ -78,7 +78,6 @@ if ($mode === 'cart') {
             'line_total'   => $line_total,
         ];
     }
-
 } else {
     // ------------------- ✅ โหมด single (ซื้อทีละชิ้น) -------------------
     // รับจาก POST เป็นหลัก ถ้าเข้าตรงก็รองรับ GET ให้ด้วย
@@ -229,8 +228,13 @@ if (empty($items)) {
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">⏰ วันที่และเวลาโอน (ตามที่แสดงบนสลิป)</label>
-                        <input type="datetime-local" name="payment_time" class="form-control" required>
+                        <label for="transfer_date" class="form-label">วันที่โอน</label>
+                        <input type="date" name="transfer_date" id="transfer_date" class="form-control" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="transfer_time" class="form-label">เวลาโอน</label>
+                        <input type="time" name="transfer_time" id="transfer_time" class="form-control" required>
                     </div>
 
                     <button type="submit" class="btn btn-danger w-100">ยืนยันการชำระเงิน</button>
@@ -242,4 +246,5 @@ if (empty($items)) {
 
     <?php $conn->close(); ?>
 </body>
+
 </html>

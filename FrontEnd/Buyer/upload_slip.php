@@ -12,6 +12,9 @@ $user_id = $_SESSION['user_id'];
 
 $mode = $_POST['mode'] ?? 'single';
 
+$transfer_date = $_POST['transfer_date'] ?? null; // YYYY-MM-DD
+$transfer_time = $_POST['transfer_time'] ?? null; // HH:MM
+
 if (!isset($_FILES['slip']) || $_FILES['slip']['error'] !== UPLOAD_ERR_OK) {
     die("กรุณาอัปโหลดสลิป");
 }
@@ -54,13 +57,15 @@ if ($mode === 'cart') {
     $items_json = json_encode($items, JSON_UNESCAPED_UNICODE);
 
     $payment_id = createPayment($conn, [
-        'user_id'    => $user_id,
-        'product_id' => null,
-        'variant_id' => null,
-        'items_json' => $items_json,
-        'amount'     => $total,
-        'slip_path'  => $slip_path,
-        'mode'       => 'cart'
+        'user_id'        => $user_id,
+        'product_id'     => null,
+        'variant_id'     => null,
+        'items_json'     => $items_json,
+        'amount'         => $total,
+        'slip_path'      => $slip_path,
+        'mode'           => 'cart',
+        'transfer_date'  => $transfer_date,
+        'transfer_time'  => $transfer_time,
     ]);
 
     // clear cart
@@ -75,7 +80,7 @@ if ($mode === 'cart') {
 $product_id  = (int)($_POST['product_id'] ?? 0);
 $variant_id  = (int)($_POST['variant_id'] ?? 0);
 $quantity    = (int)($_POST['quantity'] ?? 1);
-$amount      = (float)($_POST['amount'] ?? 0);
+$amount      = (float)($_POST['total'] ?? 0);
 
 $item = [
     'product_id'   => $product_id,
@@ -87,13 +92,15 @@ $item = [
 ];
 
 $payment_id = createPayment($conn, [
-    'user_id'    => $user_id,
-    'product_id' => $product_id,
-    'variant_id' => $variant_id,
-    'items_json' => json_encode([$item], JSON_UNESCAPED_UNICODE),
-    'amount'     => $amount,
-    'slip_path'  => $slip_path,
-    'mode'       => 'single'
+    'user_id'        => $user_id,
+    'product_id'     => $product_id,
+    'variant_id'     => $variant_id,
+    'items_json'     => json_encode([$item], JSON_UNESCAPED_UNICODE),
+    'amount'         => $amount,
+    'slip_path'      => $slip_path,
+    'mode'           => 'single',
+    'transfer_date'  => $transfer_date,
+    'transfer_time'  => $transfer_time,
 ]);
 
 clearSingleCartItem($conn, $user_id, $product_id, $variant_id);

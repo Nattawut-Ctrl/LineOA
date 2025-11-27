@@ -53,6 +53,8 @@ $payments = function_exists('getAllPayments') ? getAllPayments($conn) : [];
                     <th style="width:80px;">ID</th>
                     <th>User</th>
                     <th style="width:140px;">Amount</th>
+                    <!-- ✅ เพิ่มคอลัมน์ใหม่ -->
+                    <th style="width:170px;">ชำระเมื่อ</th>
                     <th style="width:140px;">Status</th>
                     <th style="width:140px;">Action</th>
                   </tr>
@@ -60,18 +62,44 @@ $payments = function_exists('getAllPayments') ? getAllPayments($conn) : [];
                 <tbody>
                   <?php if (empty($payments)): ?>
                     <tr>
-                      <td colspan="5" class="text-center text-muted py-4">ยังไม่มีสลิป</td>
+                      <!-- ✅ เดิม colspan=5 ต้องเปลี่ยนเป็น 6 -->
+                      <td colspan="6" class="text-center text-muted py-4">ยังไม่มีสลิป</td>
                     </tr>
                   <?php else: ?>
                     <?php foreach ($payments as $p): ?>
                       <tr>
                         <td><?= (int)($p['id'] ?? 0) ?></td>
-                        <td><?php
-                        $displayName = $p['user_name'] ?? trim(($p['first_name'] ?? '') . ' ' . ($p['last_name'] ?? ''));
-                        if ($displayName === '') { $displayName = $p['display_name'] ?? '-'; }
-                        echo htmlspecialchars($displayName);
-                        ?></td>
+                        <td>
+                          <?php
+                          $displayName = $p['user_name'] ?? trim(($p['first_name'] ?? '') . ' ' . ($p['last_name'] ?? ''));
+                          if ($displayName === '') {
+                            $displayName = $p['display_name'] ?? '-';
+                          }
+                          echo htmlspecialchars($displayName);
+                          ?>
+                        </td>
                         <td><?= number_format((float)($p['amount'] ?? 0), 2) ?></td>
+
+                        <!-- ✅ แสดงวันที่/เวลาโอน -->
+                        <td>
+                          <?php
+                          $tDate = $p['transfer_date'] ?? null;
+                          $tTime = $p['transfer_time'] ?? null;
+
+                          if (!empty($tDate)) {
+                            echo htmlspecialchars(date('d/m/Y', strtotime($tDate)));
+                          } else {
+                            echo '<span class="text-muted">-</span>';
+                          }
+
+                          if (!empty($tTime)) {
+                            // ตัดให้เหลือ HH:MM ถ้าใน DB เป็น HH:MM:SS
+                            $timeStr = substr($tTime, 0, 5);
+                            echo '<br><small class="text-muted">' . htmlspecialchars($timeStr) . ' น.</small>';
+                          }
+                          ?>
+                        </td>
+
                         <td>
                           <?php
                           $st = $p['status'] ?? 'pending';

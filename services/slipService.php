@@ -13,64 +13,68 @@
  *   'mode'         => 'single'|'cart'
  * ]
  */
-function createPayment(mysqli $conn, array $data): int
+function createPayment(mysqli $conn, array $data)
 {
-    $product_id = $data['product_id'] ?? 0;
-    $variant_id = $data['variant_id'] ?? 0;
+    // กันไว้ถ้าไม่ได้ส่งมาก็ให้เป็น null
+    $transfer_date = $data['transfer_date'] ?? null;
+    $transfer_time = $data['transfer_time'] ?? null;
 
-    $sql = "
-        INSERT INTO payments
-            (user_id, product_id, variant_id, items_json, amount, slip_path, status, mode)
-        VALUES
-            (?, NULLIF(?,0), NULLIF(?,0), ?, ?, ?, 'pending', ?)
-    ";
+    $sql = "INSERT INTO payments (
+                user_id,
+                product_id,
+                variant_id,
+                items_json,
+                amount,
+                slip_path,
+                mode,
+                transfer_date,
+                transfer_time,
+                status,
+                created_at
+            ) VALUES (?,?,?,?,?,?,?,?,?, 'pending', NOW())";
 
-    $ok = db_exec($conn, $sql, [
+    $params = [
         $data['user_id'],
-        $product_id,
-        $variant_id,
+        $data['product_id'],
+        $data['variant_id'],
         $data['items_json'],
         $data['amount'],
         $data['slip_path'],
-        $data['mode']
-    ], "iiisdss");
+        $data['mode'],
+        $transfer_date,
+        $transfer_time,
+    ];
 
-    if (!$ok) {
-        throw new Exception("Failed to create payment");
-    }
+    // i=user_id, i=product_id, i=variant_id, s=items_json, d=amount, s=slip_path, s=mode, s=transfer_date, s=transfer_time
+    $types = "iiisdssss";
 
-    return (int)$conn->insert_id;
+    $result = db_exec($conn, $sql, $params, $types);
+    return $result['insert_id'] ?? 0;
 }
-
 
 /**
  * ดึงรายการ Payment ทั้งหมด (สำหรับ Admin ใช้ดู)
  */
 function getAllPayments(mysqli $conn): array
 {
-    $sql = "
-        SELECT 
-        p.*, 
-        u.first_name, 
-        u.last_name, 
-        u.display_name,
-        CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) AS user_name
-        FROM payments p
-        JOIN users u ON p.user_id = u.id
-        ORDER BY p.id DESC
-    ";
+    $sql = "SELECT 
+                p.*, 
+                u.first_name,
+                u.last_name,
+                u.display_name
+            FROM payments p
+            LEFT JOIN users u ON u.id = p.user_id
+            ORDER BY p.created_at DESC";
+
     $res = db_query($conn, $sql);
+    if (!$res) return [];
+
     $rows = [];
-
-    if ($res && $res->num_rows > 0) {
-        while ($row = $res->fetch_assoc()) {
-            $rows[] = $row;
-        }
+    while ($row = $res->fetch_assoc()) {
+        $rows[] = $row;
     }
-
     return $rows;
 }
-
 
 /**
  * ดึง payment ตาม id (ใช้เปิดรายละเอียดใน Admin)

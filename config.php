@@ -18,8 +18,6 @@ define('BASE_URL', $scheme . '://' . $host . $subdir);
 define('BACKEND_URL', BASE_URL . '/BackEnd');
 define('FRONTEND_URL', BASE_URL . '/FrontEnd');
 
-
-
 function connectDB()
 {
     $host = "localhost";

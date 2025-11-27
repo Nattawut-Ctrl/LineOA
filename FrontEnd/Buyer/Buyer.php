@@ -367,10 +367,10 @@ $cart_items = getCartItems($conn, $user_id);
 
                         <div class="position-relative product-img-wrap rounded-top-4 overflow-hidden">
                             <?php $img = buildImageUrl($product['image'] ?? ''); ?>
-                            <img src="<?= htmlspecialchars($img) ?>">
-                            class="card-img-top w-100 h-100"
-                            alt="<?= htmlspecialchars($product['name']); ?>"
-                            loading="lazy">
+                            <img src="<?= htmlspecialchars($img) ?>"
+                                class="card-img-top w-100 h-100"
+                                alt="<?= htmlspecialchars($product['name']); ?>"
+                                loading="lazy">
 
                             <?php if (!empty($product['category'])): ?>
                                 <span

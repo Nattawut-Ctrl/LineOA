@@ -99,7 +99,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // สมัครสำเร็จ → ไปหน้า Buyer
             header("Location: ../Buyer/Buyer.php");
             exit;
-
         } catch (Throwable $e) {
             // ถ้า INSERT fail db_query จะเขียน log status=error ให้แล้ว
             $errors[] = "บันทึกข้อมูลไม่สำเร็จ: " . $e->getMessage();
@@ -119,6 +118,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 
 <body class="bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg bg-white shadow-sm py-2">
+        <div class="container">
+
+            <!-- Logo + System Name -->
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <img src="..\..\uploads\Medicine_Naresuan.png"
+                    alt="NU Medicine Logo"
+                    style="height: 42px; width: auto;"
+                    class="me-2">
+
+                <span class="fw-bold text-dark fs-5">Line Shop</span>
+            </a>
+
+        </div>
+    </nav>
+
 
     <div class="container d-flex align-items-center justify-content-center min-vh-100 py-5">
         <div class="card shadow-lg rounded-4 w-100" style="max-width: 480px;">
@@ -162,42 +179,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <!-- Form fields -->
-                    
+
                     <div class="mb-4">
-                            <label class="form-label fw-bold fs-6 text-dark">คำนำหน้า <span class="text-danger">*</span></label>
-                            <select name="title" class="form-select">
-                                <option value="">--เลือกคำนำหน้า--</option>
-                                <option value="นาย" <?php echo (isset($title) && $title === 'นาย') ? 'selected' : '' ?>>นาย</option>
-                                <option value="นาง" <?php echo (isset($title) && $title === 'นาง') ? 'selected' : '' ?>>นาง</option>
-                                <option value="นางสาว" <?php echo (isset($title) && $title === 'นางสาว') ? 'selected' : '' ?>>นางสาว</option>
-                            </select>
-                        </div>
+                        <label class="form-label fw-bold fs-6 text-dark">คำนำหน้า <span class="text-danger">*</span></label>
+                        <select name="title" class="form-select">
+                            <option value="">--เลือกคำนำหน้า--</option>
+                            <option value="นาย" <?php echo (isset($title) && $title === 'นาย') ? 'selected' : '' ?>>นาย</option>
+                            <option value="นาง" <?php echo (isset($title) && $title === 'นาง') ? 'selected' : '' ?>>นาง</option>
+                            <option value="นางสาว" <?php echo (isset($title) && $title === 'นางสาว') ? 'selected' : '' ?>>นางสาว</option>
+                        </select>
+                    </div>
 
                     <div class="mb-4">
                         <label class="form-label fw-bold fs-6 text-dark">ชื่อจริง <span class="text-danger">*</span></label>
                         <input type="text" class="form-control form-control-lg rounded-2 border-2" name="first_name" required
-                               value="<?php echo htmlspecialchars($first_name ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="กรอกชื่อจริง">
+                            value="<?php echo htmlspecialchars($first_name ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="กรอกชื่อจริง">
                     </div>
 
                     <div class="mb-4">
                         <label class="form-label fw-bold fs-6 text-dark">นามสกุล <span class="text-danger">*</span></label>
                         <input type="text" class="form-control form-control-lg rounded-2 border-2" name="last_name" required
-                               value="<?php echo htmlspecialchars($last_name ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="กรอกนามสกุล">
+                            value="<?php echo htmlspecialchars($last_name ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="กรอกนามสกุล">
                     </div>
 
                     <div class="mb-4">
                         <label class="form-label fw-bold fs-6 text-dark">เบอร์โทรศัพท์ <span class="text-danger">*</span></label>
                         <input type="tel" class="form-control form-control-lg rounded-2 border-2" id="phone" name="phone"
-                               maxlength="12" inputmode="numeric" required
-                               value="<?php echo htmlspecialchars($phone ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="xxx-xxx-xxxx">
+                            maxlength="12" inputmode="numeric" required
+                            value="<?php echo htmlspecialchars($phone ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="xxx-xxx-xxxx">
                         <small id="phone-error" class="text-danger d-block mt-1"></small>
                     </div>
 
                     <div class="mb-4">
                         <label class="form-label fw-bold fs-6 text-dark">เลขบัตรประชาชน 13 หลัก <span class="text-danger">*</span></label>
                         <input type="tel" class="form-control form-control-lg rounded-2 border-2" id="citizen_id" name="citizen_id"
-                               maxlength="17" inputmode="numeric" required
-                               value="<?php echo htmlspecialchars($citizen_id ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="1-2345-67890-12-3">
+                            maxlength="17" inputmode="numeric" required
+                            value="<?php echo htmlspecialchars($citizen_id ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="1-2345-67890-12-3">
                         <small id="citizen-id-error" class="text-danger d-block mt-1"></small>
                     </div>
 
@@ -259,9 +276,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             let len = value.length;
             let result = '';
 
-            if (len > 0)  result = value.slice(0, 1);
-            if (len > 1)  result += "-" + value.slice(1, 5);
-            if (len > 5)  result += "-" + value.slice(5, 10);
+            if (len > 0) result = value.slice(0, 1);
+            if (len > 1) result += "-" + value.slice(1, 5);
+            if (len > 5) result += "-" + value.slice(5, 10);
             if (len > 10) result += "-" + value.slice(10, 12);
             if (len > 12) result += "-" + value.slice(12, 13);
 
@@ -270,4 +287,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </script>
 
 </body>
+
 </html>

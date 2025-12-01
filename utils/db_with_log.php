@@ -194,6 +194,8 @@ function db_exec(mysqli $conn, string $sql, array $params = [], string $types = 
                 throw new Exception($conn->error, $conn->errno);
             }
             $affected = $conn->affected_rows;
+            // ถ้าเป็น INSERT แบบไม่มี params
+            $recordId = $conn->insert_id;
         } else {
             if ($types === '') {
                 $types = str_repeat('s', count($params));
@@ -218,50 +220,9 @@ function db_exec(mysqli $conn, string $sql, array $params = [], string $types = 
     writeLog($conn, $sql, $params, $types, $status, $errorMsg, $recordId);
 
     return [
-        'ok'       => ($status === 'success'),
-        'error'    => $errorMsg,
-        'affected' => $affected,
+        'ok'        => ($status === 'success'),
+        'error'     => $errorMsg,
+        'affected'  => $affected,
+        'insert_id' => $recordId,
     ];
 }
-
-
-// function db_exec(mysqli $conn, string $sql, array $params = [], string $types = '')
-// {
-//     $start = microtime(true);
-//     $error = '';
-//     $affected = 0;
-
-//     if (empty($params)) {
-//         // ไม่มี params → ยิงตรง (ใช้เฉพาะกรณีไม่มี input จาก user)
-//         $ok = $conn->query($sql);
-//         $error = $conn->error;
-//         $affected = $conn->affected_rows;
-//     } else {
-//         $stmt = $conn->prepare($sql);
-//         if (!$stmt) {
-//             $error = $conn->error;
-//             $ok = false;
-//         } else {
-//             if ($types === '') {
-//                 $types = str_repeat('s', count($params));
-//             }
-//             $stmt->bind_param($types, ...$params);
-//             $ok = $stmt->execute();
-//             $error = $stmt->error;
-//             $affected = $stmt->affected_rows;
-//             $stmt->close();
-//         }
-//     }
-
-//     $duration = microtime(true) - $start;
-
-//     // log ลงตาราง query_logs เหมือน db_query
-//     db_query($conn, $sql, $params, $error, $duration);
-
-//     return [
-//         'ok'        => $ok,
-//         'error'     => $error,
-//         'affected'  => $affected,
-//         'duration'  => $duration,
-//     ];
-// }

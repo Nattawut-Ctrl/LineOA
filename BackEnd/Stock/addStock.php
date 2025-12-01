@@ -73,6 +73,77 @@ $activeMenu = "stock";
         .card {
             border-radius: 0.75rem;
         }
+
+        /* ===== เน้นฟอร์มเพิ่มสินค้า + variants ให้เด่นขึ้น ===== */
+        .card-main-feature {
+            border: 1px solid rgba(25, 135, 84, .25);
+            box-shadow: 0 0.55rem 1.5rem rgba(25, 135, 84, .1);
+        }
+
+        .card-main-feature .card-header {
+            background: linear-gradient(135deg, #198754, #20c997);
+            color: #fff;
+        }
+
+        .card-main-feature .card-header span.small {
+            color: rgba(255, 255, 255, .85);
+        }
+
+        .card-main-feature h5 {
+            color: #fff;
+        }
+
+        .section-label {
+            font-size: .85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: #6c757d;
+        }
+
+        .section-box {
+            border-radius: .75rem;
+            border: 1px dashed #ced4da;
+            padding: .75rem 1rem;
+            background-color: #f8f9fa;
+            margin-bottom: 1rem;
+        }
+
+        .section-box-title {
+            font-size: .9rem;
+            font-weight: 600;
+            margin-bottom: .5rem;
+        }
+
+        /* กล่อง variant ให้ดูเป็นบล็อกชัด ๆ */
+        .variant-row {
+            border-radius: .75rem;
+            border: 1px solid #e2e3e5;
+            background: #fcfcfd;
+            padding: .75rem .85rem;
+            margin-bottom: .75rem;
+        }
+
+        .variant-row-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: .5rem;
+        }
+
+        .variant-row-header strong {
+            font-size: .9rem;
+        }
+
+        .variant-row-header small {
+            font-size: .75rem;
+            color: #6c757d;
+        }
+
+        .variant-row .form-label {
+            font-size: .8rem;
+            margin-bottom: .25rem;
+        }
     </style>
 </head>
 
@@ -390,8 +461,101 @@ $activeMenu = "stock";
                                 <!-- จัดการสินค้า: ฟอร์ม 2 ฝั่ง -->
                                 <div class="row g-4 mt-1">
 
-                                    <!-- 1) ฟอร์มเพิ่มสต็อกจากสินค้าเดิม -->
-                                    <div class="col-lg-5">
+                                    <!-- 1) ฟอร์มเพิ่มสินค้าใหม่ + variants (ฟังก์ชันหลัก) -->
+                                    <div class="col-lg-8 col-xl-9">
+                                        <div class="card shadow-sm card-main-feature h-100">
+                                            <div class="card-header d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h5 class="mb-0 fw-semibold">
+                                                        🆕 เพิ่มสินค้าใหม่
+                                                    </h5>
+                                                    <span class="small d-block mt-1">
+                                                        กรอกข้อมูลสินค้าให้ครบถ้วน และตั้งค่าตัวเลือก (Variants) ได้ในที่เดียว
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <form action="save_new_product.php" method="POST" enctype="multipart/form-data">
+
+                                                    <!-- กลุ่ม ข้อมูลสินค้าหลัก -->
+                                                    <div class="section-box">
+                                                        <div class="section-box-title">
+                                                            ข้อมูลสินค้าหลัก
+                                                        </div>
+                                                        <div class="row g-3">
+                                                            <div class="col-12">
+                                                                <label class="form-label fw-semibold">ชื่อสินค้า</label>
+                                                                <input type="text" name="name" class="form-control" required
+                                                                    placeholder="เช่น เสื้อยืด Oversize รุ่น A">
+                                                            </div>
+
+                                                            <div class="col-md-4">
+                                                                <label class="form-label fw-semibold">หมวดหมู่</label>
+                                                                <input type="text" name="category" class="form-control" required
+                                                                    placeholder="เช่น เสื้อผ้า, รองเท้า">
+                                                            </div>
+
+                                                            <div class="col-md-4">
+                                                                <label class="form-label fw-semibold">หน่วยนับ (Unit)</label>
+                                                                <input type="text" name="unit" class="form-control"
+                                                                    placeholder="เช่น ตัว, ชิ้น, ขวด">
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="mt-3">
+                                                            <label class="form-label fw-semibold">คำอธิบาย</label>
+                                                            <textarea name="description" rows="3" class="form-control"
+                                                                placeholder="รายละเอียดสินค้า / เงื่อนไขเพิ่มเติม"></textarea>
+                                                        </div>
+
+                                                        <div class="mt-3 row g-3 align-items-center">
+                                                            <div class="col-md-7">
+                                                                <label class="form-label fw-semibold">รูปภาพสินค้า</label>
+                                                                <input type="file" name="image" id="mainImageInput"
+                                                                    class="form-control">
+                                                                <div class="form-text">รองรับไฟล์ .jpg, .png ขนาดไม่เกิน 5 MB</div>
+                                                            </div>
+                                                            <div class="col-md-5 text-md-end mt-2 mt-md-0">
+                                                                <img id="mainImagePreview" src="#" alt=""
+                                                                    class="d-none img-thumbnail" style="max-height: 120px;">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- กลุ่ม ตัวเลือกสินค้า (Variants) -->
+                                                    <div class="section-box">
+                                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                                            <div>
+                                                                <div class="section-box-title mb-0">
+                                                                    ตัวเลือกสินค้า (Variants)
+                                                                </div>
+                                                                <small class="text-muted">
+                                                                    ใช้สำหรับแยก สี / ไซส์ / แพ็กเกจ ฯลฯ ถ้าไม่มีตัวเลือก สามารถเว้นว่างได้
+                                                                </small>
+                                                            </div>
+                                                            <button type="button" class="btn btn-sm btn-outline-light bg-white text-primary"
+                                                                id="addVariantBtn">
+                                                                <i class="bi bi-plus-circle me-1"></i> เพิ่มตัวเลือก
+                                                            </button>
+                                                        </div>
+
+                                                        <div id="variantsContainer" class="mt-2">
+                                                            <!-- variant-row จะถูกเพิ่มเข้ามาด้วย JS -->
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="d-grid mt-3">
+                                                        <button class="btn btn-success btn-lg">
+                                                            <i class="bi bi-save2 me-1"></i> บันทึกสินค้าใหม่
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 2) ฟอร์มเพิ่มสต็อกจากสินค้าเดิม (ฟังก์ชันรอง) -->
+                                    <div class="col-lg-4 col-xl-3">
                                         <div class="card shadow-sm h-100">
                                             <div class="card-header">
                                                 <h5 class="mb-0 fw-semibold">
@@ -417,92 +581,9 @@ $activeMenu = "stock";
 
                                                     <div id="variantArea"></div>
 
-                                                    <div class="d-grid">
-                                                        <button class="btn btn-primary mt-2">
+                                                    <div class="d-grid mt-2">
+                                                        <button class="btn btn-primary">
                                                             <i class="bi bi-box-seam me-1"></i> เพิ่มสต็อก
-                                                        </button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- 2) ฟอร์มเพิ่มสินค้าใหม่ + variants -->
-                                    <div class="col-lg-7">
-                                        <div class="card shadow-sm h-100">
-                                            <div class="card-header d-flex justify-content-between align-items-center">
-                                                <h5 class="mb-0 fw-semibold">🆕 เพิ่มสินค้าใหม่</h5>
-                                                <span class="small text-muted">กรอกข้อมูลสินค้าให้ครบถ้วน</span>
-                                            </div>
-                                            <div class="card-body">
-                                                <form action="save_new_product.php" method="POST" enctype="multipart/form-data">
-
-                                                    <div class="mb-3">
-                                                        <label class="form-label fw-semibold">ชื่อสินค้า</label>
-                                                        <input type="text" name="name" class="form-control" required placeholder="เช่น เสื้อยืด Oversize รุ่น A">
-                                                    </div>
-                                                    <div class="row">
-                                                        <div class="mb-3 col-md-6">
-                                                            <label class="form-label fw-semibold">SKU</label>
-                                                            <input type="text" name="sku" class="form-control" placeholder="เช่น SHIRT-001">
-                                                        </div>
-                                                        <div class="mb-3 col-md-6">
-                                                            <label class="form-label fw-semibold">หน่วยนับ (Unit)</label>
-                                                            <input type="text" name="unit" class="form-control" placeholder="เช่น ตัว, ชิ้น, ขวด">
-                                                        </div>
-                                                    </div>
-
-
-                                                    <div class="row">
-                                                        <div class="mb-3 col-md-4">
-                                                            <label class="form-label fw-semibold">หมวดหมู่</label>
-                                                            <input type="text" name="category" class="form-control" required placeholder="เช่น เสื้อผ้า, รองเท้า">
-                                                        </div>
-
-                                                        <div class="mb-3 col-md-4">
-                                                            <label class="form-label fw-semibold">ราคาเริ่มต้น</label>
-                                                            <div class="input-group">
-                                                                <span class="input-group-text">฿</span>
-                                                                <input type="number" name="price" step="0.01" class="form-control" required>
-                                                            </div>
-                                                        </div>
-
-                                                        <div class="mb-3 col-md-4">
-                                                            <label class="form-label fw-semibold">สต็อกเริ่มต้น</label>
-                                                            <input type="number" name="stock" class="form-control" value="0">
-                                                        </div>
-                                                    </div>
-
-                                                    <div class="mb-3">
-                                                        <label class="form-label fw-semibold">คำอธิบาย</label>
-                                                        <textarea name="description" rows="3" class="form-control" placeholder="รายละเอียดสินค้า / เงื่อนไขเพิ่มเติม"></textarea>
-                                                    </div>
-
-                                                    <div class="mb-3">
-                                                        <label class="form-label fw-semibold">รูปภาพสินค้า</label>
-                                                        <input type="file" name="image" id="mainImageInput" class="form-control">
-                                                        <div class="form-text">รองรับไฟล์ .jpg, .png ขนาดไม่เกิน 5 MB</div>
-                                                        <img id="mainImagePreview" src="#" alt="" class="mt-2 d-none" width="120">
-                                                    </div>
-
-
-                                                    <hr class="my-3">
-
-                                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                                        <h5 class="mb-0">ตัวเลือกสินค้า (Variants)</h5>
-                                                        <button type="button" class="btn btn-sm btn-outline-primary" id="addVariantBtn">
-                                                            <i class="bi bi-plus-circle me-1"></i> เพิ่มตัวเลือก
-                                                        </button>
-                                                    </div>
-                                                    <p class="small text-muted mb-2">
-                                                        เช่น สี / ไซส์ / แพ็กเกจ ฯลฯ ถ้าไม่มีตัวเลือก สามารถเว้นว่างส่วนนี้ได้
-                                                    </p>
-
-                                                    <div id="variantsContainer"></div>
-
-                                                    <div class="d-grid mt-3">
-                                                        <button class="btn btn-success">
-                                                            <i class="bi bi-save2 me-1"></i> บันทึกสินค้าใหม่
                                                         </button>
                                                     </div>
                                                 </form>
@@ -565,40 +646,42 @@ $activeMenu = "stock";
                                     div.className = 'variant-row';
 
                                     div.innerHTML = `
-                                <div class="d-flex justify-content-between mb-2">
-                                    <strong>ตัวเลือกสินค้า</strong>
-                                    <button type="button" class="btn btn-sm btn-outline-danger removeVariant">
-                                        <i class="bi bi-x-circle"></i> ลบ
-                                    </button>
-                                </div>
+                                        <div class="variant-row-header">
+                                            <div>
+                                                <strong>ตัวเลือกสินค้า</strong>
+                                                <small class="d-block">เช่น สีแดง / ไซส์ M / แพ็ก 3 ชิ้น</small>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-outline-danger removeVariant">
+                                                <i class="bi bi-x-circle"></i> ลบ
+                                            </button>
+                                        </div>
 
-                                <div class="row">
-                                    <div class="col-md-4 mb-3">
-                                        <label class="form-label">ชื่อ (เช่น สีแดง / ไซส์ M)</label>
-                                        <input type="text" name="variant_name[]" class="form-control" required>
-                                    </div>
-                                    <div class="col-md-3 mb-3">
-                                        <label class="form-label">SKU (ของตัวเลือกสินค้านี้)</label>
-                                        <input type="text" name="variant_sku[]" class="form-control" placeholder="เช่น SHIRT-001-BLACK-M">
-                                    </div>
-                                    <div class="col-md-3 mb-3">
-                                        <label class="form-label">ราคา</label>
-                                        <input type="number" step="0.01" name="variant_price[]" class="form-control">
-                                    </div>
-                                    <div class="col-md-3 mb-3">
-                                        <label class="form-label">สต็อก</label>
-                                        <input type="number" name="variant_stock[]" class="form-control">
-                                    </div>
-                                    <div class="col-md-2 mb-3">
-                                        <label class="form-label">รูป</label>
-                                        <input type="file" name="variant_image[]" class="form-control">
-                                    </div>
-                                </div>
-                            `;
+                                        <div class="row">
+                                            <div class="col-md-4 mb-3">
+                                                <label class="form-label">ชื่อ (เช่น สีแดง / ไซส์ M)</label>
+                                                <input type="text" name="variant_name[]" class="form-control" required>
+                                            </div>
+                                            <div class="col-md-3 mb-3">
+                                                <label class="form-label">SKU (ของตัวเลือกนี้)</label>
+                                                <input type="text" name="variant_sku[]" class="form-control" placeholder="เช่น SHIRT-001-BLACK-M">
+                                            </div>
+                                            <div class="col-md-3 mb-3">
+                                                <label class="form-label">ราคา</label>
+                                                <input type="number" step="0.01" name="variant_price[]" class="form-control">
+                                            </div>
+                                            <div class="col-md-2 mb-3">
+                                                <label class="form-label">สต็อก</label>
+                                                <input type="number" name="variant_stock[]" class="form-control">
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <label class="form-label">รูป (ถ้ามี)</label>
+                                                <input type="file" name="variant_image[]" class="form-control">
+                                            </div>
+                                        </div>
+                                    `;
 
                                     container.appendChild(div);
 
-                                    // ปุ่มลบตัวเลือก
                                     div.querySelector('.removeVariant').onclick = () => div.remove();
                                 });
 
@@ -729,31 +812,31 @@ $activeMenu = "stock";
                                         div.className = 'variant-row mb-2';
 
                                         div.innerHTML = `
-      <div class="d-flex justify-content-between mb-2">
-        <strong>ตัวเลือกใหม่</strong>
-        <button type="button" class="btn btn-sm btn-outline-danger removeNewVariant">
-          <i class="bi bi-x-circle"></i> ลบ
-        </button>
-      </div>
-      <div class="row">
-        <div class="col-md-4 mb-3">
-          <label class="form-label">ชื่อ</label>
-          <input type="text" name="new_variant_name[]" class="form-control" required>
-        </div>
-        <div class="col-md-3 mb-3">
-          <label class="form-label">ราคา</label>
-          <input type="number" step="0.01" name="new_variant_price[]" class="form-control">
-        </div>
-        <div class="col-md-3 mb-3">
-          <label class="form-label">สต็อก</label>
-          <input type="number" name="new_variant_stock[]" class="form-control">
-        </div>
-        <div class="col-md-2 mb-3">
-          <label class="form-label">รูป (ถ้ามี)</label>
-          <input type="file" name="new_variant_image[]" class="form-control">
-        </div>
-      </div>
-    `;
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <strong>ตัวเลือกใหม่</strong>
+                                                <button type="button" class="btn btn-sm btn-outline-danger removeNewVariant">
+                                                    <i class="bi bi-x-circle"></i> ลบ
+                                                </button>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-4 mb-3">
+                                                    <label class="form-label">ชื่อ</label>
+                                                    <input type="text" name="new_variant_name[]" class="form-control" required>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label class="form-label">ราคา</label>
+                                                    <input type="number" step="0.01" name="new_variant_price[]" class="form-control">
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label class="form-label">สต็อก</label>
+                                                    <input type="number" name="new_variant_stock[]" class="form-control">
+                                                </div>
+                                                <div class="col-md-2 mb-3">
+                                                    <label class="form-label">รูป (ถ้ามี)</label>
+                                                    <input type="file" name="new_variant_image[]" class="form-control">
+                                                </div>
+                                            </div>
+                                        `;
 
                                         container.appendChild(div);
 

@@ -84,6 +84,32 @@ function getAllProductsWithVariants(mysqli $conn): array
     }
     unset($prod);
 
+    // คำนวณราคา & stock จาก variants
+    foreach ($products as $pid => &$prod) {
+        if (!empty($prod['variants'])) {
+            $totalStock = 0;
+            $minPrice   = null;
+
+            foreach ($prod['variants'] as $v) {
+                $vStock = (int)($v['stock'] ?? 0);
+                $vPrice = (float)($v['price'] ?? 0);
+
+                if ($vStock > 0) {
+                    $totalStock += $vStock;
+                }
+                if ($vPrice > 0 && ($minPrice === null || $vPrice < $minPrice)) {
+                    $minPrice = $vPrice;
+                }
+            }
+
+            $prod['stock'] = $totalStock;
+            if ($minPrice !== null) {
+                $prod['price'] = $minPrice;
+            }
+        }
+    }
+    unset($prod);
+
     return $products;
 }
 
@@ -128,6 +154,28 @@ function getProductByIdWithVariants(mysqli $conn, int $product_id): ?array
                 $product['image'] = $v['image'];
                 break;
             }
+        }
+    }
+
+    if (!empty($product['variants'])) {
+        $totalStock = 0;
+        $minPrice   = null;
+
+        foreach ($product['variants'] as $v) {
+            $vStock = (int)($v['stock'] ?? 0);
+            $vPrice = (float)($v['price'] ?? 0);
+
+            if ($vStock > 0) {
+                $totalStock += $vStock;
+            }
+            if ($vPrice > 0 && ($minPrice === null || $vPrice < $minPrice)) {
+                $minPrice = $vPrice;
+            }
+        }
+
+        $product['stock'] = $totalStock;
+        if ($minPrice !== null) {
+            $product['price'] = $minPrice;
         }
     }
 

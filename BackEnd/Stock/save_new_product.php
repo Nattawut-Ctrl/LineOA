@@ -36,24 +36,22 @@ logProductDebug("==== save_new_product.php CALLED ====");
 // -----------------------
 $name        = trim($_POST['name'] ?? '');
 $category    = trim($_POST['category'] ?? '');
-$sku         = trim($_POST['sku'] ?? '');
-$price       = floatval($_POST['price'] ?? 0);
-$stock       = intval($_POST['stock'] ?? 0);
+$sku         = '';
+$price       = 0;
+$stock       = 0;
 $unit        = trim($_POST['unit'] ?? '');
 $description = trim($_POST['description'] ?? '');
 
 logProductDebug("INPUT: name={$name}, category={$category}, sku={$sku}, price={$price}, stock={$stock}, unit={$unit}");
 
 // ตรวจสอบ input
-if ($name == '' || $category == '' || $price <= 0) {
+if ($name === '' || $category === '') {
+    logProductDebug("ERROR: invalid product input (name/category missing)");
 
-    logProductDebug("ERROR: invalid product input (name/category/price missing or invalid)");
-
-    // log case input ไม่ถูกต้อง (ใช้ DB log เดิม)
     writeLog(
         $conn,
         "INSERT products (invalid input)",
-        ['name' => $name, 'category' => $category, 'sku' => $sku, 'unit' => $unit, 'price' => $price],
+        ['name' => $name, 'category' => $category, 'unit' => $unit],
         '',
         'error',
         'save_new_product: invalid product input'
@@ -62,6 +60,7 @@ if ($name == '' || $category == '' || $price <= 0) {
     header("Location: addStock.php?error=invalid_product_input");
     exit;
 }
+
 // -----------------------
 // 2) อัปโหลดรูปสินค้า
 // -----------------------
@@ -98,7 +97,17 @@ $resultProduct = db_exec(
     "sssdisss"
 );
 
-$product_id = $conn->insert_id;
+// ใช้ insert_id จากผลลัพธ์ db_exec โดยตรง
+$product_id = (int)($resultProduct['insert_id'] ?? 0);
+
+if (!$resultProduct['ok'] || !$product_id) {
+    logProductDebug("ERROR: INSERT PRODUCT FAILED. result=" . json_encode($resultProduct) . ", product_id=" . $product_id);
+
+    header("Location: addStock.php?error=invalid_product_input");
+    exit;
+}
+
+logProductDebug("PRODUCT INSERT SUCCESS: product_id=" . $product_id . ", image=" . ($productImage ?? 'NULL'));
 
 if (!$resultProduct['ok'] || !$product_id) {
     logProductDebug("ERROR: INSERT PRODUCT FAILED. result=" . json_encode($resultProduct) . ", product_id=" . $product_id);
@@ -112,6 +121,9 @@ logProductDebug("PRODUCT INSERT SUCCESS: product_id=" . $product_id . ", image="
 // -----------------------
 // 4) INSERT Variants + รูป
 // -----------------------
+$totalStock = 0;
+$minPrice   = null;
+
 if (!empty($_POST['variant_name'])) {
     $variant_names  = $_POST['variant_name'];
     $variant_skus   = $_POST['variant_sku'] ?? [];
@@ -131,6 +143,13 @@ if (!empty($_POST['variant_name'])) {
         $vsku   = trim($variant_skus[$i] ?? '');
         $vprice = isset($variant_prices[$i]) ? floatval($variant_prices[$i]) : 0;
         $vstock = isset($variant_stocks[$i]) ? intval($variant_stocks[$i]) : 0;
+
+        if ($vprice > 0 && ($minPrice === null || $vprice < $minPrice)) {
+            $minPrice = $vprice;
+        }
+        if ($vstock > 0) {
+            $totalStock += $vstock;
+        }
 
         logProductDebug("VARIANT[$i]: name={$vnameTrim}, sku={$vsku}, price={$vprice}, stock={$vstock}");
 
@@ -156,6 +175,8 @@ if (!empty($_POST['variant_name'])) {
             logProductDebug("VARIANT[$i]: no image uploaded");
         }
 
+        $finalPrice = $minPrice ?? 0;
+
         // --- insert variant
         $resVar = db_exec(
             $conn,
@@ -170,6 +191,20 @@ if (!empty($_POST['variant_name'])) {
         } else {
             logProductDebug("VARIANT[$i]: INSERT SUCCESS");
         }
+    }
+
+    // หลัง loop variant
+    if ($minPrice !== null || $totalStock > 0) {
+        $finalPrice = $minPrice ?? 0;
+
+        db_exec(
+            $conn,
+            "UPDATE products SET price = ?, stock = ? WHERE id = ?",
+            [$finalPrice, $totalStock, $product_id],
+            "dii"
+        );
+
+        logProductDebug("UPDATE PRODUCT SUMMARY: price={$finalPrice}, stock={$totalStock}");
     }
 } else {
     logProductDebug("NO VARIANTS SENT in form.");

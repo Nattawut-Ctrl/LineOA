@@ -19,6 +19,22 @@ define('BASE_URL', $scheme . '://' . $host . $subdir);
 define('BACKEND_URL', BASE_URL . '/BackEnd');
 define('FRONTEND_URL', BASE_URL . '/FrontEnd');
 
+// ===== Upload & Cloudinary config =====
+
+// จะเปิด/ปิด Cloudinary จากตรงนี้ก็ได้ (หรือใช้แบบ auto จากไฟล์ config ก็ได้)
+if (!defined('USE_CLOUDINARY')) {
+    define('USE_CLOUDINARY', true);
+}
+
+// root เก็บไฟล์ local (โฟลเดอร์ /uploads ที่มีอยู่แล้ว)
+if (!defined('UPLOAD_BASE_DIR')) {
+    define('UPLOAD_BASE_DIR', BASE_PATH . '/uploads');
+}
+if (!defined('UPLOAD_BASE_URL_PATH')) {
+    // path ที่จะเก็บลง DB เช่น uploads/products/xxx.jpg
+    define('UPLOAD_BASE_URL_PATH', 'uploads');
+}
+
 function connectDB()
 {
     $host = "localhost";

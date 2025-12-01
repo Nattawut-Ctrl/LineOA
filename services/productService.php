@@ -71,6 +71,19 @@ function getAllProductsWithVariants(mysqli $conn): array
         }
     }
 
+    // ถ้า product ไหนไม่มีรูปหลัก ให้ใช้รูปของ variant ตัวแรกที่มีรูปแทน
+    foreach ($products as $pid => &$prod) {
+        if (empty($prod['image']) && !empty($prod['variants'])) {
+            foreach ($prod['variants'] as $v) {
+                if (!empty($v['image'])) {
+                    $prod['image'] = $v['image'];
+                    break;
+                }
+            }
+        }
+    }
+    unset($prod);
+
     return $products;
 }
 
@@ -105,6 +118,16 @@ function getProductByIdWithVariants(mysqli $conn, int $product_id): ?array
     if ($resV && $resV->num_rows > 0) {
         while ($v = $resV->fetch_assoc()) {
             $product['variants'][] = $v;
+        }
+    }
+
+    // ถ้าไม่มีรูปหลักให้ลองเอารูปจาก variant ตัวแรก
+    if (empty($product['image']) && !empty($product['variants'])) {
+        foreach ($product['variants'] as $v) {
+            if (!empty($v['image'])) {
+                $product['image'] = $v['image'];
+                break;
+            }
         }
     }
 

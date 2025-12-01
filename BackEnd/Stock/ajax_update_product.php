@@ -3,10 +3,7 @@ session_start();
 require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/admin_guard.php';
-// ถ้ามีไฟล์ cloudinary_config.php ให้โหลด (ใช้สำหรับอัปโหลดรูปไป Cloudinary)
-if (file_exists(UTILS_PATH . '/cloudinary_config.php')) {
-    require_once UTILS_PATH . '/cloudinary_config.php';
-}
+require_once UTILS_PATH . '/upload_image.php';
 
 require_admin();
 $conn = connectDBWithLog();
@@ -67,83 +64,35 @@ $resultProduct = db_exec(
 // 3) เพิ่ม variants ใหม่ (รองรับอัปโหลดรูป)
 // ----------------------
 $okNewVariants = true;
-$logDir  = __DIR__ . "/logs";   // ใช้ __DIR__ ง่ายสุดก่อน
-if (!is_dir($logDir)) {
-    mkdir($logDir, 0777, true);
-}
-$logFile = $logDir . "/cloudinary_debug.log";
-
-// เทสแบบบังคับเขียน log แน่นอน
-error_log("[" . date("Y-m-d H:i:s") . "] TEST: ajax_update_product reached\n", 3, $logFile);
 
 if (!empty($_POST['new_variant_name'])) {
+    $newNames  = $_POST['new_variant_name'];
+    $newPrices = $_POST['new_variant_price'] ?? [];
+    $newStocks = $_POST['new_variant_stock'] ?? [];
+    $newImages = $_FILES['new_variant_image'] ?? null;
 
-    foreach ($_POST['new_variant_name'] as $i => $nvName) {
-
+    foreach ($newNames as $i => $nvName) {
         $nvName = trim($nvName);
-        if ($nvName === '') continue;  // ข้ามถ้าว่าง
-
-        $nvPrice = floatval($_POST['new_variant_price'][$i] ?? 0);
-        $nvStock = intval($_POST['new_variant_stock'][$i] ?? 0);
-
-        // อัปโหลดรูป
-        $imagePath = null;
-
-        if (!empty($_FILES['new_variant_image']['name'][$i]) && $_FILES['new_variant_image']['error'][$i] === UPLOAD_ERR_OK) {
-
-            if (class_exists('\\Cloudinary\\Uploader')) {
-
-                error_log("[" . date("Y-m-d H:i:s") . "] FOUND: Cloudinary Uploader class OK\n", 3, $logFile);
-
-                try {
-                    $uploadResult = \Cloudinary\Uploader::upload(
-                        $_FILES['new_variant_image']['tmp_name'][$i],
-                        ['folder' => 'line-shop/variants']
-                    );
-
-                    if (!empty($uploadResult['secure_url'])) {
-                        $imagePath = $uploadResult['secure_url']; // เก็บเป็น URL
-
-                        error_log("[" . date("Y-m-d H:i:s") . "] SUCCESS: Uploaded to Cloudinary: {$imagePath}\n", 3, $logFile);
-                    } else {
-                        error_log("[" . date("Y-m-d H:i:s") . "] ERROR: Cloudinary returned no secure_url\n", 3, $logFile);
-                    }
-                } catch (Exception $e) {
-                    error_log("[" . date("Y-m-d H:i:s") . "] EXCEPTION: " . $e->getMessage() . "\n", 3, $logFile);
-                }
-            } else {
-                error_log("[" . date("Y-m-d H:i:s") . "] NOT FOUND: Cloudinary\\Uploader class missing\n", 3, $logFile);
-            }
-
-            // ถ้ายังไม่มีรูปจาก Cloudinary -> fallback เก็บ local
-            if ($imagePath === null) {
-                // โฟลเดอร์ที่จะเก็บรูป
-                $uploadDir = BASE_PATH . "/uploads/variants/";
-
-                if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0777, true);
-                }
-
-                // ชื่อไฟล์
-                $filename = time() . "_" . basename($_FILES['new_variant_image']['name'][$i]);
-
-                // path เต็ม
-                $targetPath = $uploadDir . $filename;
-
-                // ย้ายไฟล์จาก temp ไปโฟลเดอร์จริง
-                if (move_uploaded_file($_FILES['new_variant_image']['tmp_name'][$i], $targetPath)) {
-                    // path แบบที่เก็บในฐานข้อมูล (ไม่ใส่ ../../)
-                    $imagePath = "uploads/variants/" . $filename;
-
-                    error_log("[" . date("Y-m-d H:i:s") . "] FALLBACK: saved local as {$imagePath}\n", 3, $logFile);
-                } else {
-                    error_log("[" . date("Y-m-d H:i:s") . "] ERROR: move_uploaded_file failed for local fallback\n", 3, $logFile);
-                }
-            }
+        if ($nvName === '') {
+            continue;
         }
 
+        $nvPrice = isset($newPrices[$i]) ? floatval($newPrices[$i]) : 0;
+        $nvStock = isset($newStocks[$i]) ? intval($newStocks[$i]) : 0;
 
-        // บันทึกลงฐานข้อมูล
+        $imagePath = null;
+        if ($newImages && !empty($newImages['name'][$i]) && $newImages['error'][$i] === UPLOAD_ERR_OK) {
+            $file = [
+                'name'     => $newImages['name'][$i],
+                'type'     => $newImages['type'][$i],
+                'tmp_name' => $newImages['tmp_name'][$i],
+                'error'    => $newImages['error'][$i],
+                'size'     => $newImages['size'][$i],
+            ];
+
+            $imagePath = uploadImageWithFallback($file, 'variants', 'line-shop/variants');
+        }
+
         $insert = db_exec(
             $conn,
             "INSERT INTO product_variants (product_id, variant_name, image, price, stock)

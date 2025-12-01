@@ -578,7 +578,7 @@ $activeMenu = "stock";
                                         <input type="text" name="variant_name[]" class="form-control" required>
                                     </div>
                                     <div class="col-md-3 mb-3">
-                                        label class="form-label">SKU (ของตัวเลือกสินค้านี้)</label>
+                                        <label class="form-label">SKU (ของตัวเลือกสินค้านี้)</label>
                                         <input type="text" name="variant_sku[]" class="form-control" placeholder="เช่น SHIRT-001-BLACK-M">
                                     </div>
                                     <div class="col-md-3 mb-3">

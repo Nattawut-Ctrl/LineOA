@@ -55,12 +55,12 @@ $resV = db_query(
     </div>
 
     <div class="row">
-        <div class="col-md-6 mb-3">
+        <!-- <div class="col-md-6 mb-3">
             <label>SKU</label>
             <input type="text" name="sku"
                 value="<?= htmlspecialchars($sku, ENT_QUOTES, 'UTF-8') ?>"
                 class="form-control">
-        </div>
+        </div> -->
         <div class="col-md-6 mb-3">
             <label>หน่วยนับ (Unit)</label>
             <input type="text" name="unit"
@@ -98,39 +98,32 @@ $resV = db_query(
                 <input type="hidden" name="variant_id[]" value="<?= $vid ?>">
 
                 <div class="row">
+                    <!-- รูป variant (ดู + เปลี่ยนได้) -->
                     <div class="col-md-3 mb-3">
-                        <label class="form-label">รูปปัจจุบัน</label>
+                        <label class="form-label">รูปตัวเลือก</label>
                         <?php if (!empty($imgUrl)): ?>
                             <div class="mb-1">
                                 <img src="<?= htmlspecialchars($imgUrl) ?>"
                                     class="img-thumbnail"
                                     style="width:80px;height:80px;object-fit:cover;">
                             </div>
+                            <small class="text-muted d-block mb-1">
+                                เลือกรูปใหม่เพื่อแทนที่รูปเดิม
+                            </small>
                         <?php else: ?>
                             <div class="text-muted small mb-1">
-                                ไม่มีรูป
+                                ยังไม่มีรูป เลือกรูปเพื่อเพิ่มได้
                             </div>
                         <?php endif; ?>
 
+                        <!-- เปลี่ยนรูป (ถ้าไม่เลือก รูปจะไม่เปลี่ยน) -->
                         <input type="file"
                             name="variant_image[<?= $vid ?>]"
-                            class="form-control form-control-sm mb-1"
+                            class="form-control form-control-sm"
                             accept="image/*">
-
-                        <?php if (!empty($v['image'])): ?>
-                            <div class="form-check mt-1">
-                                <input class="form-check-input"
-                                    type="checkbox"
-                                    name="variant_image_delete[]"
-                                    value="<?= $vid ?>"
-                                    id="delVariantImg<?= $vid ?>">
-                                <label class="form-check-label small" for="delVariantImg<?= $vid ?>">
-                                    ลบรูปเดิม
-                                </label>
-                            </div>
-                        <?php endif; ?>
                     </div>
 
+                    <!-- ข้อมูลอื่น ๆ ของ variant -->
                     <div class="col-md-3 mb-3">
                         <label class="form-label">ชื่อ</label>
                         <input type="text"

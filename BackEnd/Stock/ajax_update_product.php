@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/admin_guard.php';
 require_once UTILS_PATH . '/upload_image.php';
+require_once UTILS_PATH . '/product_image_helper.php';
 
 require_admin();
 $conn = connectDBWithLog();
@@ -61,6 +62,126 @@ $resultProduct = db_exec(
 );
 
 // ----------------------
+// เตรียมข้อมูลสำหรับจัดการ "รูปของ variants เดิม"
+// ----------------------
+$deleteReq = $_POST['variant_image_delete'] ?? [];   // array ของ variant_id ที่ติกลบรูป
+$files     = $_FILES['variant_image'] ?? null;       // ไฟล์รูปของ variant เดิม
+
+$deleteSet = [];
+if (is_array($deleteReq)) {
+    foreach ($deleteReq as $vid) {
+        $deleteSet[(int)$vid] = true;
+    }
+}
+
+// ดึง image เดิมของทุก variant ของสินค้านี้เก็บไว้
+$oldVarImages = [];
+if (!empty($_POST['variant_id'])) {
+    $resOld = db_query(
+        $conn,
+        "SELECT id, image 
+         FROM product_variants 
+         WHERE product_id = ?",
+        [$id],
+        "i"
+    );
+
+    if ($resOld) {
+        while ($r = $resOld->fetch_assoc()) {
+            $oldVarImages[(int)$r['id']] = $r['image'];
+        }
+    }
+}
+
+// ----------------------
+// 2) อัปเดต variants เดิม (รวมรูปภาพ)
+// ----------------------
+$okVariantsAll = true;
+
+if (!empty($_POST['variant_id'])) {
+
+    foreach ($_POST['variant_id'] as $i => $vidRaw) {
+
+        $vid    = intval($vidRaw);
+        if ($vid <= 0) {
+            continue;
+        }
+
+        $vName  = $_POST['variant_name'][$i] ?? '';
+        $vPrice = floatval($_POST['variant_price'][$i] ?? 0);
+        $vStock = intval($_POST['variant_stock'][$i] ?? 0);
+
+        // 2.1 อัปเดตข้อมูลทั่วไปของ variant
+        $resultVariant = db_exec(
+            $conn,
+            "UPDATE product_variants 
+             SET variant_name = ?, price = ?, stock = ?
+             WHERE id = ?",
+            [$vName, $vPrice, $vStock, $vid],
+            "sdii"
+        );
+
+        if (!$resultVariant['ok']) {
+            $okVariantsAll = false;
+        }
+
+        // 2.2 จัดการรูปภาพของ variant นี้
+        $oldImage   = $oldVarImages[$vid] ?? null;
+        $needDelete = isset($deleteSet[$vid]);
+        $newImagePath = null;
+
+        // มีไฟล์ใหม่อัปโหลดมาสำหรับ variant นี้หรือไม่
+        if ($files && isset($files['name'][$vid]) && $files['error'][$vid] !== UPLOAD_ERR_NO_FILE) {
+
+            $file = [
+                'name'     => $files['name'][$vid],
+                'type'     => $files['type'][$vid],
+                'tmp_name' => $files['tmp_name'][$vid],
+                'error'    => $files['error'][$vid],
+                'size'     => $files['size'][$vid],
+            ];
+
+            // ใช้ฟังก์ชันเดิมที่คุณใช้ตอนเพิ่ม variant ใหม่
+            $uploaded = uploadImageWithFallback($file, 'variants', 'line-shop/variants');
+            if ($uploaded) {
+                $newImagePath = $uploaded;
+            }
+        }
+
+        // ตัดสินใจรูปสุดท้าย
+        $finalImage = $oldImage;
+
+        // ถ้าติ๊ก "ลบรูปเดิม"
+        if ($needDelete) {
+            $finalImage = null;
+        }
+
+        // ถ้ามีการอัปโหลดรูปใหม่
+        if ($newImagePath !== null) {
+            $finalImage = $newImagePath;
+        }
+
+        // ถ้ามีการเปลี่ยนแปลงจริง ๆ
+        if ($finalImage !== $oldImage) {
+
+            db_exec(
+                $conn,
+                "UPDATE product_variants
+                 SET image = ?
+                 WHERE id = ?",
+                [$finalImage, $vid],
+                "si"
+            );
+
+            // ลบไฟล์เก่าออกจากเครื่อง (ถ้าเป็นไฟล์ local และถูกแทนที่/ลบ)
+            if ($oldImage && ($needDelete || $newImagePath) && $oldImage !== $finalImage) {
+                deleteImageFileIfLocal($oldImage);
+            }
+        }
+    }
+}
+
+// ----------------------
 // 3) เพิ่ม variants ใหม่ (รองรับอัปโหลดรูป)
 // ----------------------
 $okNewVariants = true;
@@ -108,36 +229,7 @@ if (!empty($_POST['new_variant_name'])) {
 }
 
 // ----------------------
-// 2) อัปเดต variants
-// ----------------------
-$okVariantsAll = true;
-
-if (!empty($_POST['variant_id'])) {
-
-    foreach ($_POST['variant_id'] as $i => $vid) {
-
-        $vid    = intval($vid);
-        $vName  = $_POST['variant_name'][$i] ?? '';
-        $vPrice = floatval($_POST['variant_price'][$i] ?? 0);
-        $vStock = intval($_POST['variant_stock'][$i] ?? 0);
-
-        $resultVariant = db_exec(
-            $conn,
-            "UPDATE product_variants 
-             SET variant_name = ?, price = ?, stock = ?
-             WHERE id = ?",
-            [$vName, $vPrice, $vStock, $vid],
-            "sdii"
-        );
-
-        if (!$resultVariant['ok']) {
-            $okVariantsAll = false;
-        }
-    }
-}
-
-// ----------------------
-// 3) ประเมินผลทั้งหมด
+// 4) ประเมินผลทั้งหมด
 // ----------------------
 $statusOverall = ($resultProduct['ok'] && $okVariantsAll && $okNewVariants) ? 'success' : 'error';
 
@@ -146,10 +238,10 @@ writeLog(
     $conn,
     "UPDATE products + variants",
     [
-        'product_id' => $id,
-        'name'       => $name,
-        'price'      => $price,
-        'stock'      => $stock,
+        'product_id'  => $id,
+        'name'        => $name,
+        'price'       => $price,
+        'stock'       => $stock,
         'description' => $description
     ],
     '',

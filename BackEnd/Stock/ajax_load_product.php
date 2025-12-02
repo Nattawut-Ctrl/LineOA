@@ -3,6 +3,7 @@ session_start();
 require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/admin_guard.php';
+require_once UTILS_PATH . '/product_image_helper.php';
 
 require_admin();
 $conn = connectDBWithLog();
@@ -44,7 +45,7 @@ $resV = db_query(
 );
 ?>
 
-<form id="updateProductForm">
+<form id="updateProductForm" method="post" action="ajax_update_product.php" enctype="multipart/form-data">
 
     <input type="hidden" name="id" value="<?= $p['id'] ?>">
 
@@ -89,33 +90,77 @@ $resV = db_query(
     <h5>ตัวเลือกสินค้า (Variants)</h5>
 
     <?php if ($resV->num_rows > 0): ?>
-        <?php while ($row = $resV->fetch_assoc()): ?>
-            <div class="border rounded p-2 mb-2">
-                <input type="hidden" name="variant_id[]" value="<?= $row['id'] ?>">
+        <?php while ($v = $resV->fetch_assoc()):
+            $vid    = (int)$v['id'];
+            $imgUrl = buildImageUrlFromPath($v['image'] ?? '');
+        ?>
+            <div class="variant-row mb-2">
+                <input type="hidden" name="variant_id[]" value="<?= $vid ?>">
 
                 <div class="row">
-                    <div class="col-md-4">
-                        <label>ชื่อ</label>
-                        <input type="text" name="variant_name[]" value="<?= htmlspecialchars($row['variant_name']) ?>" class="form-control">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">รูปปัจจุบัน</label>
+                        <?php if (!empty($imgUrl)): ?>
+                            <div class="mb-1">
+                                <img src="<?= htmlspecialchars($imgUrl) ?>"
+                                    class="img-thumbnail"
+                                    style="width:80px;height:80px;object-fit:cover;">
+                            </div>
+                        <?php else: ?>
+                            <div class="text-muted small mb-1">
+                                ไม่มีรูป
+                            </div>
+                        <?php endif; ?>
+
+                        <input type="file"
+                            name="variant_image[<?= $vid ?>]"
+                            class="form-control form-control-sm mb-1"
+                            accept="image/*">
+
+                        <?php if (!empty($v['image'])): ?>
+                            <div class="form-check mt-1">
+                                <input class="form-check-input"
+                                    type="checkbox"
+                                    name="variant_image_delete[]"
+                                    value="<?= $vid ?>"
+                                    id="delVariantImg<?= $vid ?>">
+                                <label class="form-check-label small" for="delVariantImg<?= $vid ?>">
+                                    ลบรูปเดิม
+                                </label>
+                            </div>
+                        <?php endif; ?>
                     </div>
 
-                    <div class="col-md-3">
-                        <label>ราคา</label>
-                        <input type="number" name="variant_price[]" value="<?= $row['price'] ?>" class="form-control">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">ชื่อ</label>
+                        <input type="text"
+                            name="variant_name[]"
+                            value="<?= htmlspecialchars($v['variant_name']) ?>"
+                            class="form-control">
                     </div>
 
-                    <div class="col-md-3">
-                        <label>สต็อก</label>
-                        <input type="number" name="variant_stock[]" value="<?= $row['stock'] ?>" class="form-control">
+                    <div class="col-md-2 mb-3">
+                        <label class="form-label">ราคา</label>
+                        <input type="number"
+                            step="0.01"
+                            name="variant_price[]"
+                            value="<?= $v['price'] ?>"
+                            class="form-control">
                     </div>
 
-                    <div class="col-md-2">
-                        <label>ลบ</label>
-                        <button
-                            type="button"
-                            class="btn btn-danger btn-sm w-100 deleteVariantBtn"
-                            data-id="<?= $row['id'] ?>">
-                            ลบ
+                    <div class="col-md-2 mb-3">
+                        <label class="form-label">สต็อก</label>
+                        <input type="number"
+                            name="variant_stock[]"
+                            value="<?= $v['stock'] ?>"
+                            class="form-control">
+                    </div>
+
+                    <div class="col-md-2 mb-3 d-flex align-items-end">
+                        <button type="button"
+                            class="btn btn-sm btn-outline-danger deleteVariantBtn w-100"
+                            data-id="<?= $vid ?>">
+                            <i class="bi bi-trash"></i> ลบตัวเลือก
                         </button>
                     </div>
                 </div>

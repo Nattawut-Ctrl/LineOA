@@ -568,7 +568,7 @@ $activeMenu = "stock";
                                                 </h5>
                                             </div>
                                             <div class="card-body">
-                                                <form action="save_new_stock.php" method="POST">
+                                                <form action="save_new_stock.php" method="POST" enctype="multipart/form-data">
                                                     <div class="mb-3">
                                                         <label class="form-label fw-semibold">เลือกสินค้า</label>
                                                         <select name="product_id" id="productSelect" class="form-select" required>

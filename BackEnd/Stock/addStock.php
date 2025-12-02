@@ -764,12 +764,16 @@ $activeMenu = "stock";
                                                             })
                                                             .then(res => res.text())
                                                             .then(result => {
-                                                                if (result.trim() === "success") {
-                                                                    location.reload();
-                                                                } else {
-                                                                    console.error("Update failed:", result);
-                                                                    alert("บันทึกการแก้ไขไม่สำเร็จ");
-                                                                }
+                                                                    console.log("Update successful:", result);
+
+                                                                    const text = result.trim().toLowerCase();
+
+                                                                    if (text.includes("success")) {
+                                                                        window.location.href = "addStock.php?success=updated";
+                                                                    } else {
+                                                                        console.error("Update failed:", result);
+                                                                        alert("บันทึกการแก้ไขไม่สำเร็จ");
+                                                                    }
                                                             })
                                                             .catch(err => {
                                                                 console.error("Fetch error:", err);

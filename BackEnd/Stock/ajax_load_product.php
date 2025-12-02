@@ -61,9 +61,6 @@ $resV = db_query(
                 value="<?= htmlspecialchars($sku, ENT_QUOTES, 'UTF-8') ?>"
                 class="form-control"
                 disabled>
-            <input type="hidden"
-                name="sku"
-                value="<?= htmlspecialchars($sku, ENT_QUOTES, 'UTF-8') ?>">
         </div>
         <div class="col-md-6 mb-3">
             <label>หน่วยนับ (Unit)</label>
@@ -125,6 +122,11 @@ $resV = db_query(
                             name="variant_image[<?= $vid ?>]"
                             class="form-control form-control-sm"
                             accept="image/*">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label>SKU</label>
+                        <input type="text" name="variant_sku[]" value="<?= htmlspecialchars($v['sku']) ?>" class="form-control">
                     </div>
 
                     <!-- ข้อมูลอื่น ๆ ของ variant -->

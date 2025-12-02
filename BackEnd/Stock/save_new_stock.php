@@ -6,104 +6,101 @@ require_once UTILS_PATH . '/admin_guard.php';
 
 require_admin();
 $conn = connectDBWithLog();
-$adminId = $_SESSION['admin_id'] ?? null;
 
+// =============================
+// 1) รับค่าจากฟอร์ม
+// =============================
+$product_id = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
+$variant_id = isset($_POST['variant_id']) ? (int)$_POST['variant_id'] : 0; // ถ้าไม่มีจะเป็น 0
+$add_stock  = isset($_POST['add_stock']) ? (int)$_POST['add_stock'] : 0;
 
-// รับค่าจากฟอร์ม
-$product_id = isset($_POST['product_id']) ? intval($_POST['product_id']) : 0;
-$variant_id = isset($_POST['variant_id']) ? intval($_POST['variant_id']) : null;
-$add_stock  = isset($_POST['add_stock']) ? intval($_POST['add_stock']) : 0;
-
-// ตรวจสอบข้อมูลเบื้องต้น
+// ตรวจสอบเบื้องต้น
 if ($product_id <= 0 || $add_stock <= 0) {
-
-    // log กรณี input ไม่ถูกต้อง (ไม่มี SQL ให้ยิง เลยใช้ writeLog ตรง ๆ)
-    writeLog(
-        $conn,
-        "UPDATE products (invalid stock input)",
-        [
-            'product_id' => $product_id,
-            'variant_id' => $variant_id,
-            'add_stock'  => $add_stock,
-        ],
-        '',
-        'error',
-        'save_new_stock: invalid input'
-    );
-
     header("Location: addStock.php?error=invalid_input");
     exit;
 }
 
-// -------------------------------------------
-// 1️⃣ กรณีมีตัวเลือกสินค้า → อัปเดต product_variants
-// -------------------------------------------
-if (!empty($variant_id)) {
+// =============================
+// 2) เช็กว่าสินค้ามีอยู่จริงไหม
+// =============================
+$resProduct = db_query(
+    $conn,
+    "SELECT id FROM products WHERE id = ?",
+    [$product_id],
+    "i"
+);
 
-    $result = db_exec(
+if (!$resProduct || $resProduct->num_rows === 0) {
+    header("Location: addStock.php?error=product_not_found");
+    exit;
+}
+
+// =============================
+// 3) กรณีมี variant → เพิ่ม stock variant + คำนวณยอดรวมใหม่
+// =============================
+if ($variant_id > 0) {
+
+    // 3.1 อัปเดต stock ของ variant ที่เลือก
+    $resultVariant = db_exec(
         $conn,
         "UPDATE product_variants 
          SET stock = stock + ? 
-         WHERE id = ?",
-        [$add_stock, $variant_id],
-        "ii"
+         WHERE id = ? AND product_id = ?",
+        [$add_stock, $variant_id, $product_id],
+        "iii"
     );
 
-    if (!$result['ok']) {
-        header("Location: addStock.php?error=invalid_input");
+    if (!$resultVariant['ok'] || $resultVariant['affected'] <= 0) {
+        // อัปเดตไม่สำเร็จ
+        header("Location: addStock.php?error=variant_update_failed");
         exit;
     }
 
-    // log สรุป (db_exec ก็ log แล้ว แต่ตัวนี้เอาไว้ดูภาพรวม)
-    writeLog(
+    // 3.2 ดึง SUM(stock) ของทุก variant ของสินค้านี้
+    $resSum = db_query(
         $conn,
-        "UPDATE product_variants (add stock)",
-        [
-            'product_id' => $product_id,
-            'variant_id' => $variant_id,
-            'add_stock'  => $add_stock,
-        ],
-        '',
-        'success',
-        null,
-        $variant_id
+        "SELECT COALESCE(SUM(stock), 0) AS total_stock
+         FROM product_variants
+         WHERE product_id = ?",
+        [$product_id],
+        "i"
     );
 
-    header("Location: addStock.php?success=variant_stock_added");
-    exit;
+    $rowSum      = $resSum ? $resSum->fetch_assoc() : null;
+    $totalStock  = $rowSum ? (int)$rowSum['total_stock'] : 0;
+
+    // 3.3 อัปเดต stock ในตาราง products ให้เท่ากับผลรวม variant
+    db_exec(
+        $conn,
+        "UPDATE products 
+         SET stock = ? 
+         WHERE id = ?",
+        [$totalStock, $product_id],
+        "ii"
+    );
+
+} else {
+    // =============================
+    // 4) กรณีไม่มี variant → เพิ่ม stock ให้สินค้าหลักโดยตรง
+    // =============================
+
+    $resultProduct = db_exec(
+        $conn,
+        "UPDATE products 
+         SET stock = stock + ? 
+         WHERE id = ?",
+        [$add_stock, $product_id],
+        "ii"
+    );
+
+    if (!$resultProduct['ok'] || $resultProduct['affected'] <= 0) {
+        header("Location: addStock.php?error=product_stock_update_failed");
+        exit;
+    }
 }
 
-// -------------------------------------------
-// 2️⃣ ถ้าไม่มีตัวเลือก → เพิ่ม stock ใน products
-// -------------------------------------------
-$result = db_exec(
-    $conn,
-    "UPDATE products 
-     SET stock = stock + ? 
-     WHERE id = ?",
-    [$add_stock, $product_id],
-    "ii"
-);
-
-if (!$result['ok']) {
-    header("Location: addStock.php?error=invalid_input");
-    exit;
-}
-
-// log สรุปฝั่ง product
-writeLog(
-    $conn,
-    "UPDATE products (add stock)",
-    [
-        'product_id' => $product_id,
-        'add_stock'  => $add_stock,
-    ],
-    '',
-    'success',
-    null,
-    $product_id
-);
-
+// =============================
+// 5) เสร็จ → redirect กลับไปหน้า addStock
+// =============================
 header("Location: addStock.php?success=product_stock_added");
 exit;
-?>

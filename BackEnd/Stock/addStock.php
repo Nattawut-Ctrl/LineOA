@@ -1,19 +1,18 @@
 <?php
 session_start(); // ต้องอยู่บรรทัดแรกสุดเสมอ
 require_once __DIR__ . '/../../config.php';
+require_once UTILS_PATH . '/db_with_log.php';
+require_once UTILS_PATH . '/admin_guard.php';
+require_once UTILS_PATH . '/product_image_helper.php';
+
+require_admin();
+$conn = connectDBWithLog();
 
 // ถ้าไม่ได้ล็อกอิน (ไม่มี session admin_id) ให้เด้งไปหน้า login
 if (!isset($_SESSION['admin_id'])) {
     header('Location: ../Users/ad_login.php');
     exit;
 }
-
-
-require_once UTILS_PATH . '/db_with_log.php';
-require_once UTILS_PATH . '/admin_guard.php';
-require_admin();
-
-$conn = connectDBWithLog();
 
 // โหลดรายการสินค้าเดิมไว้สำหรับ dropdown
 $products = [];
@@ -23,10 +22,8 @@ while ($row = $res->fetch_assoc()) {
     $products[] = $row;
 }
 
-
 $pageTitle  = "เพิ่มสินค้า / เพิ่มสต็อก";
 $activeMenu = "stock";
-
 ?>
 
 <!DOCTYPE html>
@@ -212,14 +209,34 @@ $activeMenu = "stock";
                                 $offset = ($page - 1) * $perPage;
 
                                 // ดึงเฉพาะสินค้าของหน้านี้
-                                $productsList = $conn->query("
-            SELECT p.*,
-                (SELECT COUNT(*) FROM product_variants WHERE product_id = p.id) AS variant_count
-            FROM products p
-            $where
-            ORDER BY p.id DESC
-            LIMIT $perPage OFFSET $offset
-        ");
+                                $productsListRes = $conn->query("
+    SELECT p.*,
+        (SELECT COUNT(*) FROM product_variants WHERE product_id = p.id) AS variant_count
+    FROM products p
+    $where
+    ORDER BY p.id DESC
+    LIMIT $perPage OFFSET $offset
+");
+
+                                // แปลงเป็น array เพื่อจะได้วนใช้หลายรอบ + เตรียม list สำหรับ fallback รูป variant
+                                $productsList           = [];
+                                $productIdsNeedFallback = [];
+
+                                if ($productsListRes) {
+                                    while ($row = $productsListRes->fetch_assoc()) {
+                                        $productsList[] = $row;
+
+                                        if (empty($row['image'])) {
+                                            $productIdsNeedFallback[] = (int)$row['id'];
+                                        }
+                                    }
+                                }
+
+                                // ดึง fallback รูปจาก variant สำหรับสินค้าในหน้านี้ ที่ไม่มีรูปหลัก
+                                $fallbackVariantImages = [];
+                                if (!empty($productIdsNeedFallback)) {
+                                    $fallbackVariantImages = loadVariantFallbackImages($conn, $productIdsNeedFallback);
+                                }
                                 ?>
 
                                 <!-- Header Page -->
@@ -270,17 +287,6 @@ $activeMenu = "stock";
                                     </div>
                                 <?php endif; ?>
 
-                                <!-- Header Page -->
-                                <!-- <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-                <h1 class="h3 page-title mb-1">จัดการสินค้า</h1>
-                <p class="text-muted mb-0">
-                    เพิ่ม / แก้ไข / จัดการสต็อกสินค้าให้พร้อมสำหรับการใช้งานจริง
-                </p>
-            </div>
-        </div> -->
-
-                                <!-- ฟอร์มค้นหา / กรอง -->
                                 <form class="row g-2 mb-3" method="get">
                                     <div class="col-md-5">
                                         <input
@@ -336,28 +342,27 @@ $activeMenu = "stock";
                                                 </thead>
 
                                                 <tbody>
-                                                    <?php while ($p = $productsList->fetch_assoc()): ?>
+                                                    <?php foreach ($productsList as $p): ?>
                                                         <tr>
                                                             <td class="text-muted">#<?= $p['id'] ?></td>
                                                             <td>
                                                                 <?php
-                                                                if (!empty($p['image'])) {
-                                                                    $imgSrc = $p['image'];
+                                                                // ใช้รูปหลักก่อน
+                                                                $imgPath = $p['image'] ?? '';
 
-                                                                    // ถ้าไม่ใช่ http/https → แปลงเป็น URL เต็ม
-                                                                    if (!preg_match('#^https?://#', $imgSrc)) {
-                                                                        // ตัด ../ ทิ้งถ้ามี (กันเคสเก่า)
-                                                                        while (strpos($imgSrc, '../') === 0) {
-                                                                            $imgSrc = substr($imgSrc, 3);
-                                                                        }
-                                                                        $imgSrc = rtrim(BASE_URL, '/') . '/' . ltrim($imgSrc, '/');
-                                                                    }
+                                                                // ถ้าไม่มีรูปหลัก → ลองหาจาก variant
+                                                                $pid = (int)$p['id'];
+                                                                if (empty($imgPath) && !empty($fallbackVariantImages[$pid])) {
+                                                                    $imgPath = $fallbackVariantImages[$pid];
                                                                 }
+
+                                                                // แปลง path เป็น URL เต็ม (ใช้ helper จาก product_image_helper.php)
+                                                                $imgUrl = buildImageUrlFromPath($imgPath);
                                                                 ?>
 
-                                                                <?php if (!empty($p['image'])): ?>
+                                                                <?php if (!empty($imgUrl)): ?>
                                                                     <img
-                                                                        src="<?= htmlspecialchars($imgSrc) ?>"
+                                                                        src="<?= htmlspecialchars($imgUrl) ?>"
                                                                         width="60"
                                                                         height="60"
                                                                         class="img-thumbnail"
@@ -414,7 +419,7 @@ $activeMenu = "stock";
                                                                 </div>
                                                             </td>
                                                         </tr>
-                                                    <?php endwhile; ?>
+                                                    <?php endforeach; ?>
 
                                                     <?php if ($totalRows === 0): ?>
                                                         <tr>

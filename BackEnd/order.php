@@ -130,12 +130,6 @@ function build_order_query(array $extra = []): string
                         <div class="col-sm-6">
                             <h3 class="mb-0 fw-bold">รายการออร์เดอร์</h3>
                         </div>
-                        <div class="col-sm-6">
-                            <ol class="breadcrumb float-sm-end mb-0">
-                                <li class="breadcrumb-item"><a href="#">หน้าหลัก</a></li>
-                                <li class="breadcrumb-item active">รายการออร์เดอร์</li>
-                            </ol>
-                        </div>
                     </div>
                 </div>
             </div>

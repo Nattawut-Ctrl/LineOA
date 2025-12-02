@@ -33,10 +33,6 @@ $payments = function_exists('getAllPayments') ? getAllPayments($conn) : [];
       <div class="app-content-header">
         <div class="container-fluid d-flex justify-content-between align-items-center">
           <h3 class="mb-0 fw-semibold"><?= $pageTitle ?></h3>
-          <ol class="breadcrumb float-sm-end mb-0">
-            <li class="breadcrumb-item"><a href="<?= BACKEND_URL ?>/dashboard.php">Home</a></li>
-            <li class="breadcrumb-item active"><?= $pageTitle ?></li>
-          </ol>
         </div>
       </div>
 

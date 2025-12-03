@@ -183,6 +183,6 @@ $resV = db_query(
 
     <div id="newVariantContainer"></div>
 
-    <button type="submit" class="btn btn-primary mt-3">บันทึกการแก้ไข</button>
+    <button type="submit" class="btn btn-primary mt-3" id="btnUpdateProduct">บันทึกการแก้ไข</button>
 
 </form>

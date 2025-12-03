@@ -1,22 +1,7 @@
 <?php
-// services/CartService.php
+require_once __DIR__ . '/../config.php';
+require_once UTILS_PATH . '/image_helper.php';
 
-/**
- * ดึงรายการในตะกร้าของ user พร้อมข้อมูลสินค้า / variant
- * โครง:
- * [
- *   [
- *     'product_id'   => ...,
- *     'variant_id'   => ...,
- *     'product_name' => ...,
- *     'variant_name' => ...,
- *     'price'        => ...,
- *     'quantity'     => ...,
- *     'line_total'   => ...
- *   ],
- *   ...
- * ]
- */
 function getCartItems(mysqli $conn, int $user_id): array
 {
     $items = [];
@@ -51,13 +36,21 @@ function getCartItems(mysqli $conn, int $user_id): array
             $qty   = (int)$row['quantity'];
             $price = (float)$row['price'];
 
+            $productImage = $row['image'] ?? '';
+            $variantImage = $row['variant_image'] ?? '';
+
+            $finalImagePath = $variantImage ?: $productImage;
+
+            $finalImageUrl = buildImageUrl($finalImagePath);
+            $variantImageUrl = $variantImage ? buildImageUrl($variantImage) : null;
+
             $items[] = [
                 'product_id'    => (int)$row['product_id'],
                 'variant_id'    => (int)($row['variant_id'] ?? 0),
                 'name'          => $row['name'],          // ✅ key เดิม
-                'image'         => $row['image'],         // ✅ key เดิม
+                'image'         => $finalImageUrl,        // ✅ key เดิม
                 'variant_name'  => $row['variant_name'] ?? null,
-                'variant_image' => $row['variant_image'] ?? null,
+                'variant_image' => $variantImageUrl,
                 'price'         => $price,
                 'quantity'      => $qty,
                 'line_total'    => $price * $qty,

@@ -483,7 +483,7 @@ $activeMenu = "stock";
                                                 </div>
                                             </div>
                                             <div class="card-body">
-                                                <form action="save_new_product.php" method="POST" enctype="multipart/form-data">
+                                                <form id="addProductForm" action="save_new_product.php" method="POST" enctype="multipart/form-data">
 
                                                     <!-- กลุ่ม ข้อมูลสินค้าหลัก -->
                                                     <div class="section-box">
@@ -531,7 +531,7 @@ $activeMenu = "stock";
                                                     </div>
 
                                                     <!-- กลุ่ม ตัวเลือกสินค้า (Variants) -->
-                                                    <div class="section-box" >
+                                                    <div class="section-box">
                                                         <div class="d-flex justify-content-between align-items-center mb-1">
                                                             <div>
                                                                 <div class="section-box-title mb-0">
@@ -553,7 +553,7 @@ $activeMenu = "stock";
                                                     </div>
 
                                                     <div class="d-grid mt-3">
-                                                        <button class="btn btn-success btn-lg">
+                                                        <button class="btn btn-success btn-lg" id="btnSaveProduct">
                                                             <i class="bi bi-save2 me-1"></i> บันทึกสินค้าใหม่
                                                         </button>
                                                     </div>
@@ -621,80 +621,113 @@ $activeMenu = "stock";
                                 </div>
                             </div>
 
+                            <!-- Helper: ปุ่มแสดง spinner ระหว่างบันทึก -->
                             <script>
-                                // ---------------------------
-                                // โหลดตัวเลือก variant ของสินค้าเดิมเพื่อเพิ่มสต็อก
-                                // ---------------------------
-                                const productSelectEl = document.getElementById('productSelect');
-                                if (productSelectEl) {
-                                    productSelectEl.addEventListener('change', function() {
-                                        const productId = this.value;
-                                        const variantArea = document.getElementById('variantArea');
+                                function setButtonLoading(button, isLoading, loadingText = 'กำลังบันทึก...') {
+                                    if (!button) return;
 
-                                        if (!productId) {
-                                            variantArea.innerHTML = "";
-                                            return;
+                                    if (isLoading) {
+                                        // เก็บ HTML เดิมไว้
+                                        if (!button.dataset.originalHtml) {
+                                            button.dataset.originalHtml = button.innerHTML;
                                         }
 
-                                        fetch("load_variants.php?product_id=" + productId)
-                                            .then(res => res.text())
-                                            .then(html => {
-                                                variantArea.innerHTML = html;
-                                            });
-                                    });
+                                        button.disabled = true;
+                                        button.innerHTML = `
+                                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                            ${loadingText}
+                                        `;
+                                    } else {
+                                        if (button.dataset.originalHtml) {
+                                            button.innerHTML = button.dataset.originalHtml;
+                                        }
+                                        button.disabled = false;
+                                    }
                                 }
+                            </script>
 
-                                // ---------------------------
-                                // เพิ่มตัวเลือกสินค้าใหม่
-                                // ---------------------------
-                                document.getElementById('addVariantBtn').addEventListener('click', () => {
-                                    const container = document.getElementById('variantsContainer');
+                            <script>
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    // ---------------------------
+                                    // 1) โหลดตัวเลือก variant ของสินค้าเดิมเพื่อเพิ่มสต็อก
+                                    // ---------------------------
+                                    const productSelectEl = document.getElementById('productSelect');
+                                    if (productSelectEl) {
+                                        productSelectEl.addEventListener('change', function() {
+                                            const productId = this.value;
+                                            const variantArea = document.getElementById('variantArea');
 
-                                    const div = document.createElement('div');
-                                    div.className = 'variant-row';
+                                            if (!productId) {
+                                                variantArea.innerHTML = "";
+                                                return;
+                                            }
 
-                                    div.innerHTML = `
-                                        <div class="variant-row-header">
-                                            <div>
-                                                <strong>ตัวเลือกสินค้า</strong>
-                                                <small class="d-block">เช่น สีแดง / ไซส์ M / แพ็ก 3 ชิ้น</small>
-                                            </div>
-                                            <button type="button" class="btn btn-sm btn-outline-danger removeVariant">
-                                                <i class="bi bi-x-circle"></i> ลบ
-                                            </button>
-                                        </div>
+                                            fetch("load_variants.php?product_id=" + productId)
+                                                .then(res => res.text())
+                                                .then(html => {
+                                                    variantArea.innerHTML = html;
+                                                });
+                                        });
+                                    }
 
-                                        <div class="row">
-                                            <div class="col-md-4 mb-3">
-                                                <label class="form-label">ชื่อ (เช่น สีแดง / ไซส์ M)</label>
-                                                <input type="text" name="variant_name[]" class="form-control" required>
-                                            </div>
-                                            <div class="col-md-3 mb-3">
-                                                <label class="form-label">SKU (ของตัวเลือกนี้)</label>
-                                                <input type="text" name="variant_sku[]" class="form-control" placeholder="เช่น SHIRT-001-BLACK-M">
-                                            </div>
-                                            <div class="col-md-3 mb-3">
-                                                <label class="form-label">ราคา</label>
-                                                <input type="number" step="0.01" name="variant_price[]" class="form-control">
-                                            </div>
-                                            <div class="col-md-2 mb-3">
-                                                <label class="form-label">สต็อก</label>
-                                                <input type="number" name="variant_stock[]" class="form-control">
-                                            </div>
-                                            <div class="col-md-4 mb-2">
-                                                <label class="form-label">รูป (ถ้ามี)</label>
-                                                <input type="file" name="variant_image[]" class="form-control">
-                                            </div>
-                                        </div>
-                                    `;
+                                    // ---------------------------
+                                    // 2) เพิ่มตัวเลือกสินค้าใหม่ในฟอร์ม "เพิ่มสินค้าใหม่"
+                                    // ---------------------------
+                                    const addVariantBtn = document.getElementById('addVariantBtn');
+                                    const variantsContainer = document.getElementById('variantsContainer');
 
-                                    container.appendChild(div);
+                                    if (addVariantBtn && variantsContainer) {
+                                        addVariantBtn.addEventListener('click', () => {
+                                            const div = document.createElement('div');
+                                            div.className = 'variant-row';
 
-                                    div.querySelector('.removeVariant').onclick = () => div.remove();
-                                });
+                                            div.innerHTML = `
+                                                <div class="variant-row-header">
+                                                    <div>
+                                                        <strong>ตัวเลือกสินค้า</strong>
+                                                        <small class="d-block">เช่น สีแดง / ไซส์ M / แพ็ก 3 ชิ้น</small>
+                                                    </div>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger removeVariant">
+                                                        <i class="bi bi-x-circle"></i> ลบ
+                                                    </button>
+                                                </div>
 
-                                // auto close alert
-                                document.addEventListener("DOMContentLoaded", function() {
+                                                <div class="row">
+                                                    <div class="col-md-4 mb-3">
+                                                        <label class="form-label">ชื่อ (เช่น สีแดง / ไซส์ M)</label>
+                                                        <input type="text" name="variant_name[]" class="form-control" required>
+                                                    </div>
+                                                    <div class="col-md-3 mb-3">
+                                                        <label class="form-label">SKU (ของตัวเลือกนี้)</label>
+                                                        <input type="text" name="variant_sku[]" class="form-control" placeholder="เช่น SHIRT-001-BLACK-M">
+                                                    </div>
+                                                    <div class="col-md-3 mb-3">
+                                                        <label class="form-label">ราคา</label>
+                                                        <input type="number" step="0.01" name="variant_price[]" class="form-control">
+                                                    </div>
+                                                    <div class="col-md-2 mb-3">
+                                                        <label class="form-label">สต็อก</label>
+                                                        <input type="number" name="variant_stock[]" class="form-control">
+                                                    </div>
+                                                    <div class="col-md-4 mb-2">
+                                                        <label class="form-label">รูป (ถ้ามี)</label>
+                                                        <input type="file" name="variant_image[]" class="form-control">
+                                                    </div>
+                                                </div>
+                                            `;
+
+                                            variantsContainer.appendChild(div);
+
+                                            const removeBtn = div.querySelector('.removeVariant');
+                                            if (removeBtn) {
+                                                removeBtn.addEventListener('click', () => div.remove());
+                                            }
+                                        });
+                                    }
+
+                                    // ---------------------------
+                                    // 3) Auto close alert
+                                    // ---------------------------
                                     setTimeout(function() {
                                         const alertList = document.querySelectorAll('.alert');
                                         alertList.forEach(function(alert) {
@@ -702,118 +735,165 @@ $activeMenu = "stock";
                                             bsAlert.close();
                                         });
                                     }, 3000);
-                                });
-                            </script>
 
-                            <script>
-                                // เปิด modal สำหรับแก้ไขสินค้า
-                                document.querySelectorAll('.editProductBtn').forEach(btn => {
-                                    btn.addEventListener('click', () => {
-                                        const id = btn.dataset.id;
+                                    // ---------------------------
+                                    // 4) Form เพิ่มสินค้าใหม่: ใส่ spinner ตอน submit
+                                    // ---------------------------
+                                    const addForm = document.getElementById('addProductForm');
+                                    const btnSaveProduct = document.getElementById('btnSaveProduct');
 
-                                        fetch("ajax_load_product.php?id=" + id)
-                                            .then(res => res.text())
-                                            .then(html => {
-                                                const contentEl = document.getElementById("editProductContent");
-                                                contentEl.innerHTML = html;
+                                    if (addForm && btnSaveProduct) {
+                                        addForm.addEventListener('submit', function() {
+                                            setButtonLoading(btnSaveProduct, true, 'กำลังบันทึกสินค้าใหม่...');
+                                            // ไม่ต้อง preventDefault ให้ฟอร์มส่งไป save_new_product.php ตามปกติ
+                                        });
+                                    }
 
-                                                // เปิด modal
-                                                const myModal = new bootstrap.Modal(document.getElementById('editProductModal'));
-                                                myModal.show();
+                                    // ---------------------------
+                                    // 5) Preview รูปภาพหลักก่อนบันทึก
+                                    // ---------------------------
+                                    const mainImageInput = document.getElementById('mainImageInput');
+                                    const mainImagePreview = document.getElementById('mainImagePreview');
 
-                                                // ---------- จับปุ่มลบ variant ----------
-                                                const variantDeleteButtons = contentEl.querySelectorAll('.deleteVariantBtn');
+                                    if (mainImageInput && mainImagePreview) {
+                                        mainImageInput.addEventListener('change', function() {
+                                            const [file] = this.files;
+                                            if (file) {
+                                                mainImagePreview.src = URL.createObjectURL(file);
+                                                mainImagePreview.classList.remove('d-none');
+                                            } else {
+                                                mainImagePreview.src = '#';
+                                                mainImagePreview.classList.add('d-none');
+                                            }
+                                        });
+                                    }
 
-                                                variantDeleteButtons.forEach(vbtn => {
-                                                    vbtn.addEventListener('click', () => {
-                                                        const vid = vbtn.dataset.id;
-                                                        if (!confirm("ต้องการลบตัวเลือกสินค้านี้ใช่หรือไม่?")) return;
+                                    // ---------------------------
+                                    // 6) เปิด modal แก้ไขสินค้า + ผูก event ภายใน (ลบ variant / submit ฟอร์มแก้ไข)
+                                    // ---------------------------
+                                    document.querySelectorAll('.editProductBtn').forEach(btn => {
+                                        btn.addEventListener('click', () => {
+                                            const id = btn.dataset.id;
 
-                                                        const fd = new FormData();
-                                                        fd.append('id', vid);
+                                            fetch("ajax_load_product.php?id=" + id)
+                                                .then(res => res.text())
+                                                .then(html => {
+                                                    const contentEl = document.getElementById("editProductContent");
+                                                    contentEl.innerHTML = html;
 
-                                                        fetch("ajax_delete_variant.php", {
-                                                                method: "POST",
-                                                                body: fd
-                                                            })
-                                                            .then(r => r.text())
-                                                            .then(txt => {
-                                                                if (txt.trim() === "success") {
-                                                                    // ลบแถวออกจาก modal หรือจะ reload หน้าเลยก็ได้
-                                                                    const row = vbtn.closest('.variant-row, tr, .variant-item');
-                                                                    if (row) row.remove();
-                                                                } else {
-                                                                    console.error("Delete variant failed:", txt);
-                                                                    alert("ลบตัวเลือกสินค้าไม่สำเร็จ");
-                                                                }
-                                                            })
-                                                            .catch(err => {
-                                                                console.error("Fetch error:", err);
-                                                                alert("เกิดข้อผิดพลาดในการลบตัวเลือกสินค้า");
-                                                            });
+                                                    // เปิด modal
+                                                    const myModal = new bootstrap.Modal(document.getElementById('editProductModal'));
+                                                    myModal.show();
+
+                                                    // ---------- 6.1 ลบ variant เดิม ----------
+                                                    const variantDeleteButtons = contentEl.querySelectorAll('.deleteVariantBtn');
+
+                                                    variantDeleteButtons.forEach(vbtn => {
+                                                        vbtn.addEventListener('click', () => {
+                                                            const vid = vbtn.dataset.id;
+                                                            if (!confirm("ต้องการลบตัวเลือกสินค้านี้ใช่หรือไม่?")) return;
+
+                                                            const fd = new FormData();
+                                                            fd.append('id', vid);
+
+                                                            fetch("ajax_delete_variant.php", {
+                                                                    method: "POST",
+                                                                    body: fd
+                                                                })
+                                                                .then(r => r.text())
+                                                                .then(txt => {
+                                                                    if (txt.trim() === "success") {
+                                                                        const row = vbtn.closest('.variant-row, tr, .variant-item');
+                                                                        if (row) row.remove();
+                                                                    } else {
+                                                                        console.error("Delete variant failed:", txt);
+                                                                        alert("ลบตัวเลือกสินค้าไม่สำเร็จ");
+                                                                    }
+                                                                })
+                                                                .catch(err => {
+                                                                    console.error("Fetch error:", err);
+                                                                    alert("เกิดข้อผิดพลาดในการลบตัวเลือกสินค้า");
+                                                                });
+                                                        });
                                                     });
+
+                                                    // ---------- 6.2 Submit ฟอร์มแก้ไขสินค้า พร้อม spinner ----------
+                                                    const updateForm = contentEl.querySelector("#updateProductForm");
+                                                    const btnUpdate = contentEl.querySelector("#btnUpdateProduct");
+
+                                                    if (updateForm && btnUpdate) {
+                                                        updateForm.addEventListener("submit", function(ev) {
+                                                            ev.preventDefault();
+
+                                                            setButtonLoading(btnUpdate, true, "กำลังบันทึกการแก้ไข...");
+
+                                                            fetch("ajax_update_product.php", {
+                                                                    method: "POST",
+                                                                    body: new FormData(updateForm)
+                                                                })
+                                                                .then(res => res.text().then(text => ({
+                                                                    ok: res.ok,
+                                                                    status: res.status,
+                                                                    text
+                                                                })))
+                                                                .then(({
+                                                                    ok,
+                                                                    status,
+                                                                    text
+                                                                }) => {
+                                                                    console.log("Update response:", status, text);
+
+                                                                    const lower = text.trim().toLowerCase();
+
+                                                                    if (ok && lower.includes("success")) {
+                                                                        // สำเร็จ → กลับหน้า addStock (ไม่ต้อง reset ปุ่ม เพราะกำลัง redirect)
+                                                                        window.location.href = "addStock.php?success=updated";
+                                                                    } else {
+                                                                        setButtonLoading(btnUpdate, false);
+                                                                        alert("บันทึกการแก้ไขไม่สำเร็จ: " + text);
+                                                                    }
+                                                                })
+                                                                .catch(err => {
+                                                                    console.error("Fetch error:", err);
+                                                                    setButtonLoading(btnUpdate, false);
+                                                                    alert("เกิดข้อผิดพลาดในการบันทึกการแก้ไข");
+                                                                });
+                                                        });
+                                                    }
                                                 });
-                                                // ---------- จบส่วนลบ variant ----------
+                                        });
+                                    });
 
-                                                // ---------- form update ----------
-                                                const updateForm = document.getElementById("updateProductForm");
-                                                if (updateForm) {
-                                                    updateForm.addEventListener('submit', (ev) => {
-                                                        ev.preventDefault();
+                                    // ---------------------------
+                                    // 7) ลบสินค้า (ทั้งชิ้น)
+                                    // ---------------------------
+                                    document.querySelectorAll('.deleteProductBtn').forEach(btn => {
+                                        btn.addEventListener('click', () => {
+                                            if (!confirm("ลบสินค้านี้?")) return;
 
-                                                        fetch("ajax_update_product.php", {
-                                                                method: "POST",
-                                                                body: new FormData(updateForm)
-                                                            })
-                                                            .then(res => res.text())
-                                                            .then(result => {
-                                                                console.log("Update successful:", result);
+                                            const fd = new FormData();
+                                            fd.append('id', btn.dataset.id);
 
-                                                                const text = result.trim().toLowerCase();
-
-                                                                if (text.includes("success")) {
-                                                                    window.location.href = "addStock.php?success=updated";
-                                                                } else {
-                                                                    console.error("Update failed:", result);
-                                                                    alert("บันทึกการแก้ไขไม่สำเร็จ");
-                                                                }
-                                                            })
-                                                            .catch(err => {
-                                                                console.error("Fetch error:", err);
-                                                                alert("เกิดข้อผิดพลาดในการบันทึกการแก้ไข");
-                                                            });
-                                                    });
-                                                }
-                                                // ---------- จบ form update ----------
-                                            });
+                                            fetch("ajax_delete_product.php", {
+                                                    method: "POST",
+                                                    body: fd
+                                                })
+                                                .then(r => r.text())
+                                                .then(txt => {
+                                                    if (txt.trim() === "success") {
+                                                        location.reload();
+                                                    } else {
+                                                        console.error("Delete failed:", txt);
+                                                        alert("ลบสินค้าไม่สำเร็จ");
+                                                    }
+                                                })
+                                                .catch(err => console.error("Fetch error:", err));
+                                        });
                                     });
                                 });
-
-                                // ลบสินค้า (ทั้งชิ้น)
-                                document.querySelectorAll('.deleteProductBtn').forEach(btn => {
-                                    btn.onclick = () => {
-                                        if (!confirm("ลบสินค้านี้?")) return;
-
-                                        const fd = new FormData();
-                                        fd.append('id', btn.dataset.id);
-
-                                        fetch("ajax_delete_product.php", {
-                                                method: "POST",
-                                                body: fd
-                                            })
-                                            .then(r => r.text())
-                                            .then(txt => {
-                                                if (txt.trim() === "success") {
-                                                    location.reload();
-                                                } else {
-                                                    console.error("Delete failed:", txt);
-                                                    alert("ลบสินค้าไม่สำเร็จ");
-                                                }
-                                            })
-                                            .catch(err => console.error("Fetch error:", err));
-                                    };
-                                });
                             </script>
+
+                            <!-- 8) เพิ่มตัวเลือกใหม่ใน modal แก้ไขสินค้า (ปุ่ม id="addNewVariantInEdit") -->
                             <script>
                                 document.addEventListener('click', function(e) {
                                     if (e.target && e.target.id === 'addNewVariantInEdit') {
@@ -852,29 +932,10 @@ $activeMenu = "stock";
 
                                         container.appendChild(div);
 
-                                        div.querySelector('.removeNewVariant').onclick = () => div.remove();
-                                    }
-                                });
-                            </script>
-
-
-                            <script>
-                                // Preview รูปภาพหลักก่อนบันทึก
-                                document.addEventListener("DOMContentLoaded", function() {
-                                    const input = document.getElementById('mainImageInput');
-                                    const preview = document.getElementById('mainImagePreview');
-
-                                    if (input && preview) {
-                                        input.addEventListener('change', function(e) {
-                                            const [file] = this.files;
-                                            if (file) {
-                                                preview.src = URL.createObjectURL(file);
-                                                preview.classList.remove('d-none');
-                                            } else {
-                                                preview.src = '#';
-                                                preview.classList.add('d-none');
-                                            }
-                                        });
+                                        const removeBtn = div.querySelector('.removeNewVariant');
+                                        if (removeBtn) {
+                                            removeBtn.addEventListener('click', () => div.remove());
+                                        }
                                     }
                                 });
                             </script>
@@ -884,7 +945,7 @@ $activeMenu = "stock";
             </div>
         </main>
 
-        
+
     </div>
 
     <?php include BACKEND_PATH . '/partials/admin_footer.php'; ?>

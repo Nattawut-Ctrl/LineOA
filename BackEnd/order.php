@@ -298,9 +298,6 @@ function build_order_query(array $extra = []): string
                     </div><!-- /.container-fluid -->
                 </div><!-- /.app-content -->
         </main>
-
-        <!-- footer ถ้ามี -->
-        <!-- <?php include 'partials/admin_footer.php'; ?> -->
     </div><!-- /.app-wrapper -->
 
     <?php include BACKEND_PATH . '/partials/admin_footer.php'; ?>

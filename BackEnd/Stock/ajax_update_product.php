@@ -40,14 +40,23 @@ if ($id <= 0) {
 // 1) อัปเดต products
 // ----------------------
 $name        = $_POST['name'] ?? '';
-$price       = floatval($_POST['price'] ?? 0);
-$stock       = intval($_POST['stock'] ?? 0);
 $unit        = trim($_POST['unit'] ?? '');
 $description = $_POST['description'] ?? '';
 
-if ($name === '' || $unit === '' || $price <= 0) {
+$priceInput  = isset($_POST['price']) ? floatval($_POST['price']) : 0;
+$stockInput  = isset($_POST['stock']) ? intval($_POST['stock']) : 0;
+
+$hasVariants = (!empty($_POST['variant_id']) || !empty($_POST['new_variant_name']));
+
+if ($name === '' || $unit === '') { // มีประเด็นที่ต้องตรวจสอบเพิ่ม
     http_response_code(400);
     echo "invalid_input";
+    exit;
+}
+
+if (!$hasVariants && $priceInput <= 0) {
+    http_response_code(400);
+    echo "invalid_price";
     exit;
 }
 
@@ -56,7 +65,7 @@ $resultProduct = db_exec(
     "UPDATE products 
      SET name = ?, price = ?, stock = ?, unit = ?, description = ?
      WHERE id = ?",
-    [$name, $price, $stock, $unit, $description, $id],
+    [$name, $priceInput, $stockInput, $unit, $description, $id],
     "sdissi"
 );
 
@@ -227,10 +236,44 @@ if (!empty($_POST['new_variant_name'])) {
     }
 }
 
+$summaryPrice = $priceInput;
+$summaryStock = $stockInput;
+
+$sumRes = db_query(
+    $conn,
+    "SELECT MIN(price) AS min_price, SUM(stock) AS total_stock
+     FROM product_variants
+     WHERE product_id = ?",
+    [$id],
+    "i"
+);
+
+$okSummary = true;
+if ($sumRes && ($row = $sumRes->fetch_assoc()) && $row['min_price'] !== null) {
+    
+    $summaryPrice = floatval($row['min_price']);
+    $summaryStock = intval($row['total_stock']);
+
+    // อัปเดตกลับไปที่ตาราง products
+    $summaryUpdate = db_exec(
+        $conn,
+        "UPDATE products
+         SET price = ?, stock = ?
+         WHERE id = ?",
+        [$summaryPrice, $summaryStock, $id],
+        "dii"
+    );
+
+    if (!$summaryUpdate['ok']) {
+        $okSummary = false;
+    }
+} else {
+    $okSummary = false;
+}
 // ----------------------
 // 4) ประเมินผลทั้งหมด
 // ----------------------
-$statusOverall = ($resultProduct['ok'] && $okVariantsAll && $okNewVariants) ? 'success' : 'error';
+$statusOverall = ($resultProduct['ok'] && $okVariantsAll && $okNewVariants && $okSummary) ? 'success' : 'error';
 
 // Log final result ของการอัปเดต product
 writeLog(

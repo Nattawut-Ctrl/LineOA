@@ -304,7 +304,6 @@ $activeMenu = "stock";
                                     </div>
                                 </form>
 
-
                                 <!-- รายการสินค้า -->
                                 <div class="card shadow-sm mb-4">
                                     <div class="card-header d-flex justify-content-between align-items-center">
@@ -452,7 +451,6 @@ $activeMenu = "stock";
                                         </div>
                                     <?php endif; ?>
                                 </div>
-
 
                                 <ul class="nav nav-tabs" id="productTab">
                                     <li class="nav-item">
@@ -886,9 +884,10 @@ $activeMenu = "stock";
             </div>
         </main>
 
-        <?php include BACKEND_PATH . '/partials/admin_footer.php'; ?>
+        
     </div>
 
+    <?php include BACKEND_PATH . '/partials/admin_footer.php'; ?>
     <?php include BACKEND_PATH . '/partials/admin_script.php'; ?>
 
 </body>

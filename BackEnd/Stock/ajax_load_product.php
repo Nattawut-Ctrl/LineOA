@@ -55,13 +55,13 @@ $resV = db_query(
     </div>
 
     <div class="row">
-        <div class="col-md-6 mb-3">
+        <!-- <div class="col-md-6 mb-3">
             <label>SKU</label>
             <input type="text" name="sku"
                 value="<?= htmlspecialchars($sku, ENT_QUOTES, 'UTF-8') ?>"
                 class="form-control"
                 disabled>
-        </div>
+        </div> -->
         <div class="col-md-6 mb-3">
             <label>หน่วยนับ (Unit)</label>
             <input type="text" name="unit"
@@ -73,12 +73,12 @@ $resV = db_query(
     <div class="row">
         <div class="col-md-4 mb-3">
             <label>ราคา</label>
-            <input type="number" name="price" value="<?= $p['price'] ?>" class="form-control">
+            <input type="number" name="price" value="<?= $p['price'] ?>" class="form-control" disabled>
         </div>
 
         <div class="col-md-4 mb-3">
             <label>สต็อก</label>
-            <input type="number" name="stock" value="<?= $p['stock'] ?>" class="form-control">
+            <input type="number" name="stock" value="<?= $p['stock'] ?>" class="form-control" disabled>
         </div>
     </div>
 

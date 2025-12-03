@@ -1,5 +1,5 @@
 <?php
-session_start(); // ต้องอยู่บรรทัดแรกสุดเสมอ
+session_start();
 require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/admin_guard.php';
@@ -8,7 +8,6 @@ require_once UTILS_PATH . '/product_image_helper.php';
 require_admin();
 $conn = connectDBWithLog();
 
-// ถ้าไม่ได้ล็อกอิน (ไม่มี session admin_id) ให้เด้งไปหน้า login
 if (!isset($_SESSION['admin_id'])) {
     header('Location: ../Users/ad_login.php');
     exit;
@@ -151,15 +150,6 @@ $activeMenu = "stock";
         <?php include BACKEND_PATH . '/partials/admin_sidebar.php'; ?>
 
         <main class="app-main">
-            <!-- <div class="app-content-header">
-                <div class="container-fluid d-flex justify-content-between align-items-center">
-                    <h3 class="mb-0"><?= htmlspecialchars($pageTitle ?? "") ?></h3>
-                    <ol class="breadcrumb float-sm-end">
-                        <li class="breadcrumb-item"><a href="<?= BACKEND_URL ?>/dashboard.php">Home</a></li>
-                        <li class="breadcrumb-item active"><?= htmlspecialchars($pageTitle ?? "") ?></li>
-                    </ol>
-                </div>
-            </div> -->
             <div class="app-content">
                 <div class="container-fluid">
 
@@ -210,13 +200,13 @@ $activeMenu = "stock";
 
                                 // ดึงเฉพาะสินค้าของหน้านี้
                                 $productsListRes = $conn->query("
-    SELECT p.*,
-        (SELECT COUNT(*) FROM product_variants WHERE product_id = p.id) AS variant_count
-    FROM products p
-    $where
-    ORDER BY p.id DESC
-    LIMIT $perPage OFFSET $offset
-");
+                                    SELECT p.*,
+                                        (SELECT COUNT(*) FROM product_variants WHERE product_id = p.id) AS variant_count
+                                    FROM products p
+                                    $where
+                                    ORDER BY p.id DESC
+                                    LIMIT $perPage OFFSET $offset
+                                ");
 
                                 // แปลงเป็น array เพื่อจะได้วนใช้หลายรอบ + เตรียม list สำหรับ fallback รูป variant
                                 $productsList           = [];
@@ -463,11 +453,26 @@ $activeMenu = "stock";
                                     <?php endif; ?>
                                 </div>
 
-                                <!-- จัดการสินค้า: ฟอร์ม 2 ฝั่ง -->
-                                <div class="row g-4 mt-1">
 
-                                    <!-- 1) ฟอร์มเพิ่มสินค้าใหม่ + variants (ฟังก์ชันหลัก) -->
-                                    <div class="col-lg-8 col-xl-9">
+                                <ul class="nav nav-tabs" id="productTab">
+                                    <li class="nav-item">
+                                        <button class="nav-link active" data-bs-target="#tabAddStock" data-bs-toggle="tab">
+                                            เพิ่มสต็อกสินค้าเดิม
+                                        </button>
+                                    </li>
+
+                                    <li class="nav-item">
+                                        <button class="nav-link" data-bs-target="#tabAddProduct" data-bs-toggle="tab">
+                                            เพิ่มสินค้าใหม่
+                                        </button>
+                                    </li>
+                                </ul>
+
+                                <!-- จัดการสินค้า: ฟอร์ม 2 ฝั่ง -->
+                                <div class="tab-content row g-4 mt-1">
+
+                                    <!-- 1) ฟอร์มเพิ่มสินค้าใหม่ + variants (ฟังก์ชันรอง) -->
+                                    <div class="tab-pane fade col-lg-8 col-xl-9 mx-auto" id="tabAddProduct">
                                         <div class="card shadow-sm card-main-feature h-100">
                                             <div class="card-header d-flex justify-content-between align-items-center">
                                                 <div>
@@ -528,7 +533,7 @@ $activeMenu = "stock";
                                                     </div>
 
                                                     <!-- กลุ่ม ตัวเลือกสินค้า (Variants) -->
-                                                    <div class="section-box">
+                                                    <div class="section-box" >
                                                         <div class="d-flex justify-content-between align-items-center mb-1">
                                                             <div>
                                                                 <div class="section-box-title mb-0">
@@ -559,8 +564,8 @@ $activeMenu = "stock";
                                         </div>
                                     </div>
 
-                                    <!-- 2) ฟอร์มเพิ่มสต็อกจากสินค้าเดิม (ฟังก์ชันรอง) -->
-                                    <div class="col-lg-4 col-xl-3">
+                                    <!-- 2) ฟอร์มเพิ่มสต็อกจากสินค้าเดิม (ฟังก์ชันหลัก) -->
+                                    <div class="tab-pane fade show active col-lg-8 col-xl-9 mx-auto" id="tabAddStock">
                                         <div class="card shadow-sm h-100">
                                             <div class="card-header">
                                                 <h5 class="mb-0 fw-semibold">
@@ -764,16 +769,16 @@ $activeMenu = "stock";
                                                             })
                                                             .then(res => res.text())
                                                             .then(result => {
-                                                                    console.log("Update successful:", result);
+                                                                console.log("Update successful:", result);
 
-                                                                    const text = result.trim().toLowerCase();
+                                                                const text = result.trim().toLowerCase();
 
-                                                                    if (text.includes("success")) {
-                                                                        window.location.href = "addStock.php?success=updated";
-                                                                    } else {
-                                                                        console.error("Update failed:", result);
-                                                                        alert("บันทึกการแก้ไขไม่สำเร็จ");
-                                                                    }
+                                                                if (text.includes("success")) {
+                                                                    window.location.href = "addStock.php?success=updated";
+                                                                } else {
+                                                                    console.error("Update failed:", result);
+                                                                    alert("บันทึกการแก้ไขไม่สำเร็จ");
+                                                                }
                                                             })
                                                             .catch(err => {
                                                                 console.error("Fetch error:", err);

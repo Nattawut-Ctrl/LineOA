@@ -15,7 +15,6 @@ $productsCount = db_query($conn, "SELECT COUNT(*) c FROM products")->fetch_assoc
 $variantsCount = 0;
 // รวมสต็อกจาก products + product_variants
 $stockRow = db_query($conn, "SELECT 
-    (SELECT IFNULL(SUM(stock),0) FROM products) + 
     (SELECT IFNULL(SUM(stock),0) FROM product_variants) AS c")->fetch_assoc();
 if ($stockRow && isset($stockRow['c'])) {
   $variantsCount = (int)$stockRow['c'];
@@ -102,7 +101,7 @@ $activeMenu = "dashboard";
           <div class="card shadow-sm">
             <div class="card-header fw-semibold">Quick Actions</div>
             <div class="card-body d-flex gap-2 flex-wrap">
-              <a class="btn btn-primary" href="<?= BACKEND_URL ?>/Stock/addStock.php">
+              <a class="btn btn-primary" href="<?= BACKEND_URL ?>/Stock/addStock.php#tabAddStock">
                 <i class="bi bi-plus-circle"></i> เพิ่มสินค้า/สต็อก
               </a>
               <a class="btn btn-warning" href="<?= BACKEND_URL ?>/payments/list.php">

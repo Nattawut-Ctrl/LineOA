@@ -62,7 +62,7 @@ if ($resVar && $resVar->num_rows > 0): ?>
                     <th>ตัวเลือก</th>
                     <th style="width:120px;">สต็อกปัจจุบัน</th>
                     <th style="width:130px;">เพิ่มสต็อก</th>
-                    <th style="width:260px;">จัดการรูป</th>
+                    <!-- <th style="width:260px;">จัดการรูป</th> -->
                 </tr>
             </thead>
             <tbody>
@@ -102,7 +102,7 @@ if ($resVar && $resVar->num_rows > 0): ?>
                                    min="0"
                                    value="0">
                         </td>
-                        <td>
+                        <!-- <td>
                             <div class="small text-muted mb-1">
                                 อัปโหลดรูปใหม่ (ถ้าต้องการเปลี่ยน)
                             </div>
@@ -123,7 +123,7 @@ if ($resVar && $resVar->num_rows > 0): ?>
                                     </label>
                                 </div>
                             <?php endif; ?>
-                        </td>
+                        </td> -->
                     </tr>
                 <?php endwhile; ?>
             </tbody>

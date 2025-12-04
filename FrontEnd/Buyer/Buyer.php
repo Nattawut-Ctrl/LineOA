@@ -228,7 +228,7 @@ $cart_items = getCartItems($conn, $user_id);
             bottom: 0;
             left: 0;
             right: 0;
-            height: 62px;
+            height: 58px;
             background: #fff;
             border-top: 1px solid #ddd;
             display: flex;
@@ -270,8 +270,11 @@ $cart_items = getCartItems($conn, $user_id);
         .bottom-nav .nav-item.active i {
             color: #ee4d2d;
         }
-
+        
         /* กันไม่ให้ปุ่มแถวล่างสุดโดน bottom-nav บัง บนจอเล็ก */
+        body {
+            padding-bottom: 30px;
+        }
         @media (max-width: 767.98px) {
             body {
                 padding-bottom: 3rem;
@@ -533,7 +536,7 @@ $cart_items = getCartItems($conn, $user_id);
     </div>
 
     <!-- Bottom Navigation Bar -->
-    <nav class="bottom-nav d-md-none">
+    <nav class="bottom-nav d-flex">
         <a href="Buyer.php" class="nav-item active" id="nav-home">
             <i class="bi bi-house-door"></i>
             <span>หน้าแรก</span>
@@ -554,8 +557,6 @@ $cart_items = getCartItems($conn, $user_id);
             <span>ฉัน</span>
         </a>
     </nav>
-
-    <footer></footer>
 
     <!-- SCRIPTS -->
     <script>
@@ -1104,30 +1105,6 @@ $cart_items = getCartItems($conn, $user_id);
             document.body.appendChild(form);
             form.submit();
         }
-
-        // function searchCategory(e) {
-        //     e.preventDefault();
-        //     const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
-        //     const products = document.querySelectorAll('.product-item');
-
-        //     let found = false;
-
-        //     products.forEach(product => {
-        //         const productName = product.querySelector('.card-title').textContent.toLowerCase();
-        //         const match = productName.includes(keyword);
-
-        //         if (match) {
-        //             product.style.display = 'block';
-        //             found = true;
-        //         } else {
-        //             product.style.display = 'none';
-        //         }
-        //     });
-
-        //     if (!found) {
-        //         alert('ไม่พบสินค้าที่ค้นหา: ' + keyword);
-        //     }
-        // }
 
         function syncCartToServer() {
             // console.log('cart before sync', cart);

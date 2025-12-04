@@ -128,7 +128,7 @@ $payments = function_exists('getAllPayments') ? getAllPayments($conn) : [];
     </main>
   </div>
 
-  <?php include BACKEND_PATH . '/partials/admin_footer.php'; ?>
+  <!-- <?php include BACKEND_PATH . '/partials/admin_footer.php'; ?> -->
   <?php include BACKEND_PATH . '/partials/admin_script.php'; ?>
 </body>
 

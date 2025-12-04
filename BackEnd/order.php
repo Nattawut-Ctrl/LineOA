@@ -300,7 +300,7 @@ function build_order_query(array $extra = []): string
         </main>
     </div><!-- /.app-wrapper -->
 
-    <?php include BACKEND_PATH . '/partials/admin_footer.php'; ?>
+    <!-- <?php include BACKEND_PATH . '/partials/admin_footer.php'; ?> -->
     <?php include BACKEND_PATH . '/partials/admin_script.php'; ?>
 
 </body>

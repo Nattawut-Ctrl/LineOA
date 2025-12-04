@@ -215,7 +215,7 @@ $modeLabel = ($payment['mode'] ?? 'single') === 'cart' ? 'ทั้งตะก�
       </div>
     </main>
 
-    <?php include BACKEND_PATH . '/partials/admin_footer.php'; ?>
+    <!-- <?php include BACKEND_PATH . '/partials/admin_footer.php'; ?> -->
   </div>
   <?php include BACKEND_PATH . '/partials/admin_script.php'; ?>
 </body>

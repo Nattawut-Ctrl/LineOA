@@ -26,6 +26,80 @@ function buildImageUrlFromPath(?string $path): string
     return rtrim(BASE_URL, '/') . '/' . ltrim($path, '/');
 }
 
+function getProductMainImageUrl(mysqli $conn, int $productId): string
+{
+    // 1) products.image
+    $res = db_query(
+        $conn,
+        "SELECT image FROM products WHERE id = ?",
+        [$productId],
+        "i"
+    );
+    if ($res && ($row = $res->fetch_assoc()) && !empty($row['image'])) {
+        return buildImageUrlFromPath($row['image']);
+    }
+
+    // 2) gallery
+    $res2 = db_query(
+        $conn,
+        "SELECT image_path 
+         FROM product_images 
+         WHERE product_id = ?
+         ORDER BY sort_order ASC, id ASC
+         LIMIT 1",
+        [$productId],
+        "i"
+    );
+    if ($res2 && ($row2 = $res2->fetch_assoc()) && !empty($row2['image_path'])) {
+        return buildImageUrlFromPath($row2['image_path']);
+    }
+
+    // 3) รูปจาก variant
+    $res3 = db_query(
+        $conn,
+        "SELECT image 
+         FROM product_variants 
+         WHERE product_id = ? AND image IS NOT NULL AND image <> ''
+         ORDER BY id ASC
+         LIMIT 1",
+        [$productId],
+        "i"
+    );
+    if ($res3 && ($row3 = $res3->fetch_assoc()) && !empty($row3['image'])) {
+        return buildImageUrlFromPath($row3['image']);
+    }
+
+    // 4) default
+    return rtrim(BASE_URL, '/') . '/assets/no-image.png';
+}
+
+/**
+ * ดึง gallery ทั้งหมดสำหรับหน้า product-detail หรือ admin
+ */
+function getProductGallery(mysqli $conn, int $productId): array
+{
+    $items = [];
+
+    $res = db_query(
+        $conn,
+        "SELECT id, image_path, cloudinary_public_id, sort_order
+         FROM product_images
+         WHERE product_id = ?
+         ORDER BY sort_order ASC, id ASC",
+        [$productId],
+        "i"
+    );
+
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $row['url'] = buildImageUrlFromPath($row['image_path']);
+            $items[]    = $row;
+        }
+    }
+
+    return $items;
+}
+
 /**
  * ลบไฟล์รูปในเครื่อง (ไม่ยุ่งกับ Cloudinary / URL ที่เป็น http)
  * $dbPath = path ที่เก็บใน DB เช่น "uploads/products/xxx.jpg"
@@ -117,4 +191,17 @@ function loadVariantFallbackImages(mysqli $conn, array $productIds): array
     }
 
     return $map;
+}
+
+function optimizeCloudinaryUrl(string $url, string $transform = 'f_auto,q_auto,w_800')
+{
+    if (!$url) return '';
+
+    // ถ้าไม่ใช่ Cloudinary ก็ไม่ยุ่ง
+    if (!preg_match('#res\.cloudinary\.com#', $url)) {
+        return $url;
+    }
+
+    // แทรก transform เข้าไปหลังคำว่า /upload/
+    return str_replace('/upload/', '/upload/' . $transform . '/', $url);
 }

@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/user_guard.php';
 require_once UTILS_PATH . '/image_helper.php';
+require_once UTILS_PATH . '/product_image_helper.php';
 
 require_once SERVICES_PATH . '/productService.php';
 require_once SERVICES_PATH . '/cartService.php';
@@ -13,6 +14,7 @@ require_once SERVICES_PATH . '/userService.php';
 $conn    = connectDBWithLog();
 $user_id = (int)($_SESSION['user_id'] ?? 0);
 
+// ───────────────────── ตรวจสอบสิทธิ์ผู้ใช้ ─────────────────────
 if ($user_id <= 0) {
   header("Location: ../Users/line-entry.php?from=shop");
   exit;
@@ -25,7 +27,7 @@ if (!$user) {
   exit;
 }
 
-// ───────────────────── สินค้าหลัก ─────────────────────
+// ───────────────────── โหลดสินค้า ─────────────────────
 $pid     = (int)($_GET['id'] ?? 0);
 $product = $pid > 0 ? getProductByIdWithVariants($conn, $pid) : null;
 
@@ -35,24 +37,79 @@ if (!$product) {
   exit;
 }
 
+// variants จาก service
 $variants   = $product['variants'] ?? [];
-$cart_items = getCartItems($conn, $user_id);
-// ปรับ path รูปของสินค้าหลักและตัวเลือกให้เป็น URL เต็ม ปลอดภัยบนทุก OS/เบราว์เซอร์
-$product['image'] = buildImageUrl($product['image'] ?? '');
 
+// ตะกร้าปัจจุบันของผู้ใช้
+$cart_items = getCartItems($conn, $user_id);
+
+// ───────────────────── รูปหลัก + Gallery ─────────────────────
+
+// 1) รูปหลักจาก helper (รองรับเคสมี product_images / products.image)
+$mainImageUrl = getProductMainImageUrl($conn, $pid);
+
+// ถ้า helper ไม่เจอ ให้ใช้ image ใน products แล้วแปลง path → URL เต็ม
+if (!$mainImageUrl) {
+  $mainImageUrl = buildImageUrl($product['image'] ?? '');
+}
+
+// ทำรูปหลักให้เบาลงถ้าเป็น Cloudinary
+$mainImageUrl = optimizeCloudinaryUrl($mainImageUrl);
+
+// เก็บกลับไว้ใน product ใช้ทั้งฝั่ง HTML + JS
+$product['image'] = $mainImageUrl;
+
+// 2) โหลด gallery จาก product_images
+$galleryImages = [];
+$resG = db_query(
+  $conn,
+  "SELECT image_path FROM product_images WHERE product_id = ? ORDER BY id ASC",
+  [$pid],
+  "i"
+);
+
+if ($resG) {
+  while ($row = $resG->fetch_assoc()) {
+    $url = buildImageUrlFromPath($row['image_path'] ?? '');
+    if ($url) {
+      $galleryImages[] = optimizeCloudinaryUrl($url);
+    }
+  }
+}
+
+// 3) รวม main + gallery (กันซ้ำ)
+$allImages = [];
+if (!empty($product['image'])) {
+  $allImages[] = $product['image'];
+}
+foreach ($galleryImages as $g) {
+  if (!in_array($g, $allImages, true)) {
+    $allImages[] = $g;
+  }
+}
+
+// ถ้า product['image'] ว่างแต่ gallery มี → ใช้รูปแรกเป็น main
+if (empty($product['image']) && !empty($allImages)) {
+  $product['image'] = $allImages[0];
+}
+
+// ───────────────────── ปรับรูปของ variants ─────────────────────
 foreach ($variants as &$v) {
   if (!empty($v['image'])) {
-    $v['image'] = buildImageUrl($v['image']);
+    // แปลง path → URL เต็ม แล้ว optimize ถ้าเป็น Cloudinary
+    $url = buildImageUrl($v['image']);
+    $v['image'] = optimizeCloudinaryUrl($url);
   } else {
-    // ถ้า variant ไม่มีรูป ให้ใช้รูปหลักของสินค้า
+    // ถ้า variant ไม่มีรูป → ใช้รูปหลักของสินค้า
     $v['image'] = $product['image'];
   }
 }
 unset($v);
 
+// อัปเดตกลับเข้า product (ให้ JS ใช้ชุดเดียวกัน)
+$product['variants'] = $variants;
 
 // ───────────────────── สินค้าแนะนำ ─────────────────────
-// ใช้ getAllProductsWithVariants() ที่มีอยู่แล้ว
 $recommended = [];
 try {
   $allProducts = getAllProductsWithVariants($conn); // คืนแบบ [product_id => [...]]
@@ -68,23 +125,28 @@ try {
       }
     }
 
+    // ปรับรูปของสินค้าที่แนะนำ
+    if (!empty($p['image'])) {
+      $img = buildImageUrl($p['image']);
+      $p['image'] = optimizeCloudinaryUrl($img);
+    } else {
+      $p['image'] = '';
+    }
+
     $recommended[] = $p;
     if (count($recommended) >= 8) {
       break;
     }
   }
 } catch (Throwable $e) {
-  // ถ้ามี error ก็ปล่อย $recommended ว่าง ๆ ไป ไม่ต้องทำให้หน้าเด้ง
+  // ถ้ามี error ให้ recommended ว่างไป ไม่ต้องทำให้หน้าเด้ง
 }
 
-// ปรับ path รูปของสินค้าแนะนำให้เป็น URL เต็ม
-foreach ($recommended as &$rp) {
-  if (!empty($rp['image'])) {
-    $rp['image'] = buildImageUrl($rp['image']);
-  }
-}
-unset($rp);
-
+// ป้องกัน warning เวลา encode ไป JS ถ้าตัวแปรยังไม่ได้เซ็ต
+$variants     = $product['variants'] ?? [];
+$cart_items   = $cart_items ?? [];
+$recommended  = $recommended ?? [];
+$allImages    = $allImages ?? [];
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -206,6 +268,83 @@ unset($rp);
       color: #ee4d2d;
       font-weight: 700;
     }
+
+    /* Gallery รูปสินค้า */
+    .product-gallery-main .product-main-img {
+      max-height: 320px;
+      object-fit: cover;
+    }
+
+    .product-gallery-thumbs .product-thumb-wrapper {
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid transparent;
+      cursor: pointer;
+      padding: 2px;
+      background: #fff;
+      transition: all 0.15s ease-in-out;
+    }
+
+    .product-gallery-thumbs .product-thumb-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 10px;
+    }
+
+    .product-gallery-thumbs .product-thumb-wrapper.active {
+      border-color: #ee4d2d;
+      box-shadow: 0 0 0 1px rgba(238, 77, 45, 0.35);
+    }
+
+    /* Gallery รูปสินค้า */
+    .product-gallery-main .product-main-img {
+      max-height: 320px;
+      object-fit: cover;
+    }
+
+    .product-gallery-thumbs .product-thumb-wrapper {
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid transparent;
+      cursor: pointer;
+      padding: 2px;
+      background: #fff;
+      transition: all 0.15s ease-in-out;
+    }
+
+    .product-thumb-wrapper.active {
+      border-color: #ee4d2d;
+      box-shadow: 0 0 0 1px rgba(238, 77, 45, 0.25);
+    }
+
+    .product-gallery-main.skeleton-box {
+      background: #e5e7eb;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .skeleton-box::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      transform: translateX(-100%);
+      background: linear-gradient(90deg,
+          rgba(255, 255, 255, 0),
+          rgba(255, 255, 255, 0.8),
+          rgba(255, 255, 255, 0));
+      animation: skeleton-shimmer 1.2s infinite;
+    }
+
+    @keyframes skeleton-shimmer {
+      100% {
+        transform: translateX(100%);
+      }
+    }
   </style>
 </head>
 
@@ -237,14 +376,31 @@ unset($rp);
   <!-- Main -->
   <main class="container my-3 mb-5 pb-5">
 
-    <!-- รูปสินค้า -->
+    <!-- รูปสินค้า + Gallery -->
     <div class="bg-white rounded-4 p-2 shadow-sm mb-3">
-      <div class="ratio ratio-1x1 rounded-4 overflow-hidden">
-        <img id="mainImage"
-          src="<?php echo htmlspecialchars($product['image']); ?>"
-          class="w-100 h-100 object-fit-cover"
-          alt="<?php echo htmlspecialchars($product['name']); ?>">
+
+      <!-- รูปใหญ่ -->
+      <div class="ratio ratio-1x1 rounded-4 overflow-hidden mb-2 product-gallery-main skeleton-box">
+        <img id="productMainImage"
+          src="<?php echo htmlspecialchars($allImages[0] ?? $product['image']); ?>"
+          class="w-100 h-100 object-fit-cover product-main-img"
+          alt="<?php echo htmlspecialchars($product['name']); ?>"
+          onload="this.parentElement.classList.remove('skeleton-box');">
       </div>
+
+      <!-- Thumbnails -->
+      <?php if (count($allImages) > 1): ?>
+        <div class="product-gallery-thumbs d-flex flex-wrap gap-2">
+          <?php foreach ($allImages as $idx => $url): ?>
+            <div class="product-thumb-wrapper <?= $idx === 0 ? 'active' : '' ?>">
+              <img src="<?= htmlspecialchars($url) ?>"
+                data-full="<?= htmlspecialchars($url) ?>"
+                class="img-fluid product-thumb-img"
+                loading="lazy">
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
     </div>
 
     <!-- ชื่อ / ราคา / หมวดหมู่ / stock -->
@@ -482,7 +638,32 @@ unset($rp);
     let cartQty = 1;
     let cartMode = 'add'; // 'add' หรือ 'buy'
 
-    const mainImageEl = document.getElementById('mainImage');
+    // â───────────────────── อ้างอิง Element ต่าง ๆ ─────────────────────
+
+    const mainImageEl = document.getElementById('productMainImage');
+    // ───────────────────── Gallery: คลิกเปลี่ยนรูปหลัก ─────────────────────
+    const thumbWrappers = document.querySelectorAll('.product-thumb-wrapper');
+    thumbWrappers.forEach(wrapper => {
+      const img = wrapper.querySelector('.product-thumb-img');
+      if (!img) return;
+
+      img.addEventListener('click', () => {
+        const full = img.dataset.full;
+        if (!full || !mainImageEl) return;
+
+        // เปลี่ยนรูปใหญ่
+        mainImageEl.src = full;
+
+        // เปลี่ยน active border
+        document.querySelectorAll('.product-thumb-wrapper').forEach(w => {
+          w.classList.remove('active');
+        });
+        wrapper.classList.add('active');
+      });
+    });
+
+    // ───────────────────── อ้างอิง Element ต่าง ๆ (ต่อ) ─────────────────────
+
     const priceTextEl = document.getElementById('priceText');
     const stockTextEl = document.getElementById('stockText');
     const cartThumbEl = document.getElementById('cartThumb');

@@ -20,8 +20,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // Product ID
 $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 if ($id <= 0) {
-
-    // log error
     writeLog(
         $conn,
         "UPDATE products (invalid id)",
@@ -31,13 +29,22 @@ if ($id <= 0) {
         'ajax_update_product: invalid product id',
         $id
     );
-
     http_response_code(400);
     exit('Invalid ID');
 }
 
+// โหลด image เดิมของ product
+$resP = db_query(
+    $conn,
+    "SELECT image FROM products WHERE id = ?",
+    [$id],
+    "i"
+);
+$rowP = $resP ? $resP->fetch_assoc() : null;
+$oldProductImage = $rowP['image'] ?? null;
+
 // ----------------------
-// 1) อัปเดต products
+// 1) ข้อมูลหลักของ product
 // ----------------------
 $name        = $_POST['name'] ?? '';
 $unit        = trim($_POST['unit'] ?? '');
@@ -48,7 +55,7 @@ $stockInput  = isset($_POST['stock']) ? intval($_POST['stock']) : 0;
 
 $hasVariants = (!empty($_POST['variant_id']) || !empty($_POST['new_variant_name']));
 
-if ($name === '' || $unit === '') { // มีประเด็นที่ต้องตรวจสอบเพิ่ม
+if ($name === '' || $unit === '') {
     http_response_code(400);
     echo "invalid_input";
     exit;
@@ -60,20 +67,65 @@ if (!$hasVariants && $priceInput <= 0) {
     exit;
 }
 
+// ----------------------
+// 1.1 จัดการรูปหลักของสินค้า
+// ----------------------
+$deleteMainReq = !empty($_POST['product_image_delete']);
+$newMainImagePath = null;
+
+if (!empty($_FILES['product_image']) && $_FILES['product_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+
+    $file = [
+        'name'     => $_FILES['product_image']['name'],
+        'type'     => $_FILES['product_image']['type'],
+        'tmp_name' => $_FILES['product_image']['tmp_name'],
+        'error'    => $_FILES['product_image']['error'],
+        'size'     => $_FILES['product_image']['size'],
+    ];
+
+    // โฟลเดอร์ของ product main image
+    $uploaded = uploadImageWithFallback($file, 'products', 'line-shop/products');
+    if ($uploaded) {
+        $newMainImagePath = $uploaded;
+    }
+}
+
+// ตัดสินใจรูปหลักสุดท้าย
+$finalProductImage = $oldProductImage;
+
+if ($deleteMainReq) {
+    $finalProductImage = null;
+}
+
+if ($newMainImagePath !== null) {
+    $finalProductImage = $newMainImagePath;
+}
+
+// ถ้ามีการเปลี่ยนรูปหลักจริง ๆ → update + ลบไฟล์เก่า
+if ($finalProductImage !== $oldProductImage) {
+    // ลบไฟล์เก่า (ถ้าเป็น local)
+    if ($oldProductImage && ($deleteMainReq || $newMainImagePath)) {
+        deleteImageFileIfLocal($oldProductImage);
+    }
+}
+
+// ----------------------
+// 1.2 UPDATE products (ยังไม่สรุปราคา/stock)
+// ----------------------
 $resultProduct = db_exec(
     $conn,
     "UPDATE products 
-     SET name = ?, price = ?, stock = ?, unit = ?, description = ?
+     SET name = ?, price = ?, stock = ?, unit = ?, description = ?, image = ?
      WHERE id = ?",
-    [$name, $priceInput, $stockInput, $unit, $description, $id],
-    "sdissi"
+    [$name, $priceInput, $stockInput, $unit, $description, $finalProductImage, $id],
+    "sdisssi"
 );
 
 // ----------------------
-// เตรียมข้อมูลสำหรับจัดการ "รูปของ variants เดิม"
+// 2) จัดการ variants เดิม + รูป
 // ----------------------
-$deleteReq = $_POST['variant_image_delete'] ?? [];   // array ของ variant_id ที่ติกลบรูป
-$files     = $_FILES['variant_image'] ?? null;       // ไฟล์รูปของ variant เดิม
+$deleteReq = $_POST['variant_image_delete'] ?? [];
+$files     = $_FILES['variant_image'] ?? null;
 
 $deleteSet = [];
 if (is_array($deleteReq)) {
@@ -82,7 +134,6 @@ if (is_array($deleteReq)) {
     }
 }
 
-// ดึง image เดิมของทุก variant ของสินค้านี้เก็บไว้
 $oldVarImages = [];
 if (!empty($_POST['variant_id'])) {
     $resOld = db_query(
@@ -101,16 +152,12 @@ if (!empty($_POST['variant_id'])) {
     }
 }
 
-// ----------------------
-// 2) อัปเดต variants เดิม (รวมรูปภาพ)
-// ----------------------
 $okVariantsAll = true;
 
 if (!empty($_POST['variant_id'])) {
-
     foreach ($_POST['variant_id'] as $i => $vidRaw) {
 
-        $vid    = intval($vidRaw);
+        $vid = intval($vidRaw);
         if ($vid <= 0) {
             continue;
         }
@@ -119,7 +166,6 @@ if (!empty($_POST['variant_id'])) {
         $vPrice = floatval($_POST['variant_price'][$i] ?? 0);
         $vStock = intval($_POST['variant_stock'][$i] ?? 0);
 
-        // 2.1 อัปเดตข้อมูลทั่วไปของ variant
         $resultVariant = db_exec(
             $conn,
             "UPDATE product_variants 
@@ -133,14 +179,11 @@ if (!empty($_POST['variant_id'])) {
             $okVariantsAll = false;
         }
 
-        // 2.2 จัดการรูปภาพของ variant นี้
         $oldImage   = $oldVarImages[$vid] ?? null;
         $needDelete = isset($deleteSet[$vid]);
         $newImagePath = null;
 
-        // มีไฟล์ใหม่อัปโหลดมาสำหรับ variant นี้หรือไม่
         if ($files && isset($files['name'][$vid]) && $files['error'][$vid] !== UPLOAD_ERR_NO_FILE) {
-
             $file = [
                 'name'     => $files['name'][$vid],
                 'type'     => $files['type'][$vid],
@@ -149,29 +192,23 @@ if (!empty($_POST['variant_id'])) {
                 'size'     => $files['size'][$vid],
             ];
 
-            // ใช้ฟังก์ชันเดิมที่คุณใช้ตอนเพิ่ม variant ใหม่
             $uploaded = uploadImageWithFallback($file, 'variants', 'line-shop/variants');
             if ($uploaded) {
                 $newImagePath = $uploaded;
             }
         }
 
-        // ตัดสินใจรูปสุดท้าย
         $finalImage = $oldImage;
 
-        // ถ้าติ๊ก "ลบรูปเดิม"
         if ($needDelete) {
             $finalImage = null;
         }
 
-        // ถ้ามีการอัปโหลดรูปใหม่
         if ($newImagePath !== null) {
             $finalImage = $newImagePath;
         }
 
-        // ถ้ามีการเปลี่ยนแปลงจริง ๆ
         if ($finalImage !== $oldImage) {
-
             db_exec(
                 $conn,
                 "UPDATE product_variants
@@ -181,7 +218,6 @@ if (!empty($_POST['variant_id'])) {
                 "si"
             );
 
-            // ลบไฟล์เก่าออกจากเครื่อง (ถ้าเป็นไฟล์ local และถูกแทนที่/ลบ)
             if ($oldImage && ($needDelete || $newImagePath) && $oldImage !== $finalImage) {
                 deleteImageFileIfLocal($oldImage);
             }
@@ -190,7 +226,7 @@ if (!empty($_POST['variant_id'])) {
 }
 
 // ----------------------
-// 3) เพิ่ม variants ใหม่ (รองรับอัปโหลดรูป)
+// 3) เพิ่ม variants ใหม่ (พร้อมรูป)
 // ----------------------
 $okNewVariants = true;
 
@@ -236,6 +272,9 @@ if (!empty($_POST['new_variant_name'])) {
     }
 }
 
+// ----------------------
+// 3.1 สรุปราคา/stock จาก variants
+// ----------------------
 $summaryPrice = $priceInput;
 $summaryStock = $stockInput;
 
@@ -250,11 +289,10 @@ $sumRes = db_query(
 
 $okSummary = true;
 if ($sumRes && ($row = $sumRes->fetch_assoc()) && $row['min_price'] !== null) {
-    
+
     $summaryPrice = floatval($row['min_price']);
     $summaryStock = intval($row['total_stock']);
 
-    // อัปเดตกลับไปที่ตาราง products
     $summaryUpdate = db_exec(
         $conn,
         "UPDATE products
@@ -270,20 +308,20 @@ if ($sumRes && ($row = $sumRes->fetch_assoc()) && $row['min_price'] !== null) {
 } else {
     $okSummary = false;
 }
+
 // ----------------------
-// 4) ประเมินผลทั้งหมด
+// 4) ประเมินผล & log
 // ----------------------
 $statusOverall = ($resultProduct['ok'] && $okVariantsAll && $okNewVariants && $okSummary) ? 'success' : 'error';
 
-// Log final result ของการอัปเดต product
 writeLog(
     $conn,
     "UPDATE products + variants",
     [
         'product_id'  => $id,
         'name'        => $name,
-        'price'       => $price,
-        'stock'       => $stock,
+        'price'       => $summaryPrice,
+        'stock'       => $summaryStock,
         'description' => $description
     ],
     '',

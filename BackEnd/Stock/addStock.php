@@ -346,7 +346,7 @@ $activeMenu = "stock";
                                                                 }
 
                                                                 // แปลง path เป็น URL เต็ม (ใช้ helper จาก product_image_helper.php)
-                                                                $imgUrl = buildImageUrlFromPath($imgPath);
+                                                                $imgUrl = getProductMainImageUrl($conn, (int)$p['id']);
                                                                 ?>
 
                                                                 <?php if (!empty($imgUrl)): ?>
@@ -647,6 +647,8 @@ $activeMenu = "stock";
                             </script>
 
                             <script>
+                                Dropzone.autoDiscover = false;
+
                                 document.addEventListener('DOMContentLoaded', function() {
                                     // ---------------------------
                                     // 1) โหลดตัวเลือก variant ของสินค้าเดิมเพื่อเพิ่มสต็อก
@@ -785,7 +787,7 @@ $activeMenu = "stock";
                                                     const myModal = new bootstrap.Modal(document.getElementById('editProductModal'));
                                                     myModal.show();
 
-                                                    // ---------- 6.1 ลบ variant เดิม ----------
+                                                    // ---------- ลบ variant เดิม ----------
                                                     const variantDeleteButtons = contentEl.querySelectorAll('.deleteVariantBtn');
 
                                                     variantDeleteButtons.forEach(vbtn => {
@@ -817,7 +819,78 @@ $activeMenu = "stock";
                                                         });
                                                     });
 
-                                                    // ---------- 6.2 Submit ฟอร์มแก้ไขสินค้า พร้อม spinner ----------
+                                                    // ---------- Dropzone: Gallery ----------
+                                                    // ---------- Dropzone: Gallery ----------
+                                                    const dzElement = contentEl.querySelector("#productImageDropzone");
+                                                    if (dzElement && typeof Dropzone !== 'undefined') {
+
+                                                        const productId = dzElement.getAttribute('data-product-id');
+                                                        console.log('Dropzone productId =', productId); // เอาไว้เช็ค
+
+                                                        const dz = new Dropzone(dzElement, {
+                                                            url: "upload_product_image.php",
+                                                            paramName: "file",
+                                                            maxFilesize: 5, // MB
+                                                            acceptedFiles: "image/*",
+                                                            addRemoveLinks: true,
+                                                            dictRemoveFile: "ลบรูปนี้"
+                                                        });
+
+                                                        // ใส่ product_id ลงใน FormData ตอนส่งจริง ๆ
+                                                        dz.on("sending", function(file, xhr, formData) {
+                                                            console.log("DZ sending product_id =", productId);
+                                                            formData.append("product_id", productId);
+                                                        });
+
+                                                        dz.on("success", function(file, response) {
+                                                            let resp = response;
+                                                            if (typeof response === "string") {
+                                                                try {
+                                                                    resp = JSON.parse(response);
+                                                                } catch (e) {}
+                                                            }
+                                                            if (resp && resp.id) {
+                                                                file.serverId = resp.id;
+                                                            }
+                                                        });
+
+                                                        // โหลดรูปเดิมเข้ามา
+                                                        fetch("load_product_images.php?product_id=" + productId)
+                                                            .then(r => r.json())
+                                                            .then(list => {
+                                                                list.forEach(img => {
+                                                                    const mock = {
+                                                                        name: "image",
+                                                                        size: 12345,
+                                                                        serverId: img.id
+                                                                    };
+                                                                    dz.emit("addedfile", mock);
+                                                                    dz.emit("thumbnail", mock, img.url);
+                                                                    dz.emit("complete", mock);
+                                                                });
+                                                            });
+
+                                                        dz.on("removedfile", function(file) {
+                                                            if (!file.serverId) return;
+
+                                                            const fd = new FormData();
+                                                            fd.append('id', file.serverId);
+
+                                                            fetch("delete_product_image.php", {
+                                                                    method: "POST",
+                                                                    body: fd
+                                                                })
+                                                                .then(r => r.text())
+                                                                .then(txt => {
+                                                                    if (txt.trim() !== "success") {
+                                                                        console.error("Delete image error:", txt);
+                                                                    }
+                                                                })
+                                                                .catch(err => console.error("Delete image fetch error:", err));
+                                                        });
+                                                    }
+
+                                                    // ---------- Submit ฟอร์มแก้ไขสินค้า + spinner ----------
                                                     const updateForm = contentEl.querySelector("#updateProductForm");
                                                     const btnUpdate = contentEl.querySelector("#btnUpdateProduct");
 
@@ -846,7 +919,6 @@ $activeMenu = "stock";
                                                                     const lower = text.trim().toLowerCase();
 
                                                                     if (ok && lower.includes("success")) {
-                                                                        // สำเร็จ → กลับหน้า addStock (ไม่ต้อง reset ปุ่ม เพราะกำลัง redirect)
                                                                         window.location.href = "addStock.php?success=updated";
                                                                     } else {
                                                                         setButtonLoading(btnUpdate, false);
@@ -952,4 +1024,5 @@ $activeMenu = "stock";
     <?php include BACKEND_PATH . '/partials/admin_script.php'; ?>
 
 </body>
+
 </html>

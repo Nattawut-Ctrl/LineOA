@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/user_guard.php';
 require_once UTILS_PATH . '/image_helper.php';
+require_once UTILS_PATH . '/product_image_helper.php';
 
 require_once SERVICES_PATH . '/productService.php';
 require_once SERVICES_PATH . '/cartService.php';
@@ -28,7 +29,7 @@ $products      = array_values($productsAssoc);
 
 // แปลง image เป็น URL เต็ม ทั้งของ product และ variant
 foreach ($products as &$p) {
-    $p['image'] = buildImageUrl($p['image'] ?? '');
+    $p['image'] = getProductMainImageUrl($conn, (int)$p['id']);
 
     if (!empty($p['variants'])) {
         foreach ($p['variants'] as &$v) {
@@ -49,6 +50,17 @@ $categories = array_merge(['ทั้งหมด'], getAllCategories($conn));
 
 // ----------------------- Fetch Cart Items via Service (shape same as old SQL) -----------------------
 $cart_items = getCartItems($conn, $user_id);
+
+foreach ($cart_items as &$item) {
+    if (!empty($item['product_id'])) {
+        // ใช้ main image จาก helper
+        $item['image'] = getProductMainImageUrl($conn, (int)$item['product_id']);
+    } else {
+        // กันเคสเก่าที่ service ใส่ image path มาให้ → แปลงเป็น URL เต็ม
+        $item['image'] = buildImageUrl($item['image'] ?? '');
+    }
+}
+unset($item);
 
 // ------------------------ View Part ------------------------
 ?>

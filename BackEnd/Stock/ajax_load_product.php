@@ -34,6 +34,8 @@ if (!$p) {
     exit("<p class='text-danger'>ไม่พบสินค้า</p>");
 }
 
+$productImageUrl = buildImageUrlFromPath($p['image'] ?? '');
+
 // ----------------------------------------
 // โหลดตัวเลือกสินค้า (variants)
 // ----------------------------------------
@@ -55,13 +57,6 @@ $resV = db_query(
     </div>
 
     <div class="row">
-        <!-- <div class="col-md-6 mb-3">
-            <label>SKU</label>
-            <input type="text" name="sku"
-                value="<?= htmlspecialchars($sku, ENT_QUOTES, 'UTF-8') ?>"
-                class="form-control"
-                disabled>
-        </div> -->
         <div class="col-md-6 mb-3">
             <label>หน่วยนับ (Unit)</label>
             <input type="text" name="unit"
@@ -85,6 +80,47 @@ $resV = db_query(
     <div class="mb-3">
         <label>คำอธิบาย</label>
         <textarea name="description" class="form-control"><?= htmlspecialchars($p['description']) ?></textarea>
+    </div>
+
+    <!-- รูปหลักของสินค้า -->
+    <hr>
+    <h5>รูปสินค้าหลัก</h5>
+
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <?php if (!empty($productImageUrl)): ?>
+                <div class="mb-2">
+                    <img src="<?= htmlspecialchars($productImageUrl) ?>"
+                        class="img-thumbnail"
+                        style="width:120px;height:120px;object-fit:cover;">
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="product_image_delete" id="product_image_delete" value="1">
+                    <label class="form-check-label" for="product_image_delete">
+                        ลบรูปปัจจุบัน (ถ้าไม่เลือก รูปจะยังอยู่)
+                    </label>
+                </div>
+            <?php else: ?>
+                <p class="text-muted small mb-2">ยังไม่มีรูปหลัก</p>
+            <?php endif; ?>
+
+            <label class="form-label">เลือกรูปใหม่ (ถ้าต้องการเปลี่ยน)</label>
+            <input type="file" name="product_image" class="form-control form-control-sm" accept="image/*">
+            <small class="text-muted d-block mt-1">ถ้าไม่เลือก รูปเดิมจะยังคงอยู่ (ถ้าไม่ได้ติ๊ก "ลบรูป")</small>
+        </div>
+    </div>
+
+    <!-- Gallery หลายรูป -->
+    <hr>
+    <h5>รูปสินค้าเพิ่มเติม (Gallery)</h5>
+    <div class="mb-3">
+        <div id="productImageDropzone"
+            class="dropzone"
+            data-product-id="<?= (int)$p['id'] ?>">
+        </div>
+        <small class="text-muted d-block mt-1">
+            ลากรูปมาวาง หรือคลิกเพื่อเลือก สามารถเพิ่มได้หลายรูป
+        </small>
     </div>
 
     <hr>
@@ -117,7 +153,6 @@ $resV = db_query(
                             </div>
                         <?php endif; ?>
 
-                        <!-- เปลี่ยนรูป (ถ้าไม่เลือก รูปจะไม่เปลี่ยน) -->
                         <input type="file"
                             name="variant_image[<?= $vid ?>]"
                             class="form-control form-control-sm"
@@ -129,7 +164,6 @@ $resV = db_query(
                         <input type="text" name="variant_sku[]" value="<?= htmlspecialchars($v['sku']) ?>" class="form-control">
                     </div>
 
-                    <!-- ข้อมูลอื่น ๆ ของ variant -->
                     <div class="col-md-3 mb-3">
                         <label class="form-label">ชื่อ</label>
                         <input type="text"

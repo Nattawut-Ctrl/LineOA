@@ -6,10 +6,12 @@ require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/user_guard.php';
 require_once UTILS_PATH . '/image_helper.php';
 require_once UTILS_PATH . '/product_image_helper.php';
+require_once UTILS_PATH . '/stock_helper.php';
 
 require_once SERVICES_PATH . '/productService.php';
 require_once SERVICES_PATH . '/cartService.php';
 require_once SERVICES_PATH . '/userService.php';
+
 
 
 $conn    = connectDBWithLog();
@@ -282,11 +284,12 @@ unset($item);
         .bottom-nav .nav-item.active i {
             color: #ee4d2d;
         }
-        
+
         /* กันไม่ให้ปุ่มแถวล่างสุดโดน bottom-nav บัง บนจอเล็ก */
         body {
             padding-bottom: 30px;
         }
+
         @media (max-width: 767.98px) {
             body {
                 padding-bottom: 3rem;
@@ -325,8 +328,8 @@ unset($item);
                 <div class="small text-muted">
                     <i class="bi bi-sliders me-1"></i> เลือกดูตามหมวดหมู่
                 </div>
-                <button class="btn btn-sm btn-outline-secondary rounded-pill" type="button"
-                    data-bs-toggle="collapse" data-bs-target="#categoryCollapse">
+                <button class="btn btn-sm btn-outline-secondary rounded-pill" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#categoryCollapse">
                     <i class="bi bi-funnel"></i> หมวดหมู่
                 </button>
             </div>
@@ -334,16 +337,16 @@ unset($item);
             <div id="categoryCollapse" class="collapse d-md-block show">
                 <div class="d-flex category-chip overflow-x-auto gap-2 py-1">
                     <?php foreach ($categories as $cat): ?>
-                        <button type="button"
-                            class="btn btn-sm btn-outline-secondary rounded-pill text-nowrap flex-shrink-0 category-item <?php echo $cat === 'ทั้งหมด' ? 'active' : ''; ?>"
-                            data-category="<?php echo $cat; ?>">
-                            <?php if ($cat === 'ทั้งหมด'): ?>
-                                <i class="bi bi-grid-3x3-gap-fill me-1"></i>
-                            <?php else: ?>
-                                <i class="bi bi-tag me-1"></i>
-                            <?php endif; ?>
-                            <?php echo $cat; ?>
-                        </button>
+                    <button type="button"
+                        class="btn btn-sm btn-outline-secondary rounded-pill text-nowrap flex-shrink-0 category-item <?php echo $cat === 'ทั้งหมด' ? 'active' : ''; ?>"
+                        data-category="<?php echo $cat; ?>">
+                        <?php if ($cat === 'ทั้งหมด'): ?>
+                        <i class="bi bi-grid-3x3-gap-fill me-1"></i>
+                        <?php else: ?>
+                        <i class="bi bi-tag me-1"></i>
+                        <?php endif; ?>
+                        <?php echo $cat; ?>
+                    </button>
                     <?php endforeach; ?>
                 </div>
             </div>
@@ -355,7 +358,7 @@ unset($item);
         <div class="row g-3 g-md-4" id="product-list">
             <?php foreach ($products as $product): ?>
 
-                <?php
+            <?php
                 // --- แปลง path รูปให้เป็น URL เต็ม ปลอดภัยบน iOS/LIFF ---
                 $imgPath = $product['image'] ?? '';
 
@@ -369,71 +372,79 @@ unset($item);
                     $imgPath = rtrim(BASE_URL, '/') . '/' . ltrim($imgPath, '/');
                 }
 
+                $availableStock = getAvailableStock($conn, (int)$product['id'], null);
+
                 // ใช้รูปที่แก้แล้วให้ฝั่ง JS ด้วย
                 $productForJs          = $product;
                 $productForJs['image'] = $imgPath;
+                $productForJs['available_stock'] = $availableStock;
+
+                $btnDisabled = $availableStock <= 0 ? 'disabled aria-disabled="true"' : '';
                 ?>
 
-                <div class="col-6 col-md-4 col-lg-3 product-item mb-2 mb-md-3"
-                    data-category="<?php echo $product['category']; ?>">
+            <div class="col-6 col-md-4 col-lg-3 product-item mb-2 mb-md-3"
+                data-category="<?php echo $product['category']; ?>">
 
-                    <div class="card product-card clickable-card h-100 border-0 shadow-sm bg-white"
-                        data-href="product-detail.php?id=<?php echo (int)$product['id']; ?>">
+                <div class="card product-card clickable-card h-100 border-0 shadow-sm bg-white"
+                    data-href="product-detail.php?id=<?php echo (int)$product['id']; ?>">
 
-                        <div class="position-relative product-img-wrap rounded-top-4 overflow-hidden">
-                            <?php $img = buildImageUrl($product['image'] ?? ''); ?>
-                            <img src="<?= htmlspecialchars($img) ?>"
-                                class="card-img-top w-100 h-100"
-                                alt="<?= htmlspecialchars($product['name']); ?>"
-                                loading="lazy">
+                    <div class="position-relative product-img-wrap rounded-top-4 overflow-hidden">
+                        <?php $img = buildImageUrl($product['image'] ?? ''); ?>
+                        <img src="<?= htmlspecialchars($img) ?>" class="card-img-top w-100 h-100"
+                            alt="<?= htmlspecialchars($product['name']); ?>" loading="lazy">
 
-                            <?php if (!empty($product['category'])): ?>
-                                <span
-                                    class="badge text-bg-light position-absolute top-0 start-0 m-2 rounded-pill shadow-sm small">
-                                    <i class="bi bi-tag me-1 text-danger"></i>
-                                    <?= htmlspecialchars($product['category']); ?>
-                                </span>
+                        <?php if (!empty($product['category'])): ?>
+                        <span
+                            class="badge text-bg-light position-absolute top-0 start-0 m-2 rounded-pill shadow-sm small">
+                            <i class="bi bi-tag me-1 text-danger"></i>
+                            <?= htmlspecialchars($product['category']); ?>
+                        </span>
+                        <?php endif; ?>
+
+                        <span class="badge position-absolute bottom-0 end-0 m-2 badge-stock shadow-sm
+                                   <?php echo $availableStock <= 0
+                                        ? 'bg-secondary text-light'
+                                        : 'bg-success-subtle text-success-emphasis'; ?>">
+                            <?php if ($availableStock <= 0): ?>
+                            สินค้าหมดชั่วคราว
+                            <?php else: ?>
+                            คงเหลือ
+                            <?= $availableStock; ?>
                             <?php endif; ?>
+                        </span>
+                    </div>
 
-                            <span
-                                class="badge bg-success-subtle text-success-emphasis position-absolute bottom-0 end-0 m-2 badge-stock shadow-sm">
-                                คงเหลือ <?= (int)$product['stock']; ?>
-                            </span>
-                        </div>
-
-                        <div class="card-body d-flex flex-column p-2 p-md-3">
-                            <h6 class="card-title text-truncate small fw-semibold mb-1">
-                                <?= htmlspecialchars($product['name']); ?>
-                            </h6>
-                            <p class="text-danger fw-bold fs-6 mb-1">
-                                ฿<?= number_format($product['price']); ?>
-                            </p>
-                            <small class="text-muted text-truncate flex-grow-1 mb-2">
-                                <?= htmlspecialchars($product['description']); ?>
-                            </small>
-                            <div class="d-grid gap-1 mt-1">
-                                <button
-                                    class="btn btn-sm btn-outline-danger fw-semibold rounded-3 add-cart-btn"
-                                    data-product='<?= json_encode($productForJs, JSON_UNESCAPED_UNICODE); ?>'>
-                                    <i class="bi bi-cart-plus me-1"></i> เพิ่มตะกร้า
-                                </button>
-                                <button
-                                    class="btn btn-sm fw-semibold rounded-3 text-white open-cart-bar"
-                                    style="background: linear-gradient(135deg, #ff7043, #ff9800);"
-                                    data-product='<?= json_encode($productForJs, JSON_UNESCAPED_UNICODE); ?>'>
-                                    <i class="bi bi-lightning-charge me-1"></i> ซื้อเลย
-                                </button>
-                            </div>
+                    <div class="card-body d-flex flex-column p-2 p-md-3">
+                        <h6 class="card-title text-truncate small fw-semibold mb-1">
+                            <?= htmlspecialchars($product['name']); ?>
+                        </h6>
+                        <p class="text-danger fw-bold fs-6 mb-1">
+                            ฿
+                            <?= number_format($product['price']); ?>
+                        </p>
+                        <small class="text-muted text-truncate flex-grow-1 mb-2">
+                            <?= htmlspecialchars($product['description']); ?>
+                        </small>
+                        <div class="d-grid gap-1 mt-1">
+                            <button class="btn btn-sm btn-outline-danger fw-semibold rounded-3 add-cart-btn"
+                                data-product='<?= json_encode($productForJs, JSON_UNESCAPED_UNICODE); ?>'>
+                                <i class="bi bi-cart-plus me-1"></i> เพิ่มตะกร้า
+                            </button>
+                            <button class="btn btn-sm fw-semibold rounded-3 text-white open-cart-bar"
+                                style="background: linear-gradient(135deg, #ff7043, #ff9800);"
+                                data-product='<?= json_encode($productForJs, JSON_UNESCAPED_UNICODE); ?>'>
+                                <i class="bi bi-lightning-charge me-1"></i> ซื้อเลย
+                            </button>
                         </div>
                     </div>
                 </div>
+            </div>
             <?php endforeach; ?>
         </div>
     </main>
 
     <!-- Cart Bar (Popup from bottom) -->
-    <div class="position-fixed bottom-0 start-0 end-0 bg-white border-top border-3"
-        id="cartBar"
+    <div class="position-fixed bottom-0 start-0 end-0 bg-white border-top border-3" id="cartBar"
         style="border-top-color: #ee4d2d!important; transform: translateY(100%); transition: transform 0.3s ease; z-index: 1050; border-top-left-radius: 20px; border-top-right-radius: 20px;">
         <div class="container py-3">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -446,8 +457,7 @@ unset($item);
             </div>
 
             <div class="d-flex gap-3 mb-3">
-                <div class="rounded-3 overflow-hidden bg-light flex-shrink-0"
-                    style="width:80px;height:80px;">
+                <div class="rounded-3 overflow-hidden bg-light flex-shrink-0" style="width:80px;height:80px;">
                     <img id="cartProductImage" src="" class="w-100 h-100" style="object-fit: cover;">
                 </div>
                 <div class="flex-grow-1">
@@ -468,29 +478,21 @@ unset($item);
             <div class="mb-3">
                 <label class="form-label small fw-semibold mb-2">จำนวน</label>
                 <div class="d-flex align-items-center justify-content-center gap-2">
-                    <button type="button"
-                        class="btn btn-outline-secondary btn-sm rounded-circle fw-bold"
-                        style="width: 36px; height: 36px;"
-                        onclick="changeQuantity(-1)">−</button>
-                    <input type="number" id="quantity" value="1" min="1"
-                        class="form-control text-center fw-bold"
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-circle fw-bold"
+                        style="width: 36px; height: 36px;" onclick="changeQuantity(-1)">−</button>
+                    <input type="number" id="quantity" value="1" min="1" class="form-control text-center fw-bold"
                         style="width: 80px;">
-                    <button type="button"
-                        class="btn btn-outline-secondary btn-sm rounded-circle fw-bold"
-                        style="width: 36px; height: 36px;"
-                        onclick="changeQuantity(1)">+</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-circle fw-bold"
+                        style="width: 36px; height: 36px;" onclick="changeQuantity(1)">+</button>
                 </div>
             </div>
 
             <div class="d-grid gap-2">
-                <button type="button" class="btn btn-outline-danger fw-bold rounded-3"
-                    onclick="addCurrentToCart()">
+                <button type="button" class="btn btn-outline-danger fw-bold rounded-3" onclick="addCurrentToCart()">
                     <i class="bi bi-cart-plus me-1"></i> เพิ่มลงตะกร้า
                 </button>
-                <button type="button"
-                    class="btn fw-bold rounded-3 text-white"
-                    style="background: linear-gradient(135deg, #ee4d2d, #ff7043);"
-                    onclick="confirmPurchase()">
+                <button type="button" class="btn fw-bold rounded-3 text-white"
+                    style="background: linear-gradient(135deg, #ee4d2d, #ff7043);" onclick="confirmPurchase()">
                     <i class="bi bi-lightning-charge me-1"></i> ซื้อเลย
                 </button>
             </div>
@@ -510,22 +512,18 @@ unset($item);
                         </span>
                         <span>ตะกร้าสินค้า</span>
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div id="cartItemsContainer"></div>
                 </div>
-                <div
-                    class="modal-footer border-0 d-flex justify-content-between align-items-center pt-0">
+                <div class="modal-footer border-0 d-flex justify-content-between align-items-center pt-0">
                     <div class="fw-bold fs-6">
                         รวมทั้งหมด:
                         <span class="text-danger" id="cartTotal">0 บาท</span>
                     </div>
-                    <button type="button"
-                        class="btn fw-bold text-white rounded-3 px-4"
-                        style="background: linear-gradient(135deg, #ff7043, #ff9800);"
-                        id="goPaymentBtn">
+                    <button type="button" class="btn fw-bold text-white rounded-3 px-4"
+                        style="background: linear-gradient(135deg, #ff7043, #ff9800);" id="goPaymentBtn">
                         <i class="bi bi-credit-card me-1"></i> ชำระเงิน
                     </button>
                 </div>
@@ -602,8 +600,13 @@ unset($item);
             if (!selectedProduct) return Infinity;
 
             // ถ้าเลือก variant อยู่ ใช้ stock ของ variant
-            if (selectedVariant && selectedVariant.stock != null) {
-                return Number(selectedVariant.stock) || 0;
+            if (selectedVariant && selectedVariant.available_stock != null) {
+                return Number(selectedVariant.available_stock) || 0;
+            }
+
+            // ถ้าไม่มี variant → ใช้ available_stock ก่อน ถ้าไม่มีค่อย fallback ไป stock
+            if (selectedProduct.available_stock != null) {
+                return Number(selectedProduct.available_stock) || 0;
             }
 
             // ถ้าไม่มี variant ใช้ stock ของตัว product
@@ -813,7 +816,8 @@ unset($item);
             document.getElementById('quantity').value = 1;
 
             const stockEl = document.getElementById("stockInfo");
-            stockEl.textContent = product.stock ?? "--";
+            const available = (product.available_stock != null) ? product.available_stock : product.stock;
+            stockEl.textContent = available ?? "--";
 
             const variantWrapper = document.getElementById('variantWrapper');
             const variantList = document.getElementById('variantList');
@@ -856,11 +860,11 @@ unset($item);
                             name: btn.dataset.name,
                             price: newPrice,
                             image: newImage,
-                            stock: variant.stock
+                            available_stock: variant.available_stock
                         };
 
                         const stockEl = document.getElementById("stockInfo");
-                        stockEl.textContent = variant.stock ?? "--";
+                        stockEl.textContent = variant.available_stock ?? "--";
                     });
 
                     variantList.appendChild(btn);
@@ -966,7 +970,9 @@ unset($item);
                 item => item.product_id == productId && item.variant_id == variantId
             );
 
-            const maxStock = Number(base.stock ?? 0);
+            const maxStock = Number(
+                base.available_stock != null ? base.available_stock : (base.stock ?? 0)
+            );
             const inCartQty = existing ? existing.quantity : 0;
             const newTotal = inCartQty + qty;
 
@@ -1122,14 +1128,14 @@ unset($item);
             // console.log('cart before sync', cart);
 
             fetch('save_cart.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        cart
-                    })
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    cart
                 })
+            })
                 .then(res => res.json())
                 .then(data => {
                     // console.log('Server response:', data);

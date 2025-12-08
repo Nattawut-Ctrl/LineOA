@@ -56,6 +56,8 @@ if ($mode === 'cart') {
 
     $items_json = json_encode($items, JSON_UNESCAPED_UNICODE);
 
+    $conn->begin_transaction();
+
     $payment_id = createPayment($conn, [
         'user_id'        => $user_id,
         'product_id'     => null,
@@ -68,8 +70,21 @@ if ($mode === 'cart') {
         'transfer_time'  => $transfer_time,
     ]);
 
-    // clear cart
+    if ($payment_id <= 0) {
+        $conn->rollback();
+        die("บันทึกข้อมูลการชำระเงินไม่สำเร็จ");
+    }
+
+    // กันสต็อกสำหรับ payment นี้
+    if (!reserveStockForPayment($conn, $payment_id)) {
+        $conn->rollback();
+        die("สินค้าบางรายการสต็อกไม่เพียงพอ หรือถูกจองเต็มแล้ว");
+    }
+
+    // ลบจากตะกร้าเมื่อกันสต็อกสำเร็จ
     clearCartForProducts($conn, $user_id, $product_ids);
+
+    $conn->commit();
 
     header("Location: payment.php?success=1");
     exit;
@@ -91,6 +106,8 @@ $item = [
     'quantity'     => $quantity
 ];
 
+$conn->begin_transaction();
+
 $payment_id = createPayment($conn, [
     'user_id'        => $user_id,
     'product_id'     => $product_id,
@@ -103,7 +120,19 @@ $payment_id = createPayment($conn, [
     'transfer_time'  => $transfer_time,
 ]);
 
+if ($payment_id <= 0) {
+    $conn->rollback();
+    die("บันทึกข้อมูลการชำระเงินไม่สำเร็จ");
+}
+
+if (!reserveStockForPayment($conn, $payment_id)) {
+    $conn->rollback();
+    die("สินค้าไม่เพียงพอ หรือถูกจองเต็มแล้ว");
+}
+
 clearSingleCartItem($conn, $user_id, $product_id, $variant_id);
+
+$conn->commit();
 
 header("Location: payment.php?success=1");
 exit;

@@ -1,40 +1,21 @@
 <?php
-// services/ProductService.php
 
-/**
- * ดึงสินค้าทั้งหมดพร้อม variants
- * โครง:
- * [
- *   product_id => [
- *      'id'        => ...,
- *      'name'      => ...,
- *      'price'     => ...,
- *      'image'     => ...,
- *      'description'=> ...,
- *      'category'  => ...,
- *      'stock'     => ...,
- *      'variants'  => [
- *          [
- *              'id'          => ...,
- *              'product_id'  => ...,
- *              'variant_name'=> ...,
- *              'price'       => ...,
- *              'stock'       => ...,
- *              'image'       => ...
- *          ],
- *          ...
- *      ]
- *   ],
- *   ...
- * ]
- */
 function getAllProductsWithVariants(mysqli $conn): array
 {
     $products = [];
 
-    // ดึงสินค้าหลัก
+    // --- ดึงสินค้า พร้อม available_stock ---
     $sqlProducts = "
-        SELECT id, name, price, image, description, category, stock
+        SELECT 
+            id,
+            name,
+            price,
+            image,
+            description,
+            category,
+            stock,
+            reserved_stock,
+            (stock - reserved_stock) AS available_stock
         FROM products
         ORDER BY id DESC
     ";
@@ -43,6 +24,7 @@ function getAllProductsWithVariants(mysqli $conn): array
     if ($resProd && $resProd->num_rows > 0) {
         while ($row = $resProd->fetch_assoc()) {
             $pid = (int)$row['id'];
+            $row['available_stock'] = max(0, (int)$row['available_stock']);
             $products[$pid] = $row;
             $products[$pid]['variants'] = [];
         }
@@ -52,9 +34,17 @@ function getAllProductsWithVariants(mysqli $conn): array
         return [];
     }
 
-    // ดึง variants ทีเดียวทั้งหมด
+    // --- ดึง variants พร้อม available_stock ---
     $sqlVariants = "
-        SELECT id, product_id, variant_name, price, stock, image
+        SELECT 
+            id,
+            product_id,
+            variant_name,
+            price,
+            stock,
+            reserved_stock,
+            image,
+            (stock - reserved_stock) AS available_stock
         FROM product_variants
         WHERE product_id IN (" . implode(',', array_keys($products)) . ")
         ORDER BY id ASC
@@ -64,14 +54,15 @@ function getAllProductsWithVariants(mysqli $conn): array
     if ($resVar && $resVar->num_rows > 0) {
         while ($v = $resVar->fetch_assoc()) {
             $pid = (int)$v['product_id'];
-            if (!isset($products[$pid])) {
-                continue;
-            }
+
+            if (!isset($products[$pid])) continue;
+
+            $v['available_stock'] = max(0, (int)$v['available_stock']);
             $products[$pid]['variants'][] = $v;
         }
     }
 
-    // ถ้า product ไหนไม่มีรูปหลัก ให้ใช้รูปของ variant ตัวแรกที่มีรูปแทน
+    // --- ถ้า product ไม่มีรูปหลัก → ใช้รูป variant ---
     foreach ($products as $pid => &$prod) {
         if (empty($prod['image']) && !empty($prod['variants'])) {
             foreach ($prod['variants'] as $v) {
@@ -84,42 +75,60 @@ function getAllProductsWithVariants(mysqli $conn): array
     }
     unset($prod);
 
-    // คำนวณราคา & stock จาก variants
+    // --- คำนวณ stock / price จาก available_stock ของ variants ---
     foreach ($products as $pid => &$prod) {
+
         if (!empty($prod['variants'])) {
-            $totalStock = 0;
-            $minPrice   = null;
+            $totalAvailable = 0;
+            $minPrice = null;
 
             foreach ($prod['variants'] as $v) {
-                $vStock = (int)($v['stock'] ?? 0);
+                $vAvail = (int)($v['available_stock'] ?? 0);
                 $vPrice = (float)($v['price'] ?? 0);
 
-                if ($vStock > 0) {
-                    $totalStock += $vStock;
-                }
+                $totalAvailable += $vAvail;
+
                 if ($vPrice > 0 && ($minPrice === null || $vPrice < $minPrice)) {
                     $minPrice = $vPrice;
                 }
             }
 
-            $prod['stock'] = $totalStock;
+            // อัปเดต stock เป็น available ทั้งหมด (หลังหัก reserved แล้ว)
+            $prod['available_stock'] = $totalAvailable;
+
+            // ถ้าต้องการให้หน้า card ดูภาพรวม ใช้ราคาต่ำสุด
             if ($minPrice !== null) {
                 $prod['price'] = $minPrice;
             }
+        } else {
+            // ไม่มี variants → ใช้ available_stock ของ product หลัก
+            $prod['available_stock'] = (int)$prod['available_stock'];
         }
     }
-    unset($prod);
 
+    unset($prod);
     return $products;
 }
 
-/**
- * ดึงสินค้าเดี่ยวพร้อม variants (ถ้าอยากใช้ในหน้าอื่นภายหลัง)
- */
+
+
+
+// -----------------------------------------
+// ดึงสินค้าตัวเดียว + variants
+// -----------------------------------------
 function getProductByIdWithVariants(mysqli $conn, int $product_id): ?array
 {
     $sqlP = "
-        SELECT id, name, price, image, description, category, stock
+        SELECT 
+            id,
+            name,
+            price,
+            image,
+            description,
+            category,
+            stock,
+            reserved_stock,
+            (stock - reserved_stock) AS available_stock
         FROM products
         WHERE id = ?
         LIMIT 1
@@ -131,10 +140,19 @@ function getProductByIdWithVariants(mysqli $conn, int $product_id): ?array
     }
 
     $product = $resP->fetch_assoc();
+    $product['available_stock'] = max(0, (int)$product['available_stock']);
     $product['variants'] = [];
 
     $sqlV = "
-        SELECT id, product_id, variant_name, price, stock, image
+        SELECT 
+            id,
+            product_id,
+            variant_name,
+            price,
+            stock,
+            reserved_stock,
+            image,
+            (stock - reserved_stock) AS available_stock
         FROM product_variants
         WHERE product_id = ?
         ORDER BY id ASC
@@ -143,11 +161,12 @@ function getProductByIdWithVariants(mysqli $conn, int $product_id): ?array
 
     if ($resV && $resV->num_rows > 0) {
         while ($v = $resV->fetch_assoc()) {
+            $v['available_stock'] = max(0, (int)$v['available_stock']);
             $product['variants'][] = $v;
         }
     }
 
-    // ถ้าไม่มีรูปหลักให้ลองเอารูปจาก variant ตัวแรก
+    // fallback รูป
     if (empty($product['image']) && !empty($product['variants'])) {
         foreach ($product['variants'] as $v) {
             if (!empty($v['image'])) {
@@ -157,23 +176,21 @@ function getProductByIdWithVariants(mysqli $conn, int $product_id): ?array
         }
     }
 
+    // คำนวณ stock รวมถ้าสินค้ามี variants
     if (!empty($product['variants'])) {
-        $totalStock = 0;
-        $minPrice   = null;
+        $totalAvailable = 0;
+        $minPrice = null;
 
         foreach ($product['variants'] as $v) {
-            $vStock = (int)($v['stock'] ?? 0);
-            $vPrice = (float)($v['price'] ?? 0);
+            $totalAvailable += (int)($v['available_stock']);
+            $vPrice = (float)$v['price'];
 
-            if ($vStock > 0) {
-                $totalStock += $vStock;
-            }
-            if ($vPrice > 0 && ($minPrice === null || $vPrice < $minPrice)) {
+            if ($minPrice === null || $vPrice < $minPrice) {
                 $minPrice = $vPrice;
             }
         }
 
-        $product['stock'] = $totalStock;
+        $product['available_stock'] = $totalAvailable;
         if ($minPrice !== null) {
             $product['price'] = $minPrice;
         }
@@ -182,14 +199,20 @@ function getProductByIdWithVariants(mysqli $conn, int $product_id): ?array
     return $product;
 }
 
-/**
- * ดึงหมวดหมู่สินค้าที่มีอยู่ทั้งหมด
- */
+
+
+
+// -----------------------------------------
+// หมวดหมู่
+// -----------------------------------------
 function getAllCategories(mysqli $conn): array
 {
     $categories = [];
 
-    $sql = "SELECT DISTINCT category FROM products WHERE category IS NOT NULL AND category <> ''";
+    $sql = "SELECT DISTINCT category 
+            FROM products 
+            WHERE category IS NOT NULL AND category <> ''";
+
     $res = db_query($conn, $sql);
 
     if ($res && $res->num_rows > 0) {

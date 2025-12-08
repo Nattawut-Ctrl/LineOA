@@ -4,6 +4,7 @@ session_start();
 
 require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
+require_once UTILS_PATH . '/stock_helper.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -56,6 +57,18 @@ try {
             continue;
         }
 
+        $available = getAvailableStock($conn, $product_id, $variant_id);
+
+        if ($available <= 0 || $qty > $available) {
+            $conn->rollback();
+            echo json_encode([
+                'status'  => 'error',
+                'message' => 'out_of_stock',
+                'detail'  => 'สินค้านี้สต็อกไม่พอหรือถูกจองเต็มแล้ว',
+            ]);
+            exit;
+        }
+
         // 👉 แยก 2 เคสให้ชัด: มี/ไม่มี variant
         if ($variant_id === null) {
             // สินค้าไม่มีตัวเลือก
@@ -73,6 +86,8 @@ try {
 
         db_query($conn, $sql, $params, $types);
         // ❌ ห้ามมี return/exit ใน loop ตรงนี้เด็ดขาด ไม่งั้นจะทำได้แค่ชิ้นแรก
+
+
     }
 
     $conn->commit();

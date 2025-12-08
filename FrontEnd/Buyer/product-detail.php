@@ -403,6 +403,8 @@ $allImages    = $allImages ?? [];
       <?php endif; ?>
     </div>
 
+    <?php $isOut = (int)($product['available_stock'] ?? 0) <= 0; ?>
+
     <!-- ชื่อ / ราคา / หมวดหมู่ / stock -->
     <div class="bg-white rounded-4 p-3 shadow-sm mb-3">
       <div class="d-flex align-items-start justify-content-between gap-2">
@@ -422,8 +424,14 @@ $allImages    = $allImages ?? [];
       </div>
 
       <div class="text-muted small">
-        คงเหลือ: <span id="stockText"><?php echo (int)($product['stock'] ?? 0); ?></span>
+        คงเหลือ: <span id="stockText"><?php echo (int)($product['available_stock'] ?? 0); ?></span>
       </div>
+
+      <?php if ($isOut): ?>
+        <div class="text-danger small mt-1">
+          สินค้าหมดชั่วคราว
+        </div>
+      <?php endif; ?>
     </div>
 
     <!-- ตัวเลือก (variants) ด้านบน ไม่มีช่องจำนวน -->
@@ -474,7 +482,7 @@ $allImages    = $allImages ?? [];
                     ฿<?php echo number_format((float)($rp['price'] ?? 0), 2); ?>
                   </div>
                   <div class="small text-muted">
-                    คงเหลือ <?php echo (int)($rp['stock'] ?? 0); ?>
+                    คงเหลือ <?php echo (int)($rp['available_stock'] ?? 0); ?>
                   </div>
                 </div>
               </div>
@@ -489,10 +497,15 @@ $allImages    = $allImages ?? [];
   <!-- Buy bar (ปุ่มดำเนินการ) -->
   <div class="position-fixed bottom-0 start-0 end-0 bg-white p-2 sticky-buybar">
     <div class="container d-flex gap-2">
-      <button id="addCartBtn" class="btn btn-outline-danger w-50 fw-semibold rounded-3">
+      <button id="addCartBtn"
+        class="btn btn-outline-danger w-50 fw-semibold rounded-3"
+        <?php echo $isOut ? 'disabled aria-disabled="true"' : ''; ?>>
         <i class="bi bi-cart-plus me-1"></i> เพิ่มตะกร้า
       </button>
-      <button id="buyNowBtn" class="btn btn-danger w-50 fw-semibold rounded-3">
+
+      <button id="buyNowBtn"
+        class="btn btn-danger w-50 fw-semibold rounded-3"
+        <?php echo $isOut ? 'disabled aria-disabled="true"' : ''; ?>>
         <i class="bi bi-lightning-charge me-1"></i> ซื้อเลย
       </button>
     </div>
@@ -546,7 +559,7 @@ $allImages    = $allImages ?? [];
     <div class="py-3 cart-bar-footer d-flex justify-content-between align-items-center">
       <div class="small text-muted">
         จำนวน<br>
-        <span>คงเหลือ: <span id="cartStockText"><?php echo (int)($product['stock'] ?? 0); ?></span></span>
+        <span>คงเหลือ: <span id="cartStockText"><?php echo (int)($product['available_stock'] ?? 0); ?></span></span>
       </div>
       <div class="d-flex align-items-center gap-2">
         <button class="btn btn-outline-secondary btn-sm rounded-circle fw-bold"
@@ -700,21 +713,21 @@ $allImages    = $allImages ?? [];
     }
 
     function getCurrentStock() {
-      if (selectedVariant && selectedVariant.stock != null) {
-        return selectedVariant.stock;
+      if (selectedVariant && selectedVariant.available_stock != null) {
+        return selectedVariant.available_stock;
       }
-      return product.stock || 0;
+      return product.available_stock || 0;
     }
 
     function updatePriceAndStockUI() {
       const price = getCurrentPrice();
-      const stock = getCurrentStock();
+      const available_stock = getCurrentStock();
 
       priceTextEl.textContent = formatPrice(price);
       cartPriceTextEl.textContent = formatPrice(price);
 
-      stockTextEl.textContent = stock;
-      cartStockTextEl.textContent = stock;
+      stockTextEl.textContent = available_stock;
+      cartStockTextEl.textContent = available_stock;
 
       // รูป
       const img = (selectedVariant && selectedVariant.image) ? selectedVariant.image : product.image;
@@ -724,8 +737,8 @@ $allImages    = $allImages ?? [];
       }
 
       // จำกัดจำนวนไม่เกินสต็อก
-      if (stock > 0 && cartQty > stock) {
-        cartQty = stock;
+      if (available_stock > 0 && cartQty > available_stock) {
+        cartQty = available_stock;
         cartQtyInputEl.value = cartQty;
       }
     }
@@ -876,11 +889,11 @@ $allImages    = $allImages ?? [];
     cartBarOverlayEl.addEventListener('click', closeCartBar);
 
     function changeCartQty(delta) {
-      const stock = getCurrentStock();
+      const available_stock = getCurrentStock();
       cartQty = Number(cartQtyInputEl.value || 1);
       cartQty += delta;
       if (cartQty < 1) cartQty = 1;
-      if (stock > 0 && cartQty > stock) cartQty = stock;
+      if (available_stock > 0 && cartQty > available_stock) cartQty = available_stock;
       cartQtyInputEl.value = cartQty;
     }
 
@@ -922,7 +935,7 @@ $allImages    = $allImages ?? [];
       const variantId = selectedVariant ? selectedVariant.id : null;
       const price = getCurrentPrice();
       const imageUrl = (selectedVariant && selectedVariant.image) ? selectedVariant.image : product.image;
-      const stock = getCurrentStock();
+      const available_stock = getCurrentStock();
 
       const existing = cart.find(
         item =>
@@ -933,8 +946,8 @@ $allImages    = $allImages ?? [];
       const currentQty = existing ? Number(existing.quantity) || 0 : 0;
       const newTotal = currentQty + qty;
 
-      if (stock > 0 && newTotal > stock) {
-        const canAdd = stock - currentQty;
+      if (available_stock > 0 && newTotal > available_stock) {
+        const canAdd = available_stock - currentQty;
         if (canAdd <= 0) {
           alert('ในตะกร้ามีครบจำนวนสต็อกแล้ว');
         } else {

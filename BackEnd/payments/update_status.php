@@ -24,11 +24,18 @@ if ($id <= 0 || !in_array($status, ['approved', 'rejected'], true)) {
     exit('Invalid input');
 }
 
-// ถ้ามีการตัด/คืน stock หลายตาราง → ทำใน transaction
 $conn->begin_transaction();
 
 try {
-    updatePaymentStatus($conn, $id, $status);
+    if ($status === 'approved') {
+        $ok = approvePaymentAndApplyStock($conn, $id);
+    } else { // 'rejected'
+        $ok = rejectPaymentAndReleaseStock($conn, $id);
+    }
+
+    if (!$ok) {
+        throw new Exception('Cannot change payment status or update stock');
+    }
 
     $conn->commit();
     header("Location: list.php?ok=1");

@@ -1,18 +1,7 @@
 <?php
-// services/SlipService.php
+require_once __DIR__ . '/../config.php';
+require_once UTILS_PATH . '/stock_helper.php';
 
-/**
- * บันทึก payment ใหม่ (ทั้ง single และ cart)
- * $data = [
- *   'user_id'      => int,
- *   'product_id'   => int|null,
- *   'variant_id'   => int|null,
- *   'items_json'   => string(json array),
- *   'amount'       => float,
- *   'slip_path'    => string,
- *   'mode'         => 'single'|'cart'
- * ]
- */
 function createPayment(mysqli $conn, array $data)
 {
     // กันไว้ถ้าไม่ได้ส่งมาก็ให้เป็น null
@@ -100,6 +89,60 @@ function getPaymentById(mysqli $conn, int $payment_id): ?array
     return $res->fetch_assoc();
 }
 
+/**
+ * แปลง items_json ของ payment → array พร้อมใช้ตัดสต็อก
+ * ผลลัพธ์ประมาณ:
+ * [
+ *   ['product_id' => 11, 'variant_id' => null, 'quantity' => 2],
+ *   ...
+ * ]
+ */
+function extractItemsFromPayment(array $payment): array
+{
+    $items = [];
+
+    // เคสหลัก: มี items_json (ทั้งโหมด cart และ single)
+    if (!empty($payment['items_json'])) {
+        $decoded = json_decode($payment['items_json'], true);
+        if (is_array($decoded)) {
+            foreach ($decoded as $it) {
+                $pid = (int)($it['product_id'] ?? 0);
+                if ($pid <= 0) {
+                    continue;
+                }
+
+                $variantId = isset($it['variant_id']) ? (int)$it['variant_id'] : 0;
+                $variantId = $variantId > 0 ? $variantId : null;
+
+                $qty = (int)($it['quantity'] ?? 1);
+                if ($qty <= 0) {
+                    $qty = 1;
+                }
+
+                $items[] = [
+                    'product_id' => $pid,
+                    'variant_id' => $variantId,
+                    'quantity'   => $qty,
+                ];
+            }
+        }
+    } else {
+        // เผื่อกันไว้ถ้าเคยเก็บ product_id / variant_id ตรง ๆ
+        $pid = (int)($payment['product_id'] ?? 0);
+        if ($pid > 0) {
+            $variantId = isset($payment['variant_id']) ? (int)$payment['variant_id'] : 0;
+            $variantId = $variantId > 0 ? $variantId : null;
+
+            $items[] = [
+                'product_id' => $pid,
+                'variant_id' => $variantId,
+                'quantity'   => 1,
+            ];
+        }
+    }
+
+    return $items;
+}
 
 /**
  * อัปเดตสถานะ: approved / rejected
@@ -109,4 +152,190 @@ function updatePaymentStatus(mysqli $conn, int $payment_id, string $status): boo
     $sql = "UPDATE payments SET status = ? WHERE id = ?";
 
     return (bool)db_exec($conn, $sql, [$status, $payment_id], "si");
+}
+
+/**
+ * กัน stock แบบ soft สำหรับ payment ที่เพิ่งสร้าง (status = pending)
+ * หมายเหตุ: ฟังก์ชันนี้จะ "ไม่" เปิด transaction เอง
+ *      ให้ตัวที่เรียกเป็นคน begin / commit / rollback
+ */
+function reserveStockForPayment(mysqli $conn, int $paymentId): bool
+{
+    $payment = getPaymentById($conn, $paymentId);
+    if (!$payment) {
+        return false;
+    }
+
+    $status = $payment['status'] ?? 'pending';
+    if ($status !== 'pending') {
+        // ถ้าไม่ใช่ pending แล้ว แสดงว่าเคยจัดการไปแล้ว ไม่ต้องทำซ้ำ
+        return true;
+    }
+
+    $items = extractItemsFromPayment($payment);
+    if (empty($items)) {
+        return false;
+    }
+
+    // 1) เช็คก่อนว่าทุกรายการสต็อกยังพอไหม
+    foreach ($items as $item) {
+        $available = getAvailableStock(
+            $conn,
+            $item['product_id'],
+            $item['variant_id']
+        );
+
+        if ($available < $item['quantity']) {
+            // ถ้าชิ้นไหนไม่พอ → กันไม่ได้ทั้งบิล
+            return false;
+        }
+    }
+
+    // 2) ถ้าพอทุกชิ้น → อัปเดต reserved_stock
+    foreach ($items as $item) {
+        $qty = $item['quantity'];
+
+        if ($item['variant_id'] !== null) {
+            $sql = "
+                UPDATE product_variants
+                SET reserved_stock = reserved_stock + ?
+                WHERE id = ? AND product_id = ?
+            ";
+            db_exec(
+                $conn,
+                $sql,
+                [$qty, $item['variant_id'], $item['product_id']],
+                "iii"
+            );
+        } else {
+            $sql = "
+                UPDATE products
+                SET reserved_stock = reserved_stock + ?
+                WHERE id = ?
+            ";
+            db_exec(
+                $conn,
+                $sql,
+                [$qty, $item['product_id']],
+                "ii"
+            );
+        }
+    }
+
+    return true;
+}
+
+/**
+ * อนุมัติสลิป:
+ *  - หัก stock จริง (stock - qty)
+ *  - ลด reserved_stock ตาม qty
+ *  - อัปเดตสถานะเป็น approved
+ * ควรเรียกภายใน transaction
+ */
+function approvePaymentAndApplyStock(mysqli $conn, int $paymentId): bool
+{
+    $payment = getPaymentById($conn, $paymentId);
+    if (!$payment) {
+        return false;
+    }
+
+    if (($payment['status'] ?? 'pending') !== 'pending') {
+        // กันการกดซ้ำ / เปลี่ยนจาก approved -> rejected ย้อนหลัง
+        return false;
+    }
+
+    $items = extractItemsFromPayment($payment);
+    if (empty($items)) {
+        return false;
+    }
+
+    foreach ($items as $item) {
+        $qty = $item['quantity'];
+
+        if ($item['variant_id'] !== null) {
+            $sql = "
+                UPDATE product_variants
+                SET stock = stock - ?, 
+                    reserved_stock = GREATEST(reserved_stock - ?, 0)
+                WHERE id = ? AND product_id = ?
+            ";
+            db_exec(
+                $conn,
+                $sql,
+                [$qty, $qty, $item['variant_id'], $item['product_id']],
+                "iiii"
+            );
+        } else {
+            $sql = "
+                UPDATE products
+                SET stock = stock - ?, 
+                    reserved_stock = GREATEST(reserved_stock - ?, 0)
+                WHERE id = ?
+            ";
+            db_exec(
+                $conn,
+                $sql,
+                [$qty, $qty, $item['product_id']],
+                "iii"
+            );
+        }
+    }
+
+    // เปลี่ยนสถานะ payment
+    return updatePaymentStatus($conn, $paymentId, 'approved');
+}
+
+/**
+ * ปฏิเสธสลิป:
+ *  - คืนของที่กันไว้ (ลด reserved_stock อย่างเดียว)
+ *  - ไม่แตะ stock จริง
+ *  - อัปเดตสถานะเป็น rejected
+ */
+function rejectPaymentAndReleaseStock(mysqli $conn, int $paymentId): bool
+{
+    $payment = getPaymentById($conn, $paymentId);
+    if (!$payment) {
+        return false;
+    }
+
+    if (($payment['status'] ?? 'pending') !== 'pending') {
+        return false;
+    }
+
+    $items = extractItemsFromPayment($payment);
+    if (empty($items)) {
+        return false;
+    }
+
+    foreach ($items as $item) {
+        $qty = $item['quantity'];
+
+        if ($item['variant_id'] !== null) {
+            $sql = "
+                UPDATE product_variants
+                SET reserved_stock = GREATEST(reserved_stock - ?, 0)
+                WHERE id = ? AND product_id = ?
+            ";
+            db_exec(
+                $conn,
+                $sql,
+                [$qty, $item['variant_id'], $item['product_id']],
+                "iii"
+            );
+        } else {
+            $sql = "
+                UPDATE products
+                SET reserved_stock = GREATEST(reserved_stock - ?, 0)
+                WHERE id = ?
+            ";
+            db_exec(
+                $conn,
+                $sql,
+                [$qty, $item['product_id']],
+                "ii"
+            );
+        }
+    }
+
+    return updatePaymentStatus($conn, $paymentId, 'rejected');
 }

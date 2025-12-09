@@ -179,9 +179,10 @@ $activeMenu = "stock";
                                 if (!empty($_GET['filter_stock'])) {
                                     $fs = $_GET['filter_stock'];
                                     if ($fs === 'low') {
-                                        $where .= " AND p.stock > 0 AND p.stock <= 5"; // กำหนดเองได้ว่า "เหลือน้อย" คือเท่าไหร่
+                                        $where .= " AND (p.stock - p.reserved_stock) > 0 
+                                                    AND (p.stock - p.reserved_stock) <= 5";
                                     } elseif ($fs === 'out') {
-                                        $where .= " AND p.stock <= 0";
+                                        $where .= " AND (p.stock - p.reserved_stock) <= 0";
                                     }
                                 }
 
@@ -200,10 +201,18 @@ $activeMenu = "stock";
 
                                 // ดึงเฉพาะสินค้าของหน้านี้
                                 $productsListRes = $conn->query("
-                                    SELECT p.*,
-                                        (SELECT COUNT(*) FROM product_variants WHERE product_id = p.id) AS variant_count
+                                    SELECT 
+                                        p.id,
+                                        p.name,
+                                        p.category,
+                                        p.price,
+                                        COALESCE(SUM(v.stock), 0)          AS stock,
+                                        COALESCE(SUM(v.reserved_stock), 0) AS reserved_stock,
+                                        COUNT(v.id)                        AS variant_count
                                     FROM products p
+                                    LEFT JOIN product_variants v ON v.product_id = p.id
                                     $where
+                                    GROUP BY p.id
                                     ORDER BY p.id DESC
                                     LIMIT $perPage OFFSET $offset
                                 ");
@@ -369,18 +378,31 @@ $activeMenu = "stock";
                                                             </td>
                                                             <td><?= number_format($p['price'], 2) ?></td>
                                                             <td>
-                                                                <?php if ($p['stock'] <= 0): ?>
+                                                                <?php
+                                                                $totalStock = (int)($p['stock'] ?? 0);
+                                                                $reserved   = (int)($p['reserved_stock'] ?? 0);
+                                                                $available  = max(0, $totalStock - $reserved);
+                                                                ?>
+
+                                                                <?php if ($available <= 0): ?>
                                                                     <span class="badge bg-danger-subtle border border-danger text-danger">
                                                                         สต็อกหมด
                                                                     </span>
-                                                                <?php elseif ($p['stock'] <= 5): ?>
+                                                                <?php elseif ($available <= 5): ?>
                                                                     <span class="badge bg-warning-subtle border border-warning text-warning">
-                                                                        เหลือน้อย (<?= number_format($p['stock']) ?>)
+                                                                        เหลือน้อย (<?= number_format($available) ?>)
                                                                     </span>
                                                                 <?php else: ?>
                                                                     <span class="badge bg-success-subtle border border-success text-success">
-                                                                        <?= number_format($p['stock']) ?> ชิ้น
+                                                                        <?= number_format($available) ?> ชิ้น
                                                                     </span>
+                                                                <?php endif; ?>
+
+                                                                <?php if ($reserved > 0): ?>
+                                                                    <small class="text-muted d-block mt-1">
+                                                                        จองไว้: <?= number_format($reserved) ?> ชิ้น
+                                                                        (รวมทั้งหมด) <?= number_format($totalStock) ?> ชิ้น
+                                                                    </small>
                                                                 <?php endif; ?>
                                                             </td>
 

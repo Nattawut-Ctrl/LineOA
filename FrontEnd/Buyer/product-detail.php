@@ -721,13 +721,14 @@ $allImages    = $allImages ?? [];
 
     function updatePriceAndStockUI() {
       const price = getCurrentPrice();
-      const available_stock = getCurrentStock();
+      const available = getCurrentStock(); // ← ใช้ available ไม่ใช่ available_stock แล้ว
 
+      // อัปเดตราคา/สต็อกให้ UI
       priceTextEl.textContent = formatPrice(price);
       cartPriceTextEl.textContent = formatPrice(price);
 
-      stockTextEl.textContent = available_stock;
-      cartStockTextEl.textContent = available_stock;
+      stockTextEl.textContent = available;
+      cartStockTextEl.textContent = available;
 
       // รูป
       const img = (selectedVariant && selectedVariant.image) ? selectedVariant.image : product.image;
@@ -736,9 +737,57 @@ $allImages    = $allImages ?? [];
         cartThumbEl.src = img;
       }
 
-      // จำกัดจำนวนไม่เกินสต็อก
-      if (available_stock > 0 && cartQty > available_stock) {
-        cartQty = available_stock;
+      // อ้างอิงปุ่ม + / - (ให้ไปใส่ class พวกนี้ใน HTML ด้วยนะ)
+      const plusBtn = document.querySelector('.btn-plus');
+      const minusBtn = document.querySelector('.btn-minus');
+
+      if (available <= 0) {
+
+        // จำนวน = 0
+        cartQty = 0;
+        cartQtyInputEl.value = 0;
+        cartQtyInputEl.disabled = true;
+
+        // ปิดปุ่มทั้งหมด
+        cartAddConfirmBtn.setAttribute('disabled', 'true');
+        cartBuyConfirmBtn.setAttribute('disabled', 'true');
+        plusBtn && plusBtn.setAttribute('disabled', 'true');
+        minusBtn && minusBtn.setAttribute('disabled', 'true');
+
+        // 🔥 เปลี่ยนข้อความปุ่มหลักด้านล่าง
+        document.getElementById("addCartBtn").innerHTML = `
+            <i class="bi bi-x-circle me-1"></i> สินค้าหมด
+        `;
+        document.getElementById("addCartBtn").setAttribute("disabled", "true");
+
+        document.getElementById("buyNowBtn").innerHTML = `
+            <i class="bi bi-x-circle me-1"></i> สินค้าหมด
+        `;
+        document.getElementById("buyNowBtn").setAttribute("disabled", "true");
+
+        return;
+      }
+
+      // เคลียร์ disabled ก่อน (เผื่อเคยปิดจากรอบก่อน)
+      cartQtyInputEl.disabled = false;
+      cartAddConfirmBtn.removeAttribute('disabled');
+      cartBuyConfirmBtn.removeAttribute('disabled');
+      plusBtn && plusBtn.removeAttribute('disabled');
+      minusBtn && minusBtn.removeAttribute('disabled');
+
+      document.getElementById("addCartBtn").innerHTML = `
+        <i class="bi bi-cart-plus me-1"></i> เพิ่มตะกร้า
+      `;
+      document.getElementById("addCartBtn").removeAttribute("disabled");
+
+      document.getElementById("buyNowBtn").innerHTML = `
+        <i class="bi bi-lightning-charge me-1"></i> ซื้อเลย
+      `;
+      document.getElementById("buyNowBtn").removeAttribute("disabled");
+
+      // ถ้าสต็อกมี แต่ cartQty เกิน → ดึงลงมาเท่าที่เหลือ
+      if (cartQty > available) {
+        cartQty = available;
         cartQtyInputEl.value = cartQty;
       }
     }

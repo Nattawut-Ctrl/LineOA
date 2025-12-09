@@ -337,16 +337,16 @@ unset($item);
             <div id="categoryCollapse" class="collapse d-md-block show">
                 <div class="d-flex category-chip overflow-x-auto gap-2 py-1">
                     <?php foreach ($categories as $cat): ?>
-                    <button type="button"
-                        class="btn btn-sm btn-outline-secondary rounded-pill text-nowrap flex-shrink-0 category-item <?php echo $cat === 'ทั้งหมด' ? 'active' : ''; ?>"
-                        data-category="<?php echo $cat; ?>">
-                        <?php if ($cat === 'ทั้งหมด'): ?>
-                        <i class="bi bi-grid-3x3-gap-fill me-1"></i>
-                        <?php else: ?>
-                        <i class="bi bi-tag me-1"></i>
-                        <?php endif; ?>
-                        <?php echo $cat; ?>
-                    </button>
+                        <button type="button"
+                            class="btn btn-sm btn-outline-secondary rounded-pill text-nowrap flex-shrink-0 category-item <?php echo $cat === 'ทั้งหมด' ? 'active' : ''; ?>"
+                            data-category="<?php echo $cat; ?>">
+                            <?php if ($cat === 'ทั้งหมด'): ?>
+                                <i class="bi bi-grid-3x3-gap-fill me-1"></i>
+                            <?php else: ?>
+                                <i class="bi bi-tag me-1"></i>
+                            <?php endif; ?>
+                            <?php echo $cat; ?>
+                        </button>
                     <?php endforeach; ?>
                 </div>
             </div>
@@ -358,7 +358,7 @@ unset($item);
         <div class="row g-3 g-md-4" id="product-list">
             <?php foreach ($products as $product): ?>
 
-            <?php
+                <?php
                 // --- แปลง path รูปให้เป็น URL เต็ม ปลอดภัยบน iOS/LIFF ---
                 $imgPath = $product['image'] ?? '';
 
@@ -382,63 +382,63 @@ unset($item);
                 $btnDisabled = $availableStock <= 0 ? 'disabled aria-disabled="true"' : '';
                 ?>
 
-            <div class="col-6 col-md-4 col-lg-3 product-item mb-2 mb-md-3"
-                data-category="<?php echo $product['category']; ?>">
+                <div class="col-6 col-md-4 col-lg-3 product-item mb-2 mb-md-3"
+                    data-category="<?php echo $product['category']; ?>">
 
-                <div class="card product-card clickable-card h-100 border-0 shadow-sm bg-white"
-                    data-href="product-detail.php?id=<?php echo (int)$product['id']; ?>">
+                    <div class="card product-card clickable-card h-100 border-0 shadow-sm bg-white"
+                        data-href="product-detail.php?id=<?php echo (int)$product['id']; ?>">
 
-                    <div class="position-relative product-img-wrap rounded-top-4 overflow-hidden">
-                        <?php $img = buildImageUrl($product['image'] ?? ''); ?>
-                        <img src="<?= htmlspecialchars($img) ?>" class="card-img-top w-100 h-100"
-                            alt="<?= htmlspecialchars($product['name']); ?>" loading="lazy">
+                        <div class="position-relative product-img-wrap rounded-top-4 overflow-hidden">
+                            <?php $img = buildImageUrl($product['image'] ?? ''); ?>
+                            <img src="<?= htmlspecialchars($img) ?>" class="card-img-top w-100 h-100"
+                                alt="<?= htmlspecialchars($product['name']); ?>" loading="lazy">
 
-                        <?php if (!empty($product['category'])): ?>
-                        <span
-                            class="badge text-bg-light position-absolute top-0 start-0 m-2 rounded-pill shadow-sm small">
-                            <i class="bi bi-tag me-1 text-danger"></i>
-                            <?= htmlspecialchars($product['category']); ?>
-                        </span>
-                        <?php endif; ?>
+                            <?php if (!empty($product['category'])): ?>
+                                <span
+                                    class="badge text-bg-light position-absolute top-0 start-0 m-2 rounded-pill shadow-sm small">
+                                    <i class="bi bi-tag me-1 text-danger"></i>
+                                    <?= htmlspecialchars($product['category']); ?>
+                                </span>
+                            <?php endif; ?>
 
-                        <span class="badge position-absolute bottom-0 end-0 m-2 badge-stock shadow-sm
+                            <span class="badge position-absolute bottom-0 end-0 m-2 badge-stock shadow-sm
                                    <?php echo $availableStock <= 0
                                         ? 'bg-secondary text-light'
                                         : 'bg-success-subtle text-success-emphasis'; ?>">
-                            <?php if ($availableStock <= 0): ?>
-                            สินค้าหมดชั่วคราว
-                            <?php else: ?>
-                            คงเหลือ
-                            <?= $availableStock; ?>
-                            <?php endif; ?>
-                        </span>
-                    </div>
+                                <?php if ($availableStock <= 0): ?>
+                                    สินค้าหมดชั่วคราว
+                                <?php else: ?>
+                                    คงเหลือ
+                                    <?= $availableStock; ?>
+                                <?php endif; ?>
+                            </span>
+                        </div>
 
-                    <div class="card-body d-flex flex-column p-2 p-md-3">
-                        <h6 class="card-title text-truncate small fw-semibold mb-1">
-                            <?= htmlspecialchars($product['name']); ?>
-                        </h6>
-                        <p class="text-danger fw-bold fs-6 mb-1">
-                            ฿
-                            <?= number_format($product['price']); ?>
-                        </p>
-                        <small class="text-muted text-truncate flex-grow-1 mb-2">
-                            <?= htmlspecialchars($product['description']); ?>
-                        </small>
-                        <div class="d-grid gap-1 mt-1">
-                            <button class="btn btn-sm btn-outline-danger fw-semibold rounded-3 add-cart-btn"
-                                data-product='<?= json_encode($productForJs, JSON_UNESCAPED_UNICODE); ?>'>
-                                <i class="bi bi-cart-plus me-1"></i> เพิ่มตะกร้า
-                            </button>
-                            <button class="btn btn-sm fw-semibold rounded-3 text-white open-cart-bar"
-                                style="background: linear-gradient(135deg, #ff7043, #ff9800);"
-                                data-product='<?= json_encode($productForJs, JSON_UNESCAPED_UNICODE); ?>'>
-                                <i class="bi bi-lightning-charge me-1"></i> ซื้อเลย
-                            </button>
+                        <div class="card-body d-flex flex-column p-2 p-md-3">
+                            <h6 class="card-title text-truncate small fw-semibold mb-1">
+                                <?= htmlspecialchars($product['name']); ?>
+                            </h6>
+                            <p class="text-danger fw-bold fs-6 mb-1">
+                                ฿
+                                <?= number_format($product['price']); ?>
+                            </p>
+                            <small class="text-muted text-truncate flex-grow-1 mb-2">
+                                <?= htmlspecialchars($product['description']); ?>
+                            </small>
+                            <div class="d-grid gap-1 mt-1">
+                                <button class="btn btn-sm btn-outline-danger fw-semibold rounded-3 add-cart-btn"
+                                    data-product='<?= json_encode($productForJs, JSON_UNESCAPED_UNICODE); ?>'>
+                                    <i class="bi bi-cart-plus me-1"></i> เพิ่มตะกร้า
+                                </button>
+                                <button class="btn btn-sm fw-semibold rounded-3 text-white open-cart-bar"
+                                    style="background: linear-gradient(135deg, #ff7043, #ff9800);"
+                                    data-product='<?= json_encode($productForJs, JSON_UNESCAPED_UNICODE); ?>'>
+                                    <i class="bi bi-lightning-charge me-1"></i> ซื้อเลย
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
             <?php endforeach; ?>
         </div>
     </main>
@@ -478,20 +478,20 @@ unset($item);
             <div class="mb-3">
                 <label class="form-label small fw-semibold mb-2">จำนวน</label>
                 <div class="d-flex align-items-center justify-content-center gap-2">
-                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-circle fw-bold"
+                    <button type="button" id="btnQtyMinus" class="btn btn-outline-secondary btn-sm rounded-circle fw-bold"
                         style="width: 36px; height: 36px;" onclick="changeQuantity(-1)">−</button>
                     <input type="number" id="quantity" value="1" min="1" class="form-control text-center fw-bold"
                         style="width: 80px;">
-                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-circle fw-bold"
+                    <button type="button" id="btnQtyPlus" class="btn btn-outline-secondary btn-sm rounded-circle fw-bold"
                         style="width: 36px; height: 36px;" onclick="changeQuantity(1)">+</button>
                 </div>
             </div>
 
             <div class="d-grid gap-2">
-                <button type="button" class="btn btn-outline-danger fw-bold rounded-3" onclick="addCurrentToCart()">
+                <button type="button" id="btnAddToCartBar" class="btn btn-outline-danger fw-bold rounded-3" onclick="addCurrentToCart()">
                     <i class="bi bi-cart-plus me-1"></i> เพิ่มลงตะกร้า
                 </button>
-                <button type="button" class="btn fw-bold rounded-3 text-white"
+                <button type="button" id="btnBuyNowBar" class="btn fw-bold rounded-3 text-white"
                     style="background: linear-gradient(135deg, #ee4d2d, #ff7043);" onclick="confirmPurchase()">
                     <i class="bi bi-lightning-charge me-1"></i> ซื้อเลย
                 </button>
@@ -600,8 +600,13 @@ unset($item);
             if (!selectedProduct) return Infinity;
 
             // ถ้าเลือก variant อยู่ ใช้ stock ของ variant
-            if (selectedVariant && selectedVariant.available_stock != null) {
-                return Number(selectedVariant.available_stock) || 0;
+            if (selectedVariant) {
+                if (selectedVariant.available_stock != null) {
+                    return Number(selectedVariant.available_stock) || 0;
+                }
+                if (selectedProduct.stock != null) {
+                    return Number(selectedProduct.stock) || 0;
+                }
             }
 
             // ถ้าไม่มี variant → ใช้ available_stock ก่อน ถ้าไม่มีค่อย fallback ไป stock
@@ -613,6 +618,41 @@ unset($item);
             return Number(selectedProduct.stock ?? 0);
         }
 
+        function updateCartBarControls(available) {
+            const qtyInput = document.getElementById('quantity');
+            const btnMinus = document.getElementById('btnQtyMinus');
+            const btnPlus = document.getElementById('btnQtyPlus');
+            const btnAdd = document.getElementById('btnAddToCartBar');
+            const btnBuy = document.getElementById('btnBuyNowBar');
+            const stockEl = document.getElementById('stockInfo');
+
+            // กัน null
+            available = Number(available || 0);
+
+            if (available <= 0) {
+                if (qtyInput) {
+                    qtyInput.value = 0;
+                    qtyInput.disabled = true;
+                }
+                if (btnMinus) btnMinus.disabled = true;
+                if (btnPlus) btnPlus.disabled = true;
+                if (btnAdd) btnAdd.disabled = true;
+                if (btnBuy) btnBuy.disabled = true;
+
+                if (stockEl) stockEl.textContent = 'สินค้าหมด';
+            } else {
+                if (qtyInput) {
+                    if (Number(qtyInput.value) <= 0) qtyInput.value = 1;
+                    qtyInput.disabled = false;
+                }
+                if (btnMinus) btnMinus.disabled = false;
+                if (btnPlus) btnPlus.disabled = false;
+                if (btnAdd) btnAdd.disabled = false;
+                if (btnBuy) btnBuy.disabled = false;
+
+                if (stockEl) stockEl.textContent = available;
+            }
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
 
@@ -816,8 +856,11 @@ unset($item);
             document.getElementById('quantity').value = 1;
 
             const stockEl = document.getElementById("stockInfo");
-            const available = (product.available_stock != null) ? product.available_stock : product.stock;
-            stockEl.textContent = available ?? "--";
+            const available = (product.available_stock != null) ?
+                Number(product.available_stock) :
+                Number(product.stock ?? 0);
+
+            updateCartBarControls(available);
 
             const variantWrapper = document.getElementById('variantWrapper');
             const variantList = document.getElementById('variantList');
@@ -855,16 +898,20 @@ unset($item);
                         priceEl.innerText = '฿' + newPrice;
                         imgEl.src = newImage;
 
+                        const vAvailable = (variant.available_stock != null) ?
+                            Number(variant.available_stock) :
+                            Number(variant.stock ?? 0);
+
                         selectedVariant = {
                             id: btn.dataset.id,
                             name: btn.dataset.name,
                             price: newPrice,
                             image: newImage,
-                            available_stock: variant.available_stock
+                            stock: variant.stock,
+                            available_stock: vAvailable
                         };
 
-                        const stockEl = document.getElementById("stockInfo");
-                        stockEl.textContent = variant.available_stock ?? "--";
+                        updateCartBarControls(vAvailable);
                     });
 
                     variantList.appendChild(btn);
@@ -1128,14 +1175,14 @@ unset($item);
             // console.log('cart before sync', cart);
 
             fetch('save_cart.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    cart
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        cart
+                    })
                 })
-            })
                 .then(res => res.json())
                 .then(data => {
                     // console.log('Server response:', data);

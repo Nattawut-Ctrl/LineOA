@@ -19,7 +19,7 @@ if ($product_id <= 0) {
 // ดึงข้อมูลสินค้า
 $resProduct = db_query(
     $conn,
-    "SELECT id, name, stock, image FROM products WHERE id = ?",
+    "SELECT id, name, stock, reserved_stock, image FROM products WHERE id = ?",
     [$product_id],
     "i"
 );
@@ -34,7 +34,7 @@ $product = $resProduct->fetch_assoc();
 // ดึงตัวเลือกสินค้า (variants)
 $resVar = db_query(
     $conn,
-    "SELECT id, variant_name, price, stock, image
+    "SELECT id, variant_name, price, stock, reserved_stock, image
      FROM product_variants
      WHERE product_id = ?
      ORDER BY id ASC",
@@ -54,114 +54,99 @@ if ($resVar && $resVar->num_rows > 0): ?>
         </small>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-sm align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th style="width:80px;">รูป</th>
-                    <th>ตัวเลือก</th>
-                    <th style="width:120px;">สต็อกปัจจุบัน</th>
-                    <th style="width:130px;">เพิ่มสต็อก</th>
-                    <!-- <th style="width:260px;">จัดการรูป</th> -->
-                </tr>
-            </thead>
-            <tbody>
-                <?php while ($v = $resVar->fetch_assoc()): 
-                    $vid    = (int)$v['id'];
-                    $vName  = $v['variant_name'] ?: ('ตัวเลือก #' . $vid);
-                    $vStock = (int)$v['stock'];
-                    $imgUrl = buildImageUrlFromPath($v['image'] ?? '');
-                ?>
-                    <tr>
-                        <td>
-                            <?php if (!empty($imgUrl)): ?>
-                                <img src="<?= htmlspecialchars($imgUrl) ?>"
-                                     class="img-thumbnail"
-                                     style="width:60px;height:60px;object-fit:cover;">
-                            <?php else: ?>
-                                <span class="text-muted small">ไม่มีรูป</span>
-                            <?php endif; ?>
-                        </td>
-                        <td>
-                            <div class="fw-semibold"><?= htmlspecialchars($vName) ?></div>
-                            <?php if ($v['price'] !== null): ?>
-                                <div class="text-muted small">
-                                    ราคา: <?= number_format((float)$v['price'], 2) ?> บาท
-                                </div>
-                            <?php endif; ?>
-                        </td>
-                        <td>
-                            <span class="badge bg-secondary-subtle border border-secondary text-secondary">
-                                <?= $vStock ?> ชิ้น
-                            </span>
-                        </td>
-                        <td>
-                            <input type="number"
-                                   name="add_stock[<?= $vid ?>]"
-                                   class="form-control form-control-sm"
-                                   min="0"
-                                   value="0">
-                        </td>
-                        <!-- <td>
-                            <div class="small text-muted mb-1">
-                                อัปโหลดรูปใหม่ (ถ้าต้องการเปลี่ยน)
-                            </div>
-                            <input type="file"
-                                   name="variant_image[<?= $vid ?>]"
-                                   class="form-control form-control-sm mb-1"
-                                   accept="image/*">
+    <?php while ($v = $resVar->fetch_assoc()):
+        $vid         = (int)$v['id'];
+        $variantName = $v['variant_name'] ?? '—';
+        $price       = (float)($v['price'] ?? 0);
+        $vStock      = (int)($v['stock'] ?? 0);
+        $reserved    = (int)($v['reserved_stock'] ?? 0);
+        $available   = max(0, $vStock - $reserved);
 
-                            <?php if (!empty($v['image'])): ?>
-                                <div class="form-check">
-                                    <input class="form-check-input"
-                                           type="checkbox"
-                                           name="variant_image_delete[]"
-                                           value="<?= $vid ?>"
-                                           id="delImg<?= $vid ?>">
-                                    <label class="form-check-label small" for="delImg<?= $vid ?>">
-                                        ลบรูปเดิมออก
-                                    </label>
-                                </div>
-                            <?php endif; ?>
-                        </td> -->
-                    </tr>
-                <?php endwhile; ?>
-            </tbody>
-        </table>
-    </div>
+        $imgUrl = buildImageUrlFromPath($v['image'] ?? '');
+    ?>
+        <div class="border rounded-3 p-3 mb-3 d-flex align-items-start gap-3 bg-white">
+            <!-- รูปตัวเลือก -->
+            <div class="flex-shrink-0" style="width:80px;">
+                <?php if ($imgUrl): ?>
+                    <img src="<?php echo htmlspecialchars($imgUrl); ?>"
+                        alt="<?php echo htmlspecialchars($variantName); ?>"
+                        class="img-fluid rounded-3 border">
+                <?php else: ?>
+                    <div class="bg-light rounded-3 d-flex align-items-center justify-content-center"
+                        style="width:80px;height:80px;">
+                        <span class="text-muted small">ไม่มีรูป</span>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- ข้อมูลตัวเลือก -->
+            <div class="flex-grow-1">
+                <div class="fw-semibold mb-1">
+                    <?php echo htmlspecialchars($variantName); ?>
+                </div>
+                <div class="small text-muted mb-2">
+                    ราคา: ฿<?php echo number_format($price, 2); ?>
+                </div>
+                <div class="small">
+                    คงเหลือขายได้:
+                    <span class="fw-bold text-success"><?php echo $available; ?></span><br>
+                    จองไว้:
+                    <span class="fw-semibold"><?php echo $reserved; ?></span>
+                    |
+                    สต็อกรวม:
+                    <span class="fw-semibold"><?php echo $vStock; ?></span>
+                </div>
+            </div>
+
+            <!-- ช่องเพิ่มสต๊อก -->
+            <div class="flex-shrink-0" style="width:130px;">
+                <label class="small text-muted mb-1 d-block">เพิ่มสต็อก</label>
+                <input type="number"
+                    name="variant_stock[<?php echo $vid; ?>]"
+                    min="0"
+                    class="form-control form-control-sm text-end"
+                    value="0">
+            </div>
+        </div>
+    <?php endwhile; ?>
+
+    <input type="hidden" name="product_has_variants" value="1">
 
 <?php
-// ถ้าไม่มี variants → ให้เพิ่มสต็อกสินค้าหลักตรง ๆ
+// ถ้าไม่มี variants เลย → ให้ไปใช้สต็อกของ product หลัก
 else: ?>
 
-    <div class="border rounded-3 p-3 bg-light-subtle">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <div>
-                <div class="fw-semibold mb-1">
-                    เพิ่มสต็อกสินค้าหลัก
-                </div>
-                <div class="text-muted small">
-                    สินค้านี้ไม่มีตัวเลือกย่อย ระบบจะเพิ่มสต็อกให้กับสินค้าโดยตรง
-                </div>
-            </div>
-            <div class="text-end">
-                <div class="small text-muted mb-1">สต็อกปัจจุบัน</div>
-                <span class="badge bg-secondary-subtle border border-secondary text-secondary">
-                    <?= (int)$product['stock'] ?> ชิ้น
-                </span>
-            </div>
-        </div>
+    <?php
+    $total_stock = (int)($product['stock'] ?? 0);
+    $reserved    = (int)($product['reserved_stock'] ?? 0);
+    $available   = max(0, $total_stock - $reserved);
+    ?>
+    <div class="alert alert-info small mb-2">
+        สินค้านี้ยังไม่มีตัวเลือก (variant) <br>
+        ระบบจะใช้สต็อกจากสินค้าหลักโดยตรง
+    </div>
 
-        <div class="row g-3 align-items-center">
-            <div class="col-md-6">
-                <label class="form-label fw-semibold">จำนวนที่ต้องการเพิ่ม</label>
-                <input type="number"
-                       name="product_add_stock"
-                       class="form-control"
-                       min="1"
-                       value="1">
-            </div>
+    <div class="border rounded-3 p-3 mb-2 bg-light">
+        <div class="small text-muted">
+            คงเหลือขายได้:
+            <span class="fw-bold text-success"><?php echo $available; ?></span><br>
+            จองไว้:
+            <span class="fw-semibold"><?php echo $reserved; ?></span>
+            |
+            สต็อกรวม:
+            <span class="fw-semibold"><?php echo $total_stock; ?></span>
         </div>
     </div>
+
+    <div class="mb-2">
+        <label class="small mb-1">เพิ่มสต็อก (สินค้าหลัก)</label>
+        <input type="number"
+            name="product_stock"
+            min="0"
+            class="form-control form-control-sm text-end"
+            value="0">
+    </div>
+
+    <input type="hidden" name="product_has_variants" value="0">
 
 <?php endif; ?>

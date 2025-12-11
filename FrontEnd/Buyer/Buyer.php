@@ -258,6 +258,7 @@ unset($item);
             color: #777;
             text-decoration: none;
             padding-top: 4px;
+            position: relative;
         }
 
         .bottom-nav .nav-item i {
@@ -269,6 +270,20 @@ unset($item);
             color: #ee4d2d;
         }
 
+        .bottom-nav .noti-badge {
+            position: absolute;
+            top: 4px;
+            right: 22%;
+            /* ปรับเลขนี้ได้ตามที่ชอบ */
+            transform: translate(50%, -40%);
+            min-width: 16px;
+            height: 16px;
+            padding: 0 4px;
+            font-size: 10px;
+            line-height: 16px;
+            border-radius: 999px;
+            pointer-events: none;
+        }
 
         /* ให้ content ด้านบนไม่โดน bottom nav ทับบนจอเล็ก */
         .buyer-main-padding {
@@ -560,6 +575,12 @@ unset($item);
         <a href="notifications.php" class="nav-item" id="nav-noti">
             <i class="bi bi-bell"></i>
             <span>แจ้งเตือน</span>
+
+            <!-- badge แจ้งเตือน -->
+            <span id="notiBadge"
+                class="noti-badge badge rounded-pill bg-danger text-white d-none">
+                0
+            </span>
         </a>
 
         <a href="profile.php" class="nav-item" id="nav-me">
@@ -1197,6 +1218,28 @@ unset($item);
                 });
 
         }
+
+        const CHECK_NOTI_URL = "/utils/check_buyer_notifications.php";
+
+        function checkNotifications() {
+            fetch(CHECK_NOTI_URL)
+                .then(res => res.json())
+                .then(data => {
+                    const badge = document.getElementById("notiBadge");
+                    if (!badge) return;
+
+                    if (data.count > 0) {
+                        badge.textContent = data.count;
+                        badge.classList.remove("d-none");
+                    } else {
+                        badge.classList.add("d-none");
+                    }
+                })
+                .catch(err => console.error("checkNotifications error:", err));
+        }
+
+        setInterval(checkNotifications, 10000);
+        checkNotifications();
     </script>
 
 </body>

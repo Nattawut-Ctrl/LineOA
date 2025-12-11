@@ -340,6 +340,33 @@ $allImages    = $allImages ?? [];
       animation: skeleton-shimmer 1.2s infinite;
     }
 
+    /* Desktop layout: แสดง 2 คอลัมน์ */
+    @media (min-width: 992px) {
+      .desktop-flex {
+        display: flex;
+        gap: 32px;
+      }
+
+      .desktop-left {
+        flex: 1;
+        max-width: 480px;
+      }
+
+      .desktop-right {
+        flex: 1.2;
+      }
+
+      /* ปิด sticky buy bar ใน Desktop */
+      .sticky-buybar {
+        display: none !important;
+      }
+
+      /* Gallery desktop: ใหญ่ขึ้น */
+      .product-gallery-main .product-main-img {
+        max-height: 500px !important;
+      }
+    }
+
     @keyframes skeleton-shimmer {
       100% {
         transform: translateX(100%);
@@ -376,89 +403,109 @@ $allImages    = $allImages ?? [];
   <!-- Main -->
   <main class="container my-3 mb-5 pb-5">
 
-    <!-- รูปสินค้า + Gallery -->
-    <div class="bg-white rounded-4 p-2 shadow-sm mb-3">
+    <div class="desktop-flex">
+      <div class="desktop-left">
+        <!-- รูปสินค้า + Gallery -->
+        <div class="bg-white rounded-4 p-2 shadow-sm mb-3">
 
-      <!-- รูปใหญ่ -->
-      <div class="ratio ratio-1x1 rounded-4 overflow-hidden mb-2 product-gallery-main skeleton-box">
-        <img id="productMainImage"
-          src="<?php echo htmlspecialchars($allImages[0] ?? $product['image']); ?>"
-          class="w-100 h-100 object-fit-cover product-main-img"
-          alt="<?php echo htmlspecialchars($product['name']); ?>"
-          onload="this.parentElement.classList.remove('skeleton-box');">
-      </div>
+          <!-- รูปใหญ่ -->
+          <div class="ratio ratio-1x1 rounded-4 overflow-hidden mb-2 product-gallery-main skeleton-box">
+            <img id="productMainImage"
+              src="<?php echo htmlspecialchars($allImages[0] ?? $product['image']); ?>"
+              class="w-100 h-100 object-fit-cover product-main-img"
+              alt="<?php echo htmlspecialchars($product['name']); ?>"
+              onload="this.parentElement.classList.remove('skeleton-box');">
+          </div>
 
-      <!-- Thumbnails -->
-      <?php if (count($allImages) > 1): ?>
-        <div class="product-gallery-thumbs d-flex flex-wrap gap-2">
-          <?php foreach ($allImages as $idx => $url): ?>
-            <div class="product-thumb-wrapper <?= $idx === 0 ? 'active' : '' ?>">
-              <img src="<?= htmlspecialchars($url) ?>"
-                data-full="<?= htmlspecialchars($url) ?>"
-                class="img-fluid product-thumb-img"
-                loading="lazy">
+          <!-- Thumbnails -->
+          <?php if (count($allImages) > 1): ?>
+            <div class="product-gallery-thumbs d-flex flex-wrap gap-2">
+              <?php foreach ($allImages as $idx => $url): ?>
+                <div class="product-thumb-wrapper <?= $idx === 0 ? 'active' : '' ?>">
+                  <img src="<?= htmlspecialchars($url) ?>"
+                    data-full="<?= htmlspecialchars($url) ?>"
+                    class="img-fluid product-thumb-img"
+                    loading="lazy">
+                </div>
+              <?php endforeach; ?>
             </div>
-          <?php endforeach; ?>
+          <?php endif; ?>
         </div>
-      <?php endif; ?>
-    </div>
+      </div>
 
-    <?php $isOut = (int)($product['available_stock'] ?? 0) <= 0; ?>
+      <?php $isOut = (int)($product['available_stock'] ?? 0) <= 0; ?>
 
-    <!-- ชื่อ / ราคา / หมวดหมู่ / stock -->
-    <div class="bg-white rounded-4 p-3 shadow-sm mb-3">
-      <div class="d-flex align-items-start justify-content-between gap-2">
-        <h5 class="fw-bold mb-2">
-          <?php echo htmlspecialchars($product['name']); ?>
-        </h5>
-        <?php if (!empty($product['category'])): ?>
-          <span class="badge rounded-pill text-bg-light">
-            <i class="bi bi-tag me-1 text-danger"></i>
-            <?php echo htmlspecialchars($product['category']); ?>
-          </span>
+      <div class="desktop-right">
+
+        <!-- ชื่อ / ราคา / หมวดหมู่ / stock -->
+        <div class="bg-white rounded-4 p-3 shadow-sm mb-3">
+          <div class="d-flex align-items-start justify-content-between gap-2">
+            <h5 class="fw-bold mb-2">
+              <?php echo htmlspecialchars($product['name']); ?>
+            </h5>
+            <?php if (!empty($product['category'])): ?>
+              <span class="badge rounded-pill text-bg-light">
+                <i class="bi bi-tag me-1 text-danger"></i>
+                <?php echo htmlspecialchars($product['category']); ?>
+              </span>
+            <?php endif; ?>
+          </div>
+
+          <div class="price mb-1" id="priceText">
+            ฿<?php echo number_format((float)($product['price'] ?? 0), 2); ?>
+          </div>
+
+          <div class="text-muted small">
+            คงเหลือ: <span id="stockText"><?php echo (int)($product['available_stock'] ?? 0); ?></span>
+          </div>
+
+          <?php if ($isOut): ?>
+            <div class="text-danger small mt-1">
+              สินค้าหมดชั่วคราว
+            </div>
+          <?php endif; ?>
+        </div>
+
+        <!-- ตัวเลือก (variants) ด้านบน ไม่มีช่องจำนวน -->
+        <?php if (!empty($variants)): ?>
+          <div class="bg-white rounded-4 p-3 shadow-sm mb-3">
+            <div class="fw-semibold mb-2">ตัวเลือกสินค้า</div>
+            <div class="d-flex flex-wrap gap-2" id="variantListMain">
+              <?php foreach ($variants as $v): ?>
+                <button type="button"
+                  class="btn btn-outline-secondary btn-sm rounded-pill variant-chip-main"
+                  data-variant='<?php echo json_encode($v, JSON_UNESCAPED_UNICODE); ?>'>
+                  <?php echo htmlspecialchars($v['variant_name']); ?>
+                </button>
+              <?php endforeach; ?>
+            </div>
+            <div class="small text-muted mt-2" id="variantHintMain">กรุณาเลือกตัวเลือก</div>
+            <!-- ปุ่มซื้อสำหรับ Desktop -->
+            <div class="d-none d-lg-block mt-3">
+              <div class="d-flex gap-2">
+                <button id="addCartBtnDesktop" class="btn btn-outline-danger w-50 fw-semibold rounded-3">
+                  <i class="bi bi-cart-plus me-1"></i> เพิ่มตะกร้า
+                </button>
+
+                <button id="buyNowBtnDesktop" class="btn btn-danger w-50 fw-semibold rounded-3">
+                  <i class="bi bi-lightning-charge me-1"></i> ซื้อเลย
+                </button>
+              </div>
+            </div>
+          </div>
         <?php endif; ?>
-      </div>
 
-      <div class="price mb-1" id="priceText">
-        ฿<?php echo number_format((float)($product['price'] ?? 0), 2); ?>
-      </div>
-
-      <div class="text-muted small">
-        คงเหลือ: <span id="stockText"><?php echo (int)($product['available_stock'] ?? 0); ?></span>
-      </div>
-
-      <?php if ($isOut): ?>
-        <div class="text-danger small mt-1">
-          สินค้าหมดชั่วคราว
+        <!-- รายละเอียด -->
+        <div class="bg-white rounded-4 p-3 shadow-sm mb-3">
+          <div class="fw-semibold mb-2">รายละเอียดสินค้า</div>
+          <div class="text-muted" style="white-space:pre-line;">
+            <?php echo htmlspecialchars($product['description'] ?? ''); ?>
+          </div>
         </div>
-      <?php endif; ?>
-    </div>
 
-    <!-- ตัวเลือก (variants) ด้านบน ไม่มีช่องจำนวน -->
-    <?php if (!empty($variants)): ?>
-      <div class="bg-white rounded-4 p-3 shadow-sm mb-3">
-        <div class="fw-semibold mb-2">ตัวเลือกสินค้า</div>
-        <div class="d-flex flex-wrap gap-2" id="variantListMain">
-          <?php foreach ($variants as $v): ?>
-            <button type="button"
-              class="btn btn-outline-secondary btn-sm rounded-pill variant-chip-main"
-              data-variant='<?php echo json_encode($v, JSON_UNESCAPED_UNICODE); ?>'>
-              <?php echo htmlspecialchars($v['variant_name']); ?>
-            </button>
-          <?php endforeach; ?>
-        </div>
-        <div class="small text-muted mt-2" id="variantHintMain">กรุณาเลือกตัวเลือก</div>
-      </div>
-    <?php endif; ?>
-
-    <!-- รายละเอียด -->
-    <div class="bg-white rounded-4 p-3 shadow-sm mb-3">
-      <div class="fw-semibold mb-2">รายละเอียดสินค้า</div>
-      <div class="text-muted" style="white-space:pre-line;">
-        <?php echo htmlspecialchars($product['description'] ?? ''); ?>
       </div>
     </div>
-
+    <!-- ใช้แบบเดิม -->
     <!-- สินค้าแนะนำ -->
     <?php if (!empty($recommended)): ?>
       <div class="bg-white rounded-4 p-3 shadow-sm mb-4">
@@ -673,6 +720,14 @@ $allImages    = $allImages ?? [];
         });
         wrapper.classList.add('active');
       });
+    });
+
+    document.getElementById('addCartBtnDesktop')?.addEventListener('click', () => {
+      openCartBar('add');
+    });
+
+    document.getElementById('buyNowBtnDesktop')?.addEventListener('click', () => {
+      openCartBar('buy');
     });
 
     // ───────────────────── อ้างอิง Element ต่าง ๆ (ต่อ) ─────────────────────

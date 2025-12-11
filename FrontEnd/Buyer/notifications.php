@@ -202,6 +202,14 @@ function statusIcon($status)
         </a>
     </nav>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch('/utils/mark_buyer_notifications_read.php', {
+                    method: 'POST'
+                })
+                .catch(err => console.error('mark read error', err));
+        });
+    </script>
 </body>
 
 </html>

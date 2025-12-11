@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config.php';
 require_once UTILS_PATH . '/stock_helper.php';
+require_once UTILS_PATH . '/db_with_log.php';
 
 function createPayment(mysqli $conn, array $data)
 {
@@ -338,4 +339,49 @@ function rejectPaymentAndReleaseStock(mysqli $conn, int $paymentId): bool
     }
 
     return updatePaymentStatus($conn, $paymentId, 'rejected');
+}
+
+/**
+ * นับจำนวนสลิปที่ยังไม่ถูกอนุมัติ/ปฏิเสธ (status = 'pending')
+ */
+function getPendingSlipCount(mysqli $conn): int
+{
+    $sql = "SELECT COUNT(*) AS cnt 
+            FROM payments 
+            WHERE status = 'pending'";   // ถ้าชื่อ table หรือ status ต่างไป ปรับตรงนี้
+
+    $res = db_query($conn, $sql);
+    if (!$res) {
+        return 0;
+    }
+
+    $row = $res->fetch_assoc();
+    return (int)($row['cnt'] ?? 0);
+}
+
+function getPendingSlipNotifications(mysqli $conn, int $limit = 10): array
+{
+    $sql = "
+        SELECT 
+        p.id AS payment_id,
+        p.amount,
+        p.created_at,
+        p.status,
+        u.first_name,
+        u.last_name
+    FROM payments p
+    LEFT JOIN users u ON p.user_id = u.id
+    WHERE p.status = 'pending'
+    ORDER BY p.created_at DESC
+    LIMIT ?
+    ";
+    
+    $rows = [];
+    $res = db_query($conn, $sql, [$limit], "i");
+    if ($res && $res->num_rows > 0) {
+        while ($r = $res->fetch_assoc()) {
+            $rows[] = $r;
+        }
+    }
+    return $rows;
 }

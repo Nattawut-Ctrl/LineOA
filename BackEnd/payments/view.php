@@ -100,7 +100,7 @@ $modeLabel = ($payment['mode'] ?? 'single') === 'cart' ? 'ทั้งตะก�
                           <table class="table table-sm table-borderless mb-0">
                             <tr>
                               <th style="width:150px;">ผู้ใช้</th>
-                              <td><?= htmlspecialchars($payment['display_name'] ?? '-') ?></td>
+                              <td><?= htmlspecialchars(trim(($payment['first_name'] ?? '') . ' ' . ($payment['last_name']) ?? '')) ? : '-' ?></td>
                             </tr>
                             <tr>
                               <th>ยอดเงิน</th>

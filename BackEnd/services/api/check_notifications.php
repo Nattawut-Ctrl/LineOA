@@ -23,10 +23,8 @@ try {
         $amount  = (float)($r['amount'] ?? 0);
         $created = $r['created_at'] ?? null;
 
-        // สร้าง order code แบบเดียวกับใน navbar
         $orderCode = 'ORD-' . str_pad((string)$slipId, 5, '0', STR_PAD_LEFT);
 
-        // ฟอร์แมตเวลาแบบสั้น
         $timeText = '';
         if ($created) {
             $dt = new DateTime($created);

@@ -30,7 +30,7 @@ if (isset($conn) && $conn instanceof mysqli) {
     <ul class="navbar-nav ms-auto align-items-center">
       <!-- แจ้งเตือน -->
       <li class="nav-item dropdown position-relative">
-        <a class="nav-link position-relative" data-bs-toggle="dropdown" href="#">
+        <a class="nav-link position-relative" id="nav-noti-icon" data-bs-toggle="dropdown" href="#">
           <i class="bi bi-bell fs-5"></i>
 
           <?php if ($pendingSlipCount > 0): ?>
@@ -44,7 +44,8 @@ if (isset($conn) && $conn instanceof mysqli) {
 
         <!-- Dropdown แจ้งเตือนแบบ YouTube -->
         <div class="dropdown-menu dropdown-menu-end p-0 shadow-lg"
-             style="width: 360px; max-height: 420px; overflow-y: auto;">
+          id="noti-dropdown"
+          style="width: 360px; max-height: 420px; overflow-y: auto;">
 
           <!-- header -->
           <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
@@ -57,69 +58,6 @@ if (isset($conn) && $conn instanceof mysqli) {
               </span>
             <?php endif; ?>
           </div>
-
-          <?php if (!empty($pendingSlips)): ?>
-
-            <?php foreach ($pendingSlips as $slip): ?>
-              <?php
-                $slipId   = (int)$slip['payment_id'];
-                $orderId  = $slip['order_code'] ?? ('ORD-' . str_pad($slip['payment_id'], 5, '0', STR_PAD_LEFT));
-                $first = $slip['first_name'] ?? '';
-                $last  = $slip['last_name'] ?? '';
-                $custName = trim($first . ' ' . $last) ?: 'ลูกค้าไม่ระบุชื่อ';
-                $amount   = (float)($slip['amount'] ?? 0);
-                $created  = $slip['created_at'] ?? null;
-
-                // แปลงเวลาเป็นฟอร์แมตสั้น ๆ เช่น 08/12 13:45
-                $timeText = $created
-                  ? (new DateTime($created))->format('d/m H:i')
-                  : '';
-              ?>
-
-              <a href="<?= BACKEND_URL ?>/payments/view.php?id=<?= $slipId ?>"
-                 class="dropdown-item py-2 px-3 small d-flex gap-2 align-items-start">
-
-                <!-- icon กลม ๆ ด้านซ้าย -->
-                <div class="flex-shrink-0">
-                  <div class="rounded-circle bg-danger-subtle text-danger d-flex align-items-center justify-content-center"
-                       style="width: 32px; height: 32px;">
-                    <i class="bi bi-receipt-cutoff"></i>
-                  </div>
-                </div>
-
-                <!-- รายละเอียด -->
-                <div class="flex-grow-1">
-                  <div class="fw-semibold text-truncate">
-                    สลิปใหม่จาก <?= htmlspecialchars($custName) ?>
-                  </div>
-                  <div class="text-muted">
-                    ออเดอร์: <span class="fw-semibold"><?= htmlspecialchars($orderId) ?></span>
-                  </div>
-                  <div class="text-danger fw-semibold">
-                    ฿<?= number_format($amount, 2) ?>
-                  </div>
-                  <div class="text-muted small">
-                    ส่งเมื่อ <?= htmlspecialchars($timeText) ?>
-                  </div>
-                </div>
-              </a>
-
-              <div class="dropdown-divider my-0"></div>
-            <?php endforeach; ?>
-
-            <!-- footer: ไปหน้ารายการทั้งหมด -->
-            <div class="px-3 py-2 text-center">
-              <a href="<?= BACKEND_URL ?>/payments/list.php" class="small text-decoration-none">
-                ดูสลิปทั้งหมด
-              </a>
-            </div>
-
-          <?php else: ?>
-            <div class="px-3 py-3 small text-muted text-center">
-              ยังไม่มีการแจ้งเตือนใหม่
-            </div>
-          <?php endif; ?>
-
         </div>
       </li>
 
@@ -136,3 +74,117 @@ if (isset($conn) && $conn instanceof mysqli) {
 
   </div>
 </nav>
+
+<script>
+  function renderDropdown(items, count) {
+    const dropdown = document.getElementById("noti-dropdown");
+    if (!dropdown) return;
+
+    let html = '';
+
+    // header
+    html += `
+      <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+        <span class="fw-semibold small">การแจ้งเตือน</span>
+        ${count > 0
+          ? `<span class="badge text-bg-danger small">${count} รายการค้างตรวจ</span>`
+          : ''
+        }
+      </div>
+    `;
+
+    if (!items || items.length === 0) {
+      html += `
+        <div class="px-3 py-3 small text-muted text-center">
+          ยังไม่มีการแจ้งเตือนใหม่
+        </div>
+      `;
+    } else {
+      items.forEach(item => {
+        const url = "<?= BACKEND_URL ?>/payments/view.php?id=" + encodeURIComponent(item.id);
+
+        html += `
+          <a href="${url}"
+             class="dropdown-item py-2 px-3 small d-flex gap-2 align-items-start">
+
+            <div class="flex-shrink-0">
+              <div class="rounded-circle bg-danger-subtle text-danger d-flex align-items-center justify-content-center"
+                   style="width: 32px; height: 32px;">
+                <i class="bi bi-receipt-cutoff"></i>
+              </div>
+            </div>
+
+            <div class="flex-grow-1">
+              <div class="fw-semibold text-truncate">
+                สลิปใหม่จาก ${item.customer}
+              </div>
+              <div class="text-muted">
+                ออเดอร์: <span class="fw-semibold">${item.order_code}</span>
+              </div>
+              <div class="text-danger fw-semibold">
+                ฿${item.amount_text}
+              </div>
+              <div class="text-muted small">
+                ส่งเมื่อ ${item.time_text}
+              </div>
+            </div>
+          </a>
+
+          <div class="dropdown-divider my-0"></div>
+        `;
+      });
+
+      // footer
+      html += `
+        <div class="px-3 py-2 text-center">
+          <a href="<?= BACKEND_URL ?>/payments/list.php" class="small text-decoration-none">
+            ดูสลิปทั้งหมด
+          </a>
+        </div>
+      `;
+    }
+
+    dropdown.innerHTML = html;
+  }
+
+  function updateNotifications() {
+    fetch("<?= BACKEND_URL ?>/services/api/check_notifications.php")
+      .then(res => res.json())
+      .then(data => {
+        if (!data.ok) {
+          console.error("API error:", data.error);
+          return;
+        }
+
+        const count = data.count ?? 0;
+        const items = data.items ?? [];
+
+        // ---- อัปเดต badge ----
+        const badge = document.getElementById("noti-badge");
+        const parent = document.querySelector("#nav-noti-icon");
+
+        if (count > 0) {
+          if (!badge) {
+            const span = document.createElement("span");
+            span.id = "noti-badge";
+            span.className = "badge rounded-pill text-bg-danger navbar-badge";
+            span.style.cssText = "font-size:0.65rem; position:absolute; top:4px; right:0;";
+            span.innerText = count > 99 ? "99+" : count;
+            parent.appendChild(span);
+          } else {
+            badge.innerText = count > 99 ? "99+" : count;
+          }
+        } else {
+          if (badge) badge.remove();
+        }
+
+        // ---- อัปเดตเนื้อหา dropdown ----
+        renderDropdown(items, count);
+      })
+      .catch(err => console.error("updateNotifications error:", err));
+  }
+
+  // เรียกทุก 3 วินาที
+  setInterval(updateNotifications, 3000);
+  updateNotifications();
+</script>

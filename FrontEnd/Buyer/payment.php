@@ -228,12 +228,12 @@ if (empty($items)) {
                     </div>
 
                     <div class="mb-3">
-                        <label for="transfer_date" class="form-label">วันที่โอน</label>
+                        <label for="transfer_date" class="form-label">วันที่โอน (ตามสลิปที่อัปโหลด)</label>
                         <input type="date" name="transfer_date" id="transfer_date" class="form-control" required>
                     </div>
 
                     <div class="mb-3">
-                        <label for="transfer_time" class="form-label">เวลาโอน</label>
+                        <label for="transfer_time" class="form-label">เวลาโอน (ตามสลิปที่อัปโหลด)</label>
                         <input type="time" name="transfer_time" id="transfer_time" class="form-control" required>
                     </div>
 

@@ -785,6 +785,22 @@ $activeMenu = "stock";
                                     }, 3000);
 
                                     // ---------------------------
+                                    // 3.1) ลบ success / error จาก URL
+                                    // ---------------------------
+                                    (function removeFlashQueryParams() {
+                                        const url = new URL(window.location.href);
+
+                                        const hasFlash = url.searchParams.has('success') || url.searchParams.has('error');
+                                        if (!hasFlash) return;
+
+                                        url.searchParams.delete('success');
+                                        url.searchParams.delete('error');
+
+                                        // ทำให้ URL สะอาด แต่ไม่ reload หน้า
+                                        window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+                                    })();
+
+                                    // ---------------------------
                                     // 4) Form เพิ่มสินค้าใหม่: ใส่ spinner ตอน submit
                                     // ---------------------------
                                     const addForm = document.getElementById('addProductForm');

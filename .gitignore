@@ -2,6 +2,7 @@
 /node_modules/
 package-lock.json
 package.json
+mail_config.php
 
 config.php
 utils/cloudinary_config.php

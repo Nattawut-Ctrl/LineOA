@@ -64,7 +64,7 @@ $modeLabel = ($payment['mode'] ?? 'single') === 'cart' ? 'ทั้งตะก�
     <?php include BACKEND_PATH . '/partials/admin_sidebar.php'; ?>
 
     <main class="app-main">
-      <div class="app-content-header">
+      <!-- <div class="app-content-header">
         <div class="container-fluid d-flex justify-content-between align-items-center">
           <h3 class="mb-0"><?= htmlspecialchars($pageTitle ?? "") ?></h3>
           <ol class="breadcrumb float-sm-end">
@@ -72,7 +72,7 @@ $modeLabel = ($payment['mode'] ?? 'single') === 'cart' ? 'ทั้งตะก�
             <li class="breadcrumb-item active"><?= htmlspecialchars($pageTitle ?? "") ?></li>
           </ol>
         </div>
-      </div>
+      </div> -->
 
       <div class="app-content">
         <div class="container-fluid">

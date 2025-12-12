@@ -19,6 +19,9 @@ define('BASE_URL', $scheme . '://' . $host . $subdir);
 define('BACKEND_URL', BASE_URL . '/BackEnd');
 define('FRONTEND_URL', BASE_URL . '/FrontEnd');
 
+// config.php
+define('ADMIN_NOTIFY_EMAIL', 'admin@example.com');
+
 // ===== Upload & Cloudinary config =====
 
 // จะเปิด/ปิด Cloudinary จากตรงนี้ก็ได้ (หรือใช้แบบ auto จากไฟล์ config ก็ได้)

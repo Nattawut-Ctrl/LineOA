@@ -322,6 +322,13 @@ $activeMenu = "stock";
                                         <span class="badge bg-secondary">
                                             ทั้งหมด <?= number_format($totalRows) ?> รายการ
                                         </span>
+                                        <button
+                                            class="btn btn-outline-secondary logHistoryBtn"
+                                            title="ดูประวัติการแก้ไขสินค้าล่าสุดทั้งหมด"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#historyModal">
+                                            <i class="bi bi-clock-history"></i> ประวัติ
+                                        </button>
                                     </div>
 
                                     <div class="card-body p-0">
@@ -639,6 +646,23 @@ $activeMenu = "stock";
                                             <!-- โหลดข้อมูลมาใส่ด้วย AJAX -->
                                         </div>
 
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal fade" id="historyModal" tabindex="-1">
+                                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="historyModalTitle">ประวัติการแก้ไขสินค้า</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body" id="historyModalContent">
+                                            <div class="text-center py-5 text-muted">
+                                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                                กำลังโหลดประวัติ...
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -982,6 +1006,41 @@ $activeMenu = "stock";
                                                     }
                                                 })
                                                 .catch(err => console.error("Fetch error:", err));
+                                        });
+                                    });
+                                });
+                            </script>
+
+                            <script>
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    const historyModal = document.getElementById('historyModal');
+                                    const historyContent = document.getElementById('historyModalContent');
+                                    const historyTitle = document.getElementById('historyModalTitle');
+
+                                    document.querySelectorAll('.logHistoryBtn').forEach(btn => {
+                                        btn.addEventListener('click', () => {
+                                            // ไม่ต้องดึง ID หรือค้นหาชื่อสินค้าจากตารางแล้ว
+
+                                            // ตั้ง Modal Title
+                                            historyTitle.textContent = `ประวัติการแก้ไขสินค้าล่าสุดทั้งหมด`;
+
+                                            // แสดง Loading Spinner
+                                            historyContent.innerHTML = `
+                    <div class="text-center py-5 text-muted">
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                        กำลังโหลดประวัติ...
+                    </div>`;
+
+                                            // Fetch ข้อมูลจากไฟล์ใหม่ (ไม่ต้องส่ง ID)
+                                            fetch("ajax_load_all_product_history.php") // <--- เปลี่ยนเป็นชื่อไฟล์ใหม่
+                                                .then(res => res.text())
+                                                .then(html => {
+                                                    historyContent.innerHTML = html;
+                                                })
+                                                .catch(err => {
+                                                    historyContent.innerHTML = `<div class="text-danger py-4 text-center">เกิดข้อผิดพลาดในการโหลดประวัติ</div>`;
+                                                    console.error("Error loading history:", err);
+                                                });
                                         });
                                     });
                                 });

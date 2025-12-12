@@ -6,6 +6,13 @@ require_once UTILS_PATH . '/admin_guard.php';
 require_once UTILS_PATH . '/upload_image.php';
 require_once UTILS_PATH . '/product_image_helper.php';
 
+if (!function_exists('writeLog')) {
+    die('DEBUG: db_with_log loaded from = ' . UTILS_PATH . '/db_with_log.php<br>แต่ไม่เจอฟังก์ชัน writeLog()');
+} else {
+    // แค่ทดสอบว่ามีจริง
+    // echo 'DEBUG: writeLog() ถูกโหลดแล้ว'; exit;
+}
+
 require_admin();
 $conn = connectDBWithLog();
 

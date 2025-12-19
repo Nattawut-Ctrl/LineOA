@@ -17,27 +17,35 @@ if (!$user) {
     exit;
 }
 
-// action: set default / delete
-$action = $_GET['action'] ?? '';
-$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$action = $_POST['action'] ?? ($_GET['action'] ?? '');
+$id     = isset($_POST['id']) ? (int)$_POST['id'] : (isset($_GET['id']) ? (int)$_GET['id'] : 0);
 
 if ($action === 'set_default' && $id > 0) {
     setDefaultAddress($conn, $user_id, $id);
-    header("Location: buyer_addresses.php?success=ตั้งค่าเริ่มต้นแล้ว");
+    header("Location: buyer_address.php?success=ตั้งค่าเริ่มต้นแล้ว");
     exit;
 }
 
 if ($action === 'delete' && $id > 0) {
     softDeleteAddress($conn, $user_id, $id);
-    header("Location: buyer_addresses.php?success=ลบที่อยู่แล้ว");
+    header("Location: buyer_address.php?success=ลบที่อยู่แล้ว");
     exit;
 }
 
 $addresses = getUserAddresses($conn, $user_id);
+
+function formatPhone(string $phone): string
+{
+    $digits = preg_replace('/\D/', '', $phone);
+    if (preg_match('/^(\d{3})(\d{3})(\d{4})$/', $digits, $m)) {
+        return "{$m[1]}-{$m[2]}-{$m[3]}";
+    }
+    return $phone;
+}
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 
 <head>
     <meta charset="UTF-8">
@@ -92,21 +100,21 @@ $addresses = getUserAddresses($conn, $user_id);
     </style>
 </head>
 
-<nav class="navbar topbar navbar-dark sticky-top">
-    <div class="container-fluid">
-        <button class="btn btn-link text-white" onclick="window.location.href='Buyer.php'">
-            <i class="bi bi-chevron-left"></i>
-        </button>
-        <span class="navbar-brand mx-auto">ที่อยู่ของฉัน</span>
-        <span class="me-3 text-white-50 small d-none d-sm-inline">
-            <?php echo htmlspecialchars($user['first_name']); ?>
-        </span>
-    </div>
-</nav>
-
 <body class="bg-light">
+
+    <nav class="navbar topbar navbar-dark sticky-top">
+        <div class="container-fluid">
+            <button class="btn btn-link text-white" onclick="window.location.href='profile.php'">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            <span class="navbar-brand mx-auto">ที่อยู่ของฉัน</span>
+            <span class="me-3 text-white-50 small d-none d-sm-inline">
+                <?php echo htmlspecialchars($user['first_name']); ?>
+            </span>
+        </div>
+    </nav>
+
     <div class="container py-3" style="max-width:720px;">
-        <!-- section 1 -->
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="mb-0">ที่อยู่จัดส่ง</h5>
             <a class="btn btn-dark btn-sm" href="buyer_address_form.php">
@@ -133,14 +141,17 @@ $addresses = getUserAddresses($conn, $user_id);
                         <div>
                             <div class="fw-semibold">
                                 <?= htmlspecialchars($a['full_name']) ?>
-                                <span class="text-muted fw-normal ms-2"><?= htmlspecialchars($a['phone']) ?></span>
+                                <span class="text-muted fw-normal ms-2">
+                                    <?= htmlspecialchars(formatPhone($a['phone'])) ?>
+                                </span>
                             </div>
 
                             <div class="text-muted small">
-                                <?= htmlspecialchars($a['address_line']) ?>,
-                                <?= htmlspecialchars($a['subdistrict']) ?>,
-                                <?= htmlspecialchars($a['district']) ?>,
-                                <?= htmlspecialchars($a['province']) ?> <?= htmlspecialchars($a['postal_code']) ?>
+                                เลขที่ <?= htmlspecialchars($a['address_line']) ?>,
+                                ตำบล<?= htmlspecialchars($a['subdistrict']) ?>,
+                                อำเภอ<?= htmlspecialchars($a['district']) ?>,
+                                จังหวัด<?= htmlspecialchars($a['province']) ?>,
+                                <?= htmlspecialchars($a['postal_code']) ?>
                             </div>
 
                             <div class="mt-2 d-flex gap-2 align-items-center flex-wrap">
@@ -159,17 +170,23 @@ $addresses = getUserAddresses($conn, $user_id);
                                 แก้ไข
                             </a>
 
-                            <a class="btn btn-outline-danger btn-sm mb-1"
-                                href="buyer_addresses.php?action=delete&id=<?= (int)$a['id'] ?>"
-                                onclick="return confirm('ลบที่อยู่นี้ใช่ไหม?')">
-                                ลบ
-                            </a>
+                            <form method="post" action="buyer_address.php" class="d-inline">
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="id" value="<?= (int)$a['id'] ?>">
+                                <button type="submit" class="btn btn-outline-danger btn-sm mb-1"
+                                    onclick="return confirm('ลบที่อยู่นี้ใช่ไหม?')">
+                                    ลบ
+                                </button>
+                            </form>
 
                             <?php if ((int)$a['is_default'] !== 1): ?>
-                                <a class="btn btn-dark btn-sm"
-                                    href="buyer_addresses.php?action=set_default&id=<?= (int)$a['id'] ?>">
-                                    ตั้งเป็นค่าเริ่มต้น
-                                </a>
+                                <form method="post" action="buyer_address.php" class="d-inline">
+                                    <input type="hidden" name="action" value="set_default">
+                                    <input type="hidden" name="id" value="<?= (int)$a['id'] ?>">
+                                    <button type="submit" class="btn btn-dark btn-sm">
+                                        ตั้งเป็นค่าเริ่มต้น
+                                    </button>
+                                </form>
                             <?php endif; ?>
                         </div>
                     </div>

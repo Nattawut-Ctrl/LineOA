@@ -72,8 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'is_default'   => isset($_POST['is_default']) ? 1 : 0,
     ];
 
-    // (Optional) ตรวจรูปแบบเบอร์แบบง่ายๆ
-    // ถ้าไม่อยากเข้มงวด ลบส่วนนี้ออกได้
     if ($data['phone'] === '') {
         die("กรุณากรอกเบอร์โทร");
     }
@@ -134,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">เบอร์โทร</label>
-                        <input name="phone" class="form-control" required value="<?= htmlspecialchars($address['phone']) ?>">
+                        <input name="phone" class="form-control" maxlength="10" required value="<?= htmlspecialchars($address['phone']) ?>">
                     </div>
 
                     <div class="col-12">
@@ -157,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div class="col-md-4">
                         <label class="form-label">รหัสไปรษณีย์</label>
-                        <input name="postal_code" class="form-control" required value="<?= htmlspecialchars($address['postal_code']) ?>">
+                        <input name="postal_code" class="form-control" maxlength="5" required value="<?= htmlspecialchars($address['postal_code']) ?>">
                     </div>
 
                     <div class="col-md-4">

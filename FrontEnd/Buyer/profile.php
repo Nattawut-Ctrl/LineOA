@@ -171,6 +171,16 @@ $logoutUrl = "../Users/line-entry.php?logout=1";
 
                 <hr class="my-1">
 
+                <a href="buyer_address.php" class="d-flex justify-content-between align-items-center text-decoration-none text-dark menu-item">
+                    <div>
+                        <i class="bi bi-geo-alt me-2"></i>
+                        <span>ที่อยู่ของฉัน</span>
+                    </div>
+                    <i class="bi bi-chevron-right text-muted small"></i>
+                </a>
+
+                <hr class="my-1">
+
                 <!-- <a href="#" class="d-flex justify-content-between align-items-center text-decoration-none text-dark menu-item">
                     <div>
                         <i class="bi bi-gear me-2 text-secondary"></i>

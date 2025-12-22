@@ -29,7 +29,6 @@ if (!$user) {
 $productsAssoc = getAllProductsWithVariants($conn);
 $products      = array_values($productsAssoc);
 
-// แปลง image เป็น URL เต็ม ทั้งของ product และ variant
 foreach ($products as &$p) {
     $p['image'] = getProductMainImageUrl($conn, (int)$p['id']);
 
@@ -38,7 +37,6 @@ foreach ($products as &$p) {
             if (!empty($v['image'])) {
                 $v['image'] = buildImageUrl($v['image']);
             } else {
-                // ถ้า variant ไม่มีรูปใช้รูปหลักของสินค้าแทน
                 $v['image'] = $p['image'];
             }
         }
@@ -55,10 +53,8 @@ $cart_items = getCartItems($conn, $user_id);
 
 foreach ($cart_items as &$item) {
     if (!empty($item['product_id'])) {
-        // ใช้ main image จาก helper
         $item['image'] = getProductMainImageUrl($conn, (int)$item['product_id']);
     } else {
-        // กันเคสเก่าที่ service ใส่ image path มาให้ → แปลงเป็น URL เต็ม
         $item['image'] = buildImageUrl($item['image'] ?? '');
     }
 }
@@ -274,7 +270,6 @@ unset($item);
             position: absolute;
             top: 4px;
             right: 22%;
-            /* ปรับเลขนี้ได้ตามที่ชอบ */
             transform: translate(50%, -40%);
             min-width: 16px;
             height: 16px;
@@ -285,7 +280,6 @@ unset($item);
             pointer-events: none;
         }
 
-        /* ให้ content ด้านบนไม่โดน bottom nav ทับบนจอเล็ก */
         .buyer-main-padding {
             padding-bottom: 8rem;
         }
@@ -300,7 +294,6 @@ unset($item);
             color: #ee4d2d;
         }
 
-        /* กันไม่ให้ปุ่มแถวล่างสุดโดน bottom-nav บัง บนจอเล็ก */
         body {
             padding-bottom: 30px;
         }
@@ -308,7 +301,6 @@ unset($item);
         @media (max-width: 767.98px) {
             body {
                 padding-bottom: 3rem;
-                /* ถ้ายังติดอยู่ ลองเพิ่มเป็น 110 หรือ 120px ได้เลย */
             }
         }
     </style>

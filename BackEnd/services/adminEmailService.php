@@ -5,12 +5,11 @@ declare(strict_types=1);
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../mail_config.php';
+require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
+// require_once __DIR__ . '/../../mail_config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once SERVICES_PATH . '/slipService.php';
-
-require_once __DIR__ . '/../vendor/autoload.php';
 
 /**
  * สร้าง PHPMailer พร้อม SMTP config กลาง

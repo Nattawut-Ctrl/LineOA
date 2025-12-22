@@ -4,6 +4,8 @@ session_start();
 require_once __DIR__ . '/../../config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/user_guard.php';
+require_once UTILS_PATH . '/image_helper.php';
+require_once UTILS_PATH . '/product_image_helper.php';
 require_once SERVICES_PATH . '/userService.php';
 
 $conn    = connectDBWithLog();
@@ -17,7 +19,12 @@ if (!$user) {
 }
 
 // ดึงออเดอร์จากตาราง payments
-$sql = "SELECT p.*, pr.name AS product_name, v.variant_name
+$sql = "SELECT 
+            p.*,
+            pr.name AS product_name, 
+            pr.image AS product_image, 
+            v.variant_name, 
+            v.image AS variant_image
         FROM payments p
         LEFT JOIN products pr ON p.product_id = pr.id
         LEFT JOIN product_variants v ON p.variant_id = v.id
@@ -55,6 +62,20 @@ function statusText($status)
             return 'รอตรวจสอบ';
     }
 }
+
+function getOrderItemImageUrl(mysqli $conn, array $order): string
+{
+    if (!empty($order['variant_image'])) {
+        return buildImageUrl($order['variant_image']);
+    }
+
+    if (!empty($order['product_id'])) {
+        return getProductMainImageUrl($conn, (int)$order['product_id']);
+    }
+
+    return buildImageUrl('');
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -177,11 +198,14 @@ function statusText($status)
                             <div class="d-flex align-items-center gap-2">
                                 <div class="rounded-3 bg-light overflow-hidden flex-shrink-0"
                                     style="width:64px;height:64px;">
-                                    <!-- ใช้ placeholder รูปจาก product ไม่ได้ join image ก็ไม่เป็นไร ตอนนี้ขอ text -->
-                                    <div
-                                        class="w-100 h-100 d-flex align-items-center justify-content-center text-muted small">
-                                        รูป
-                                    </div>
+                                    <?php $img = getOrderItemImageUrl($conn, $order); ?>
+
+                                    <img class="order-item-img"
+                                        src="<?php echo htmlspecialchars($img); ?>"
+                                        alt="<?php echo htmlspecialchars($order['product_name'] ?? 'สินค้า'); ?>"
+                                        loading="lazy"
+                                        onerror="this.src='https://via.placeholder.com/64?text=No+Image';">
+
                                 </div>
                                 <div class="flex-grow-1">
                                     <div class="small fw-semibold text-truncate">
@@ -198,29 +222,147 @@ function statusText($status)
                         <?php else: ?>
                             <?php if (!empty($items)): ?>
                                 <?php
-                                $first = $items[0];
-                                $restCount = count($items) - 1;
+                                $previewCount = 1;
+                                $totalItems   = count($items);
+                                $hasMore      = $totalItems > $previewCount;
+                                $collapseId   = 'order-item-' . (int)$order['id'];
+
+                                $visibleItems = array_slice($items, 0, $previewCount);
+                                $hiddenItems  = array_slice($items, $previewCount);
                                 ?>
-                                <div class="d-flex align-items-center gap-2 mb-2">
-                                    <div class="rounded-3 bg-light overflow-hidden flex-shrink-0"
-                                        style="width:64px;height:64px;">
-                                        <div
-                                            class="w-100 h-100 d-flex align-items-center justify-content-center text-muted small">
-                                            รูป
-                                        </div>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <div class="small fw-semibold text-truncate">
-                                            <?php echo htmlspecialchars($first['name'] ?? 'สินค้าในตะกร้า'); ?>
-                                        </div>
-                                        <div class="small text-muted">
-                                            จำนวน: <?php echo (int)($first['quantity'] ?? 0); ?> ชิ้น
-                                            <?php if ($restCount > 0): ?>
-                                                + อีก <?php echo $restCount; ?> รายการ
+
+                                <div class="vstack gap-2">
+
+                                    <!-- 1) โชว์รายการ -->
+                                    <?php foreach ($visibleItems as $it): ?>
+                                        <?php
+                                        $pId = (int)($it['product_id'] ?? $it['productId'] ?? 0);
+                                        $vId = (int)($it['variant_id'] ?? $it['variantId'] ?? 0);
+
+                                        $name  = (string)($it['name'] ?? 'สินค้า');
+                                        $qty   = (int)($it['quantity'] ?? 0);
+                                        $price = (float)($it['price'] ?? 0);
+
+                                        $img = '';
+                                        if (!empty($it['image'])) {
+                                            $img = buildImageUrl($it['image']);
+                                        } else {
+                                            if ($vId > 0) {
+                                                $r = db_query($conn, "SELECT image FROM product_variants WHERE id = ? LIMIT 1", [$vId], "i");
+                                                $vrow = $r ? $r->fetch_assoc() : null;
+                                                if (!empty($vrow['image'])) $img = buildImageUrl($vrow['image']);
+                                            }
+                                            if ($img === '' && $pId > 0) {
+                                                $img = getProductMainImageUrl($conn, $pId);
+                                            }
+                                        }
+
+                                        $variantLabel = (string)($it['variant_name'] ?? '');
+                                        ?>
+
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="rounded-3 bg-light overflow-hidden flex-shrink-0" style="width:64px;height:64px;">
+                                                <img class="order-item-img"
+                                                    src="<?php echo htmlspecialchars($img); ?>"
+                                                    alt="<?php echo htmlspecialchars($name); ?>"
+                                                    loading="lazy"
+                                                    onerror="this.src='https://via.placeholder.com/64?text=No+Image';">
+                                            </div>
+
+                                            <div class="flex-grow-1">
+                                                <div class="small fw-semibold text-truncate">
+                                                    <?php echo htmlspecialchars($name); ?>
+                                                    <?php if ($variantLabel !== ''): ?>
+                                                        <span class="text-muted">(<?php echo htmlspecialchars($variantLabel); ?>)</span>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <div class="small text-muted">จำนวน: <?php echo $qty; ?> ชิ้น</div>
+                                            </div>
+
+                                            <?php if ($price > 0): ?>
+                                                <div class="text-end">
+                                                    <div class="small text-muted">฿<?php echo number_format($price, 2); ?></div>
+                                                    <div class="small fw-semibold">฿<?php echo number_format($price * max($qty, 1), 2); ?></div>
+                                                </div>
                                             <?php endif; ?>
                                         </div>
-                                    </div>
+
+                                        <hr class="my-1">
+                                    <?php endforeach; ?>
+
+                                    <!-- 2) collapse -->
+                                    <?php if ($hasMore): ?>
+                                        <div class="collapse mt-2" id="<?php echo htmlspecialchars($collapseId); ?>">
+                                            <?php foreach ($hiddenItems as $it): ?>
+                                                <?php
+                                                $pId = (int)($it['product_id'] ?? $it['productId'] ?? 0);
+                                                $vId = (int)($it['variant_id'] ?? $it['variantId'] ?? 0);
+
+                                                $name  = (string)($it['name'] ?? 'สินค้า');
+                                                $qty   = (int)($it['quantity'] ?? 0);
+                                                $price = (float)($it['price'] ?? 0);
+
+                                                $img = '';
+                                                if (!empty($it['image'])) {
+                                                    $img = buildImageUrl($it['image']);
+                                                } else {
+                                                    if ($vId > 0) {
+                                                        $r = db_query($conn, "SELECT image FROM product_variants WHERE id = ? LIMIT 1", [$vId], "i");
+                                                        $vrow = $r ? $r->fetch_assoc() : null;
+                                                        if (!empty($vrow['image'])) $img = buildImageUrl($vrow['image']);
+                                                    }
+                                                    if ($img === '' && $pId > 0) {
+                                                        $img = getProductMainImageUrl($conn, $pId);
+                                                    }
+                                                }
+
+                                                $variantLabel = (string)($it['variant_name'] ?? '');
+                                                ?>
+
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="rounded-3 bg-light overflow-hidden flex-shrink-0" style="width:64px;height:64px;">
+                                                        <img class="order-item-img"
+                                                            src="<?php echo htmlspecialchars($img); ?>"
+                                                            alt="<?php echo htmlspecialchars($name); ?>"
+                                                            loading="lazy"
+                                                            onerror="this.src='https://via.placeholder.com/64?text=No+Image';">
+                                                    </div>
+
+                                                    <div class="flex-grow-1">
+                                                        <div class="small fw-semibold text-truncate">
+                                                            <?php echo htmlspecialchars($name); ?>
+                                                            <?php if ($variantLabel !== ''): ?>
+                                                                <span class="text-muted">(<?php echo htmlspecialchars($variantLabel); ?>)</span>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                        <div class="small text-muted">จำนวน: <?php echo $qty; ?> ชิ้น</div>
+                                                    </div>
+
+                                                    <?php if ($price > 0): ?>
+                                                        <div class="text-end">
+                                                            <div class="small text-muted">฿<?php echo number_format($price, 2); ?></div>
+                                                            <div class="small fw-semibold">฿<?php echo number_format($price * max($qty, 1), 2); ?></div>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </div>
+
+                                                <hr class="my-1">
+                                            <?php endforeach; ?>
+                                        </div>
+
+                                        <!-- 3) toggle -->
+                                        <button class="btn btn-sm btn-outline-secondary w-100 mt-2"
+                                            type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#<?php echo htmlspecialchars($collapseId); ?>"
+                                            aria-expanded="false"
+                                            aria-controls="<?php echo htmlspecialchars($collapseId); ?>">
+                                            ดูทั้งหมด (<?php echo $totalItems; ?> รายการ)
+                                        </button>
+                                    <?php endif; ?>
+
                                 </div>
+
                             <?php else: ?>
                                 <div class="small text-muted">ข้อมูลสินค้าไม่พร้อมใช้งาน</div>
                             <?php endif; ?>
@@ -279,6 +421,21 @@ function statusText($status)
             <span>ฉัน</span>
         </a>
     </nav>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('button[data-bs-toggle="collapse"]').forEach(btn => {
+                const sel = btn.getAttribute('data-bs-target');
+                const el = document.querySelector(sel);
+                if (!el) return;
+
+                const original = btn.textContent;
+
+                el.addEventListener('shown.bs.collapse', () => btn.textContent = 'ซ่อนรายการ');
+                el.addEventListener('hidden.bs.collapse', () => btn.textContent = original);
+            });
+        });
+    </script>
 
 </body>
 

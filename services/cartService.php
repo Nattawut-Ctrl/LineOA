@@ -12,15 +12,12 @@ function getCartItems(mysqli $conn, int $user_id): array
             c.variant_id,
             c.quantity,
 
-            -- ✅ ชื่อ + รูปตามที่ JS เดิมใช้
             p.name  AS name,
             p.image AS image,
 
-            -- ชื่อ/รูป variant (เผื่อใช้ต่อ)
             v.variant_name AS variant_name,
             v.image        AS variant_image,
 
-            -- ราคา
             COALESCE(v.price, p.price) AS price
         FROM cart_items c
         JOIN products p ON c.product_id = p.id
@@ -47,8 +44,8 @@ function getCartItems(mysqli $conn, int $user_id): array
             $items[] = [
                 'product_id'    => (int)$row['product_id'],
                 'variant_id'    => (int)($row['variant_id'] ?? 0),
-                'name'          => $row['name'],          // ✅ key เดิม
-                'image'         => $finalImageUrl,        // ✅ key เดิม
+                'name'          => $row['name'],         
+                'image'         => $finalImageUrl,       
                 'variant_name'  => $row['variant_name'] ?? null,
                 'variant_image' => $variantImageUrl,
                 'price'         => $price,

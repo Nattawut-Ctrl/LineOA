@@ -58,7 +58,6 @@ function updateUserPhone(mysqli $conn, int $user_id, string $phone): bool
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    // กันค่าว่างและ trim ให้เรียบร้อย
     $data = [
         'full_name'    => trim($_POST['full_name'] ?? ''),
         'phone'        => trim($_POST['phone'] ?? ''),
@@ -82,7 +81,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         createAddress($conn, $user_id, $data);
     }
 
-    // ====== OPTIONAL: ถ้าติ๊ก ให้เอาเบอร์นี้ไปเป็นเบอร์บัญชีด้วย ======
     if (!empty($_POST['update_user_phone'])) {
         updateUserPhone($conn, $user_id, $data['phone']);
     }

@@ -17,6 +17,19 @@ if ($line_uid === '') {
 $user = getUserByLineUid($conn, $line_uid);
 
 if ($user) {
+    $needUpdate = false;
+    if ($display_name !== '' && $display_name !== ($user['display_name'] ?? '')) $needUpdate = true;
+    if ($picture_url !== '' && $picture_url !== ($user['picture_url'] ?? '')) $needUpdate = true;
+
+    if ($needUpdate) {
+        $sql = "UPDATE users
+                SET display_name = COALESCE(NULLIF(?, ''), display_name),
+                    picture_url = COALESCE(NULLIF(?, ''), picture_url)
+                WHERE id = ?
+                LIMIT 1";
+        db_query($conn, $sql, [$display_name, $picture_url, (int)$user['id']], "ssi");
+    }
+
     $_SESSION['user_id'] = $user['id'];
     header("Location: ../Buyer/Buyer.php");
     exit;

@@ -16,7 +16,6 @@ if (!$user) {
     exit;
 }
 
-// TODO: ปรับ path logout ให้ตรงกับระบบจริง
 $logoutUrl = "../Users/line-entry.php?logout=1";
 ?>
 <!DOCTYPE html>
@@ -181,13 +180,13 @@ $logoutUrl = "../Users/line-entry.php?logout=1";
 
                 <hr class="my-1">
 
-                <!-- <a href="#" class="d-flex justify-content-between align-items-center text-decoration-none text-dark menu-item">
+                <a href="profile_edit.php" class="d-flex justify-content-between align-items-center text-decoration-none text-dark menu-item">
                     <div>
-                        <i class="bi bi-gear me-2 text-secondary"></i>
-                        <span>ตั้งค่าบัญชี (เร็ว ๆ นี้)</span>
+                        <i class="bi bi-person-fill me-2"></i>
+                        <span>ข้อมูลส่วนตัว</span>
                     </div>
                     <i class="bi bi-chevron-right text-muted small"></i>
-                </a> -->
+                </a>
 
             </div>
         </div>

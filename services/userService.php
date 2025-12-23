@@ -4,7 +4,7 @@
 function getUserById(mysqli $conn, int $user_id): ?array
 {
     $sql = "
-        SELECT id, line_uid, display_name, picture_url,
+        SELECT id, line_uid, display_name, picture_url, title,
                first_name, last_name, phone, citizen_id, created_at
         FROM users
         WHERE id = ?
@@ -20,7 +20,7 @@ function getUserById(mysqli $conn, int $user_id): ?array
 function getUserByLineUid(mysqli $conn, string $line_uid): ?array
 {
     $sql = "
-        SELECT id, line_uid, display_name, picture_url,
+        SELECT id, line_uid, display_name, picture_url, title,
                first_name, last_name, phone, citizen_id, created_at
         FROM users
         WHERE line_uid = ?
@@ -38,6 +38,7 @@ function createUser(mysqli $conn, array $data): int
     $line_uid     = trim($data['line_uid'] ?? '');
     $display_name = trim($data['display_name'] ?? '');
     $picture_url  = trim($data['picture_url'] ?? '');
+    $title        = trim($data['title'] ?? '');
     $first_name   = trim($data['first_name'] ?? '');
     $last_name    = trim($data['last_name'] ?? '');
     $phone        = trim($data['phone'] ?? '');
@@ -45,15 +46,15 @@ function createUser(mysqli $conn, array $data): int
 
     $sql = "
         INSERT INTO users
-            (line_uid, display_name, picture_url, first_name, last_name, phone, citizen_id)
+            (line_uid, display_name, picture_url, title, first_name, last_name, phone, citizen_id)
         VALUES
-            (?, ?, ?, ?, ?, ?, ?)
+            (?, ?, ?, ?, ?, ?, ?, ?)
     ";
 
     $ok = db_exec($conn, $sql, [
-        $line_uid, $display_name, $picture_url,
+        $line_uid, $display_name, $picture_url, $title,
         $first_name, $last_name, $phone, $citizen_id
-    ], "sssssss");
+    ], "ssssssss");
 
     if (!$ok) throw new Exception("createUser failed");
 
@@ -66,7 +67,7 @@ function updateUser(mysqli $conn, int $user_id, array $data): bool
     $params = [];
     $types  = "";
 
-    $allow = ['display_name','picture_url','first_name','last_name','phone','citizen_id'];
+    $allow = ['display_name','picture_url', 'title', 'first_name','last_name','phone','citizen_id'];
 
     foreach ($allow as $f) {
         if (array_key_exists($f, $data)) {
@@ -81,7 +82,7 @@ function updateUser(mysqli $conn, int $user_id, array $data): bool
     $params[] = $user_id;
     $types   .= "i";
 
-    $sql = "UPDATE users SET " . implode(", ", $fields) . " WHERE id = ?";
+    $sql = "UPDATE users SET " . implode(", ", $fields) . " WHERE id = ? LIMIT 1";
 
     return (bool)db_exec($conn, $sql, $params, $types);
 }

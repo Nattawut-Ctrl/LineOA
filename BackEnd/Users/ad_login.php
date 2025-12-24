@@ -35,7 +35,7 @@ if (!empty($_GET['error'])) {
     <meta charset="UTF-8">
     <title>เข้าสู่ระบบผู้ดูแล</title>
 
-    <?php include BASE_PATH . '/partials/bootstrap.php'; ?>
+    <?php include BASE_PATH . '/shared/partials/bootstrap.php'; ?>
 
     <style>
         :root {

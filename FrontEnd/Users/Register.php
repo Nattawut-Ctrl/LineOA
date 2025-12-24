@@ -106,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>สมัครสมาชิก</title>
-    <?php include BASE_PATH . '/partials/bootstrap.php'; ?>
+    <?php include BASE_PATH . '/shared/partials/bootstrap.php'; ?>
     <!-- ฟอนต์ Kanit (ถ้ายังไม่ได้โหลดใน bootstrap.php) -->
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <?php include FRONTEND_PATH . '/partials/register_style.php'; ?>

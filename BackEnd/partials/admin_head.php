@@ -20,9 +20,9 @@ $extraHead = $extraHead ?? '';
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@4.0.0-rc3/dist/css/adminlte.min.css">
 
 <!-- Dropzone 5 -->
-<link rel="stylesheet" href="<?= BASE_URL ?>/assets/dropzone/dropzone.css">
-<script src="<?= BASE_URL ?>/assets/dropzone/dropzone-min.js"></script>
+<link rel="stylesheet" href="<?= BACKEND_URL ?>/assets/dropzone/dropzone.css">
+<script src="<?= BACKEND_URL ?>/assets/dropzone/dropzone-min.js"></script>
 
 
-<link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/admin.css?v=<?= filemtime(BASE_PATH.'/assets/css/admin.css') ?>">
+<link rel="stylesheet" href="<?= BACKEND_URL ?>/assets/css/admin.css?v=<?= filemtime(BASE_PATH.'/backend/assets/css/admin.css') ?>">
 <?= $extraHead ?>

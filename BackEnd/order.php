@@ -107,7 +107,7 @@ function build_order_query(array $extra = []): string
 
 <head>
     <?php
-    $extraHead = '<link rel="stylesheet" href="' . BASE_URL . '/assets/css/admin_orders.css?v=' . filemtime(BASE_PATH . '/assets/css/admin_orders.css') . '">';
+    $extraHead = '<link rel="stylesheet" href="' . BACKEND_URL . '/assets/css/admin_orders.css?v=' . filemtime(BASE_PATH . '/backend/assets/css/admin_orders.css') . '">';
     include BACKEND_PATH . "/partials/admin_head.php";
     ?>
 </head>

@@ -108,7 +108,7 @@ if ($hasVariantStock) {
                 'size'     => $files['size'][$vid],
             ];
 
-            $uploaded = uploadImageFile($fileArr, 'uploads/variants');
+            $uploaded = uploadImageFile($fileArr, 'variants');
             if ($uploaded) {
                 $newImagePath = $uploaded;
             }

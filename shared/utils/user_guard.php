@@ -4,9 +4,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
-require_once __DIR__ . '/../../config.php';
-
+require_once dirname(__DIR__, 2) . '/config.php';
 /**
  * บังคับให้ user login ก่อนเข้า page ฝั่ง FrontEnd (Buyer)
  * คืนค่า user_id (int)

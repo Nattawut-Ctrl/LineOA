@@ -14,15 +14,28 @@ $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
 $scheme = $https ? 'https' : 'http';
 $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
 
+$script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
+
 $subdir = '';
+if (preg_match('#^(.*?)/(frontend|backend)(/.*)?$#i', $script, $m)) {
+    $subdir = rtrim($m[1], '/');
+}
 
 define('BASE_URL', $scheme . '://' . $host . $subdir);
+
 define('BACKEND_URL', BASE_URL . '/backend');
 define('FRONTEND_URL', BASE_URL . '/frontend');
+
+define('BACKEND_ASSETS_PATH', BACKEND_PATH . '/assets');
+define('BACKEND_ASSETS_URL',  BACKEND_URL  . '/assets');
+
+// define('FRONTEND_ASSETS_PATH', FRONTEND_PATH . '/assets');
+// define('FRONTEND_ASSETS_URL',  FRONTEND_URL  . '/assets');
 
 define('SHARED_PATH', BASE_PATH . '/shared');
 define('SHARED_PARTIALS_PATH', SHARED_PATH . '/partials');
 define('SHARED_ASSETS_URL', BASE_URL . '/shared/assets');
+define('SHARED_ASSETS_PATH', SHARED_PATH . '/assets');
 
 // config.php
 define('ADMIN_NOTIFY_EMAIL', 'admin@example.com');
@@ -32,10 +45,10 @@ if (!defined('USE_CLOUDINARY')) {
 }
 
 if (!defined('UPLOAD_BASE_DIR')) {
-    define('UPLOAD_BASE_DIR', BASE_PATH . '/uploads');
+    define('UPLOAD_BASE_DIR', BASE_PATH . '/storage/uploads');
 }
 if (!defined('UPLOAD_BASE_URL_PATH')) {
-    define('UPLOAD_BASE_URL_PATH', 'uploads');
+    define('UPLOAD_BASE_URL_PATH', 'storage/uploads');
 }
 
 function connectDB()

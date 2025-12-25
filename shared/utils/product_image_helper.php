@@ -1,7 +1,6 @@
 <?php
 // utils/product_image_helper.php
-
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 2) . '/config.php';
 
 function buildImageUrlFromPath(?string $path): string
 {
@@ -9,10 +8,12 @@ function buildImageUrlFromPath(?string $path): string
         return '';
     }
 
+    // ถ้าเป็น URL เต็มอยู่แล้ว
     if (preg_match('#^https?://#', $path)) {
         return $path;
     }
 
+    // กัน ../
     while (strpos($path, '../') === 0) {
         $path = substr($path, 3);
     }
@@ -64,7 +65,7 @@ function getProductMainImageUrl(mysqli $conn, int $productId): string
     }
 
     // 4) default
-    return rtrim(BASE_URL, '/') . '/shared/assets/img/no-image.png';
+    return rtrim(SHARED_ASSETS_URL, '/') . '/img/no-image.png';
 }
 
 function getProductGallery(mysqli $conn, int $productId): array
@@ -99,34 +100,41 @@ function deleteImageFileIfLocal(?string $dbPath): void
         return;
     }
 
-    $root = dirname(__DIR__);
-    $full = $root . '/' . ltrim($dbPath, '/');
+    $p = ltrim($dbPath, '/');
+
+    // ถ้าไฟล์อยู่ใต้ storage/uploads ให้ map ไป UPLOAD_BASE_DIR
+    $baseUrlPath = trim(UPLOAD_BASE_URL_PATH, '/');
+    if ($baseUrlPath !== '' && strpos($p, $baseUrlPath . '/') === 0) {
+        $relative = substr($p, strlen($baseUrlPath) + 1); // ตัด "storage/uploads/"
+        $full = rtrim(UPLOAD_BASE_DIR, '/\\') . '/' . $relative;
+    } else {
+        // fallback: ไฟล์ relative ต่อ root โปรเจกต์
+        $full = rtrim(BASE_PATH, '/\\') . '/' . $p;
+    }
 
     if (is_file($full)) {
         @unlink($full);
     }
 }
 
-function uploadImageFile(array $file, string $subDir = 'uploads/variants'): ?string
+function uploadImageFile(array $file, string $subDir = 'variants'): ?string
 {
     if (!isset($file['error']) || $file['error'] === UPLOAD_ERR_NO_FILE) {
         return null;
     }
-
     if ($file['error'] !== UPLOAD_ERR_OK) {
         return null;
     }
 
-    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    $ext = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION));
     if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
         return null;
     }
 
-    $root     = dirname(__DIR__);
-    $targetDir = $root . '/' . trim($subDir, '/');
-
+    // BASE/storage/uploads/<subDir>
+    $targetDir = rtrim(UPLOAD_BASE_DIR, '/\\') . '/' . trim($subDir, '/\\');
     if (!is_dir($targetDir)) {
-        mkdir($targetDir, 0777, true);
+        @mkdir($targetDir, 0777, true);
     }
 
     $fileName = uniqid('img_', true) . '.' . $ext;
@@ -136,8 +144,8 @@ function uploadImageFile(array $file, string $subDir = 'uploads/variants'): ?str
         return null;
     }
 
-    $dbPath = trim($subDir, '/') . '/' . $fileName;
-    return $dbPath;
+    // storage/uploads/<subDir>/<fileName>
+    return rtrim(UPLOAD_BASE_URL_PATH, '/\\') . '/' . trim($subDir, '/\\') . '/' . $fileName;
 }
 
 function loadVariantFallbackImages(mysqli $conn, array $productIds): array

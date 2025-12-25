@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 2) . '/config.php';
 require_once UTILS_PATH . '/stock_helper.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once BACKEND_PATH . '/services/adminEmailService.php';

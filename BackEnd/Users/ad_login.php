@@ -34,9 +34,7 @@ if (!empty($_GET['error'])) {
 <head>
     <meta charset="UTF-8">
     <title>เข้าสู่ระบบผู้ดูแล</title>
-
-    <?php include BASE_PATH . '/shared/partials/bootstrap.php'; ?>
-
+    <?php require_once SHARED_PARTIALS_PATH . '/bootstrap.php'; ?>
     <style>
         :root {
             --primary-color: #0d6efd;

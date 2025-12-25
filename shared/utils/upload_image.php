@@ -1,21 +1,10 @@
 <?php
 // utils/upload_image.php
-
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 2) . '/config.php';
 
 use Cloudinary\Api\Upload\UploadApi;
 use GuzzleHttp\RequestOptions;
 
-/**
- * อัปโหลดภาพโดย:
- * 1) พยายามส่งไป Cloudinary ก่อน (ถ้าพร้อมและ USE_CLOUDINARY = true)
- * 2) ถ้า Cloudinary พัง / class ไม่มี / config ไม่มี -> เก็บไฟล์เป็น local
- *
- * @param array  $file        = $_FILES['xxx']
- * @param string $subDir      โฟลเดอร์ย่อยใน /uploads เช่น 'products', 'variants', 'slips'
- * @param string $cloudFolder โฟลเดอร์บน Cloudinary เช่น 'line-shop/products'
- * @return string|null        path ที่เอาไปเก็บใน DB (อาจเป็น URL หรือ relative path local)
- */
 function uploadImageWithFallback(array $file, string $subDir = 'products', string $cloudFolder = 'line-shop/products'): ?string
 {
     // 0) เช็คว่าไฟล์โอเคไหม
@@ -26,7 +15,6 @@ function uploadImageWithFallback(array $file, string $subDir = 'products', strin
     $tmpPath  = $file['tmp_name'];
     $origName = $file['name'] ?? 'unknown';
 
-    // อนุญาตเฉพาะ image extension พื้นฐาน
     $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
     $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
     if (!in_array($ext, $allowed)) {
@@ -45,7 +33,7 @@ function uploadImageWithFallback(array $file, string $subDir = 'products', strin
 
     $imagePath = null;
 
-    // ===== 1) พยายามอัปโหลดไป Cloudinary ก่อน =====
+    // ===== 1) พยายามอัปโหลดไป Cloudinary ก่อนเสมอ =====
     if (USE_CLOUDINARY && file_exists(UTILS_PATH . '/cloudinary_config.php')) {
         require_once UTILS_PATH . '/cloudinary_config.php';
 
@@ -76,7 +64,7 @@ function uploadImageWithFallback(array $file, string $subDir = 'products', strin
         $log("CLOUDINARY: disabled or cloudinary_config.php not found");
     }
 
-    // ===== 2) ถ้า Cloudinary ไม่ได้ -> เก็บ local =====
+    // ===== 2) ถ้า Cloudinary ไม่ได้ ให้เก็บเป็น local =====
     if ($imagePath === null) {
         $targetDir = rtrim(UPLOAD_BASE_DIR, '/\\') . '/' . trim($subDir, '/\\');
         if (!is_dir($targetDir)) {
@@ -92,7 +80,7 @@ function uploadImageWithFallback(array $file, string $subDir = 'products', strin
             return null;
         }
 
-        // path ที่จะเก็บลง DB เช่น uploads/products/img_xxx.jpg
+        // path ที่จะเก็บลง DB เช่น storage/uploads/products/img_xxx.jpg
         $imagePath = rtrim(UPLOAD_BASE_URL_PATH, '/\\') . '/' . trim($subDir, '/\\') . '/' . $newName;
         $log("LOCAL: saved {$origName} -> {$imagePath}");
     }

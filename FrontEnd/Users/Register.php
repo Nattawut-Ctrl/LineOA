@@ -13,7 +13,7 @@ function clean($s)
 $errors = [];
 $register_success = false;
 
-// รับค่า GET จาก checkLineUser.php
+// ดึงค่าจาก GET (checkLineUser.php)
 $line_uid     = clean($_GET['line_uid']     ?? '');
 $display_name = clean($_GET['display_name'] ?? '');
 $picture_url  = clean($_GET['picture_url']  ?? '');
@@ -24,7 +24,6 @@ $phone      = '';
 $citizen_id = '';
 $title      = '';
 
-// ถ้า POST (กดปุ่มสมัคร)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $line_uid     = clean($_POST['line_uid']     ?? '');
     $display_name = clean($_POST['display_name'] ?? '');
@@ -106,8 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>สมัครสมาชิก</title>
-    <?php include BASE_PATH . '/shared/partials/bootstrap.php'; ?>
-    <!-- ฟอนต์ Kanit (ถ้ายังไม่ได้โหลดใน bootstrap.php) -->
+    <?php require_once SHARED_PARTIALS_PATH . '/bootstrap.php'; ?>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <?php include FRONTEND_PATH . '/partials/register_style.php'; ?>
 </head>
@@ -163,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="container container-register d-flex align-items-center justify-content-center min-vh-100 py-4">
         <div class="card-register" id="registerWrapper">
             <?php if ($register_success): ?>
-                <!-- โหมดสมัครสำเร็จ ใช้การ์ดโทนเดียวกัน -->
+                <!-- โหมดสมัครสำเร็จ -->
                 <div class="card-header-cute">
                     <div class="header-top-line">
                         <div class="header-brand">
@@ -450,7 +448,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (wrapper) wrapper.classList.add("show");
             }
 
-            // ถ้ามี error หรือสมัครเสร็จแล้ว → ไม่ต้องโชว์ intro
+            // ถ้ามี error หรือสมัครเสร็จแล้ว ไม่ต้องโชว์ intro
             if (hasErrors || isSuccess) {
                 showRegister();
                 return;

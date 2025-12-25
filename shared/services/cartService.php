@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 2) . '/config.php';
 require_once UTILS_PATH . '/image_helper.php';
 
 function getCartItems(mysqli $conn, int $user_id): array

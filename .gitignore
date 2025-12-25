@@ -8,9 +8,9 @@ config.php
 utils/cloudinary_config.php
 utils/db_with_log.php
 
-uploads/
-uploads/*
-!uploads/.gitkeep
+storage/uploads/
+storage/uploads/*
+!storage/uploads/.gitkeep
 
 *.log
 logs/

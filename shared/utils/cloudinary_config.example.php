@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 2) . '/config.php';
 require_once BASE_PATH . '/vendor/autoload.php';
 
 \Cloudinary\Configuration\Configuration::instance([

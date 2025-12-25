@@ -1,7 +1,7 @@
 <?php
 // utils/stock_helper.php
 
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 2) . '/config.php';
 require_once __DIR__ . '/db_with_log.php';
 
 /**

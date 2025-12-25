@@ -82,7 +82,7 @@ LineOA/
 ├── config.php # การตั้งค่าหลักของระบบ
 ├── database.sql # โครงสร้างฐานข้อมูล
 └── README.md
-
+```
 
 ---
 
@@ -91,7 +91,7 @@ LineOA/
 ไฟล์ทั้งหมดในระบบจะถูกจัดเก็บไว้ภายใต้โฟลเดอร์:
 ```text
 storage/uploads/
-
+```
 ตัวอย่าง:
 - สลิปการชำระเงิน  
   `storage/uploads/slips/xxxx.png`
@@ -101,7 +101,7 @@ storage/uploads/
 📌 ค่า path ที่เก็บในฐานข้อมูลจะเป็น:
 ```text
 storage/uploads/...
-
+```
 
 ระบบจะไม่ใช้ path แบบ `uploads/...` แบบเดิมอีกต่อไป
 
@@ -122,7 +122,7 @@ define('UPLOAD_BASE_URL_PATH', 'storage/uploads');
 
 define('FRONTEND_URL', BASE_URL . '/frontend');
 define('BACKEND_URL',  BASE_URL . '/backend');
-
+```
 ระบบรองรับการ deploy ใน sub-directory
 เช่น https://example.com/LineOA/
 
@@ -133,7 +133,7 @@ define('BACKEND_URL',  BASE_URL . '/backend');
 ```text
 storage/uploads
 storage/logs
-
+```
 4. ตรวจสอบ permission ให้ระบบสามารถเขียนไฟล์ได้
 5. เปิดใช้งานผ่าน Web Server (Apache / Nginx)
 

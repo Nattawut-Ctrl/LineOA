@@ -383,7 +383,7 @@ function getOrderItemImageUrl(mysqli $conn, array $order): string
                         </div>
                         <?php if (!empty($order['slip_path'])): ?>
                             <?php
-                            $slipUrl = '../../' . ltrim($order['slip_path'], '/');
+                             $slipUrl = buildImageUrl($order['slip_path']);
                             ?>
                             <div class="mt-2 text-end">
                                 <a href="<?php echo htmlspecialchars($slipUrl); ?>" target="_blank"

@@ -1,5 +1,5 @@
 <?php
-// FrontEnd/partials/buyer_main_navbar.php
+// frontend/partials/buyer_main_navbar.php
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

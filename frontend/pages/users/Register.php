@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 
 $conn = connectDBWithLog();
@@ -188,7 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <div class="d-grid gap-2">
-                        <a href="../Buyer/Buyer.php"
+                        <a href="<?= FRONTEND_URL ?>/pages/buyer/Buyer.php"
                            class="btn btn-success btn-success-soft">
                             <i class="bi bi-cart-plus me-1"></i> ไปหน้าเลือกซื้อสินค้า
                         </a>

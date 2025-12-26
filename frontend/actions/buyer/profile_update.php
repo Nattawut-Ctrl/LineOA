@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/user_guard.php';
 require_once SERVICES_PATH . '/userService.php';
@@ -22,17 +22,17 @@ $phone      = trim($_POST['phone'] ?? '');
 // จำกัดคำนำหน้า (กันคนยิงค่าแปลก ๆ)
 $allowedTitles = ['', 'นาย', 'นาง', 'นางสาว'];
 if (!in_array($title, $allowedTitles, true)) {
-    header("Location: profile_edit.php?error=invalid_title");
+    header("Location: " . FRONTEND_URL . "/pages/buyer/profile_edit.php?error=invalid_title");
     exit;
 }
 
 // ชื่อ/นามสกุล (ไม่บังคับก็ได้ แต่ถ้าจะบังคับให้กรอก ให้แก้เงื่อนไขนี้)
 if ($first_name !== '' && mb_strlen($first_name) > 100) {
-    header("Location: profile_edit.php?error=first_name_too_long");
+    header("Location: " . FRONTEND_URL . "/pages/buyer/profile_edit.php?error=first_name_too_long");
     exit;
 }
 if ($last_name !== '' && mb_strlen($last_name) > 100) {
-    header("Location: profile_edit.php?error=last_name_too_long");
+    header("Location: " . FRONTEND_URL . "/pages/buyer/profile_edit.php?error=last_name_too_long");
     exit;
 }
 
@@ -44,11 +44,11 @@ if ($phone !== '') {
 
     // ตัวอย่างกฎ: ต้อง 9-10 หลัก และถ้า 10 หลักต้องขึ้นต้นด้วย 0
     if (!(strlen($phoneDigits) === 9 || strlen($phoneDigits) === 10)) {
-        header("Location: profile_edit.php?error=invalid_phone");
+        header("Location: " . FRONTEND_URL . "/pages/buyer/profile_edit.php?error=invalid_phone");
         exit;
     }
     if (strlen($phoneDigits) === 10 && $phoneDigits[0] !== '0') {
-        header("Location: profile_edit.php?error=invalid_phone");
+        header("Location: " . FRONTEND_URL . "/pages/buyer/profile_edit.php?error=invalid_phone");
         exit;
     }
 
@@ -79,11 +79,11 @@ try {
     $ok = updateUser($conn, (int)$user_id, $data);
 
     // ถ้าไม่มี field ให้ update (เช่น user ไม่ได้แก้อะไร) ก็ถือว่าสำเร็จได้
-    header("Location: profile_edit.php?success=1");
+    header("Location: " . FRONTEND_URL . "/pages/buyer/profile_edit.php?success=1");
     exit;
 
 } catch (Throwable $e) {
     // ในงานจริงอาจ log $e->getMessage()
-    header("Location: profile_edit.php?error=update_failed");
+    header("Location: " . FRONTEND_URL . "/pages/buyer/profile_edit.php?error=update_failed");
     exit;
 }

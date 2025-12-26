@@ -2,7 +2,7 @@
 // pages/Shop/save_cart.php
 session_start();
 
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/stock_helper.php';
 

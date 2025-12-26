@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/user_guard.php';
 require_once UTILS_PATH . '/image_helper.php';   // ✅ helper จัดการ path รูป
@@ -106,7 +106,7 @@ $q = trim($_GET['q'] ?? '');
                 <i class="bi bi-chevron-left fs-4"></i>
             </button>
 
-            <form class="flex-grow-1" action="search.php" method="get">
+            <form class="flex-grow-1" action="<?= FRONTEND_URL ?>/pages/buyer/search.php" method="get">
                 <div class="input-group top-search-input-group">
                     <span class="input-group-text bg-white border-0">
                         <i class="bi bi-search text-secondary"></i>

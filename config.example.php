@@ -16,7 +16,7 @@ $subdir = '/LineOA-main';
 define('BASE_URL', $scheme . '://' . $host . $subdir);
 define('BASE_PATH', __DIR__);
 
-define('FRONTEND_PATH', BASE_PATH . '/FrontEnd');
-define('BACKEND_PATH',  BASE_PATH . '/BackEnd');
+define('FRONTEND_PATH', BASE_PATH . '/frontend');
+define('BACKEND_PATH',  BASE_PATH . '/backend');
 define('UTILS_PATH',    BASE_PATH . '/utils');
 define('SERVICES_PATH', BASE_PATH . '/services');

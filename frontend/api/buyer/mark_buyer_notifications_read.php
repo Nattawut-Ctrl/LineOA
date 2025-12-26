@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-require_once dirname(__DIR__, 2) . '/config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 
 header('Content-Type: application/json; charset=utf-8');

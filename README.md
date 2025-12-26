@@ -12,7 +12,7 @@ Line Shop Management System คือระบบร้านค้าออน�
 
 ## Features
 
-### ฝั่งผู้ซื้อ (Buyer / Frontend)
+### ฝั่งผู้ซื้อ (Buyer / frontend)
 - Login ด้วย LINE OA
 - จัดการข้อมูลผู้ใช้ (Profile)
 - ระบบตะกร้าสินค้า

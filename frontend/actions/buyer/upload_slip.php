@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 
 require_once SERVICES_PATH . '/slipService.php';
@@ -101,7 +101,7 @@ if ($mode === 'cart') {
 
     $conn->commit();
 
-    header("Location: payment.php?success=1");
+    header("Location: " . FRONTEND_URL . "/pages/buyer/payment.php?success=1");
     exit;
 }
 
@@ -149,5 +149,5 @@ clearSingleCartItem($conn, $user_id, $product_id, $variant_id);
 
 $conn->commit();
 
-header("Location: payment.php?success=1");
+header("Location: " . FRONTEND_URL . "/pages/buyer/payment.php?success=1");
 exit;

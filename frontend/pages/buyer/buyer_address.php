@@ -1,11 +1,11 @@
 <?php
 session_start();
 
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/user_guard.php';
 require_once SERVICES_PATH . '/userService.php';
-require_once __DIR__ . '/../services/AddressService.php';
+require_once FRONTEND_PATH . '/services/AddressService.php';
 
 $conn    = connectDBWithLog();
 $user_id = require_user_id();
@@ -13,22 +13,7 @@ $user_id = require_user_id();
 $user = getUserById($conn, $user_id);
 if (!$user) {
     unset($_SESSION['user_id']);
-    header("Location: " . FRONTEND_URL . "/Users/line-entry.php?from=register");
-    exit;
-}
-
-$action = $_POST['action'] ?? ($_GET['action'] ?? '');
-$id     = isset($_POST['id']) ? (int)$_POST['id'] : (isset($_GET['id']) ? (int)$_GET['id'] : 0);
-
-if ($action === 'set_default' && $id > 0) {
-    setDefaultAddress($conn, $user_id, $id);
-    header("Location: buyer_address.php?success=ตั้งค่าเริ่มต้นแล้ว");
-    exit;
-}
-
-if ($action === 'delete' && $id > 0) {
-    softDeleteAddress($conn, $user_id, $id);
-    header("Location: buyer_address.php?success=ลบที่อยู่แล้ว");
+    header("Location: " . FRONTEND_URL . "/pages/users/line-entry.php?from=register");
     exit;
 }
 
@@ -170,7 +155,7 @@ function formatPhone(string $phone): string
                                 แก้ไข
                             </a>
 
-                            <form method="post" action="buyer_address.php" class="d-inline">
+                            <form method="post" action="<?= FRONTEND_URL ?>/actions/buyer/address_action.php" class="d-inline">
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="id" value="<?= (int)$a['id'] ?>">
                                 <button type="submit" class="btn btn-outline-danger btn-sm mb-1"
@@ -180,7 +165,7 @@ function formatPhone(string $phone): string
                             </form>
 
                             <?php if ((int)$a['is_default'] !== 1): ?>
-                                <form method="post" action="buyer_address.php" class="d-inline">
+                                <form method="post" action="<?= FRONTEND_URL ?>/actions/buyer/address_action.php" class="d-inline">
                                     <input type="hidden" name="action" value="set_default">
                                     <input type="hidden" name="id" value="<?= (int)$a['id'] ?>">
                                     <button type="submit" class="btn btn-dark btn-sm">

@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/user_guard.php';
 require_once UTILS_PATH . '/image_helper.php';
@@ -14,7 +14,7 @@ $user_id = require_user_id();
 $user = getUserById($conn, $user_id);
 if (!$user) {
     unset($_SESSION['user_id']);
-    header("Location: " . FRONTEND_URL . "/Users/line-entry.php?from=register");
+    header("Location: " . FRONTEND_URL . "/pages/users/line-entry.php?from=register");
     exit;
 }
 

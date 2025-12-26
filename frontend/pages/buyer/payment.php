@@ -2,11 +2,11 @@
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-    header("Location: ../Users/line-entry.php");
+    header("Location: " . FRONTEND_URL . "/pages/users/line-entry.php");
     exit;
 }
 
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 
 $conn = connectDBWithLog();
@@ -139,7 +139,7 @@ if ($mode === 'cart') {
 
 // ถ้าไม่มี items เลย ให้เด้งกลับร้าน (กัน error)
 if (empty($items)) {
-    header("Location: Buyer.php?error=empty_payment");
+    header("Location: " . FRONTEND_URL . "/pages/buyer/Buyer.php?error=empty_payment");
     exit;
 }
 ?>
@@ -198,7 +198,7 @@ if (empty($items)) {
                     <img src="<?= rtrim(SHARED_ASSETS_URL, '/') ?>/img/qr-payment.png" class="img-fluid rounded border" style="max-width:220px;">
                 </div>
 
-                <form action="upload_slip.php" method="post" enctype="multipart/form-data">
+                <form action="<?= FRONTEND_URL ?>/actions/buyer/upload_slip.php" method="post" enctype="multipart/form-data">
                     <input type="hidden" name="mode" value="<?= htmlspecialchars($mode) ?>">
 
                     <?php if ($mode === 'cart'): ?>

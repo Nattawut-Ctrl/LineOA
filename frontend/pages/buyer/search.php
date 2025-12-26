@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/user_guard.php';
 require_once SERVICES_PATH . '/userService.php';
@@ -70,7 +70,7 @@ $user = getUserById($conn, $user_id);
             </button>
 
             <!-- form นี้ยิงไปหน้า search_result.php -->
-            <form class="flex-grow-1" action="search_result.php" method="get">
+            <form class="flex-grow-1" action="<?= FRONTEND_URL ?>/pages/buyer/search_result.php" method="get">
                 <div class="input-group top-search-input-group">
                     <span class="input-group-text bg-white border-0">
                         <i class="bi bi-search text-secondary"></i>

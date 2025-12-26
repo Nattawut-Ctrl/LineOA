@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/user_guard.php';
 require_once UTILS_PATH . '/image_helper.php';
@@ -21,7 +21,7 @@ $user_id = require_user_id();
 $user = getUserById($conn, $user_id);
 if (!$user) {
     unset($_SESSION['user_id']);
-    header("Location: " . FRONTEND_URL . "/Users/line-entry.php?from=register");
+    header("Location: " . FRONTEND_URL . "/pages/users/line-entry.php?from=register");
     exit;
 }
 
@@ -366,22 +366,18 @@ unset($item);
             <?php foreach ($products as $product): ?>
 
                 <?php
-                // --- แปลง path รูปให้เป็น URL เต็ม ปลอดภัยบน iOS/LIFF ---
                 $imgPath = $product['image'] ?? '';
 
                 if ($imgPath !== '' && !preg_match('#^https?://#', $imgPath)) {
-                    // ตัด ../ ออกจากต้น path
                     while (strpos($imgPath, '../') === 0) {
                         $imgPath = substr($imgPath, 3);
                     }
 
-                    // ต่อ BASE_URL ให้อยู่ในโดเมนเดียวกันเสมอ
                     $imgPath = rtrim(BASE_URL, '/') . '/' . ltrim($imgPath, '/');
                 }
 
                 $availableStock = getAvailableStock($conn, (int)$product['id'], null);
 
-                // ใช้รูปที่แก้แล้วให้ฝั่ง JS ด้วย
                 $productForJs          = $product;
                 $productForJs['image'] = $imgPath;
                 $productForJs['available_stock'] = $availableStock;
@@ -590,7 +586,6 @@ unset($item);
         let cart = Array.isArray(initialCart) ?
             initialCart.map(it => ({
                 product_id: it.product_id,
-                // ถ้าในฐานข้อมูลเป็น 0 แต่เราอยากถือว่า "ไม่มี variant" ให้แปลงเป็น null
                 variant_id: (it.variant_id ? it.variant_id : null),
                 name: it.name,
                 image: it.image,
@@ -612,7 +607,6 @@ unset($item);
         function getMaxStockForCurrent() {
             if (!selectedProduct) return Infinity;
 
-            // ถ้าเลือก variant อยู่ ใช้ stock ของ variant
             if (selectedVariant) {
                 if (selectedVariant.available_stock != null) {
                     return Number(selectedVariant.available_stock) || 0;
@@ -622,12 +616,10 @@ unset($item);
                 }
             }
 
-            // ถ้าไม่มี variant → ใช้ available_stock ก่อน ถ้าไม่มีค่อย fallback ไป stock
             if (selectedProduct.available_stock != null) {
                 return Number(selectedProduct.available_stock) || 0;
             }
 
-            // ถ้าไม่มี variant ใช้ stock ของตัว product
             return Number(selectedProduct.stock ?? 0);
         }
 
@@ -639,7 +631,6 @@ unset($item);
             const btnBuy = document.getElementById('btnBuyNowBar');
             const stockEl = document.getElementById('stockInfo');
 
-            // กัน null
             available = Number(available || 0);
 
             if (available <= 0) {
@@ -669,7 +660,6 @@ unset($item);
 
         document.addEventListener('DOMContentLoaded', () => {
 
-            // ✅ คลิกที่การ์ดเพื่อไปหน้ารายละเอียด
             document.querySelectorAll('.product-card.clickable-card').forEach(card => {
                 card.addEventListener('click', () => {
                     const href = card.dataset.href;
@@ -696,30 +686,27 @@ unset($item);
             });
 
             // ปุ่ม "เพิ่มตะกร้า" = Quick add + animation บินเข้าตะกร้า
-            document.querySelectorAll('.add-cart-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const product = JSON.parse(btn.getAttribute('data-product'));
+            // document.querySelectorAll('.add-cart-btn').forEach(btn => {
+            //     btn.addEventListener('click', (e) => {
+            //         e.stopPropagation();
+            //         const product = JSON.parse(btn.getAttribute('data-product'));
 
-                    // ถ้ามี variants ให้บังคับเลือกเหมือนเดิม (เปิด cartBar)
-                    if (product.variants && product.variants.length > 0) {
-                        selectedProduct = product;
-                        openCartBar(selectedProduct);
-                        return;
-                    }
+            //         if (product.variants && product.variants.length > 0) {
+            //             selectedProduct = product;
+            //             openCartBar(selectedProduct);
+            //             return;
+            //         }
 
-                    // ถ้าไม่มี variant -> เพิ่มลง cart ทันที 1 ชิ้น
-                    quickAddToCart(product);
+            //         quickAddToCart(product);
 
-                    // เล่น animation บินเข้าตะกร้า
-                    const cardImg = btn.closest('.product-card')
-                        .querySelector('.product-img-wrap img');
-                    const cartIcon = document.getElementById('cartIcon');
-                    if (cardImg && cartIcon) {
-                        flyToCart(cardImg, cartIcon);
-                    }
-                });
-            });
+            //         const cardImg = btn.closest('.product-card')
+            //             .querySelector('.product-img-wrap img');
+            //         const cartIcon = document.getElementById('cartIcon');
+            //         if (cardImg && cartIcon) {
+            //             flyToCart(cardImg, cartIcon);
+            //         }
+            //     });
+            // });
 
             const modalEl = document.getElementById('cartModal');
             if (modalEl) {
@@ -815,18 +802,15 @@ unset($item);
             const imgRect = sourceImgEl.getBoundingClientRect();
             const cartRect = cartIconEl.getBoundingClientRect();
 
-            // clone รูป
             const flyImg = sourceImgEl.cloneNode(true);
             flyImg.classList.add('fly-img');
             document.body.appendChild(flyImg);
 
-            // จุดเริ่มต้น (ที่รูปจริงอยู่)
             flyImg.style.left = imgRect.left + 'px';
             flyImg.style.top = imgRect.top + 'px';
             flyImg.style.transform = 'translate(0, 0)';
             flyImg.style.opacity = '1';
 
-            // บังคับให้ browser คำนวณ layout ก่อน transition
             requestAnimationFrame(() => {
                 const deltaX = cartRect.left + cartRect.width / 2 - (imgRect.left + imgRect.width / 2);
                 const deltaY = cartRect.top + cartRect.height / 2 - (imgRect.top + imgRect.height / 2);
@@ -838,7 +822,6 @@ unset($item);
             flyImg.addEventListener('transitionend', () => {
                 flyImg.remove();
 
-                // แถม effect กระดิก icon ตะกร้านิดหน่อย
                 cartIconEl.classList.add('shake-cart');
                 setTimeout(() => cartIconEl.classList.remove('shake-cart'), 300);
             }, {
@@ -1185,9 +1168,8 @@ unset($item);
         }
 
         function syncCartToServer() {
-            // console.log('cart before sync', cart);
 
-            fetch('save_cart.php', {
+            fetch("<?= FRONTEND_URL ?>/api/buyer/save_cart.php", {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1211,7 +1193,7 @@ unset($item);
 
         }
 
-        const CHECK_NOTI_URL = "<?= FRONTEND_URL ?>/utils/check_buyer_notifications.php";
+        const CHECK_NOTI_URL = "<?= FRONTEND_URL ?>/api/buyer/check_buyer_notifications.php";
 
         function checkNotifications() {
             fetch(CHECK_NOTI_URL)

@@ -1,3 +1,6 @@
+<?php
+require_once '../../../config.php';
+?>
 <!DOCTYPE html>
 <html lang="th">
 
@@ -35,6 +38,8 @@
     const params = new URLSearchParams(location.search);
     const from = params.get("from") || "shop";
 
+    const FRONTEND_URL = "<?= FRONTEND_URL ?>";
+
     async function main() {
       try {
         await liff.init({
@@ -54,7 +59,7 @@
         // สร้างฟอร์มส่งข้อมูลไป checkLineUser.php
         const form = document.createElement("form");
         form.method = "POST";
-        form.action = "checkLineUser.php";
+        form.action = FRONTEND_URL + "/actions/users/checkLineUser.php";
 
         const uidInput = document.createElement("input");
         uidInput.type = "hidden";

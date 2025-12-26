@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/user_guard.php';
 require_once SERVICES_PATH . '/userService.php';
@@ -10,7 +10,7 @@ $user_id = require_user_id();
 $user = getUserById($conn, $user_id);
 
 if (!$user) {
-    header("Location: ../line-entry.php");
+    header("Location: " . FRONTEND_URL . "/pages/users/line-entry.php");
     exit;
 }
 ?>
@@ -73,7 +73,7 @@ if (!$user) {
         </div>
 
         <!-- ฟอร์มแก้ไขข้อมูล -->
-        <form method="post" action="profile_update.php">
+        <form method="post" action="<?= FRONTEND_URL ?>/actions/buyer/profile_update.php">
             <div class="card shadow-sm">
                 <div class="card-body">
 

@@ -6,7 +6,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once dirname(__DIR__, 2) . '/config.php';
 /**
- * บังคับให้ user login ก่อนเข้า page ฝั่ง FrontEnd (Buyer)
+ * บังคับให้ user login ก่อนเข้า page ฝั่ง frontend (Buyer)
  * คืนค่า user_id (int)
  */
 function require_user_id(): int
@@ -15,7 +15,7 @@ function require_user_id(): int
 
     if ($user_id <= 0) {
         // redirect ไปหน้า line-entry ฝั่ง FrontEnd
-        header("Location: " . FRONTEND_URL . "/Users/line-entry.php?from=shop");
+        header("Location: " . FRONTEND_URL . "/pages/users/line-entry.php?from=shop");
         exit;
     }
 

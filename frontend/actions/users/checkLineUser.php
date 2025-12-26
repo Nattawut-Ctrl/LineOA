@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once SERVICES_PATH . '/userService.php';
 
@@ -31,7 +31,7 @@ if ($user) {
     }
 
     $_SESSION['user_id'] = $user['id'];
-    header("Location: ../Buyer/Buyer.php");
+    header("Location: " . FRONTEND_URL . "/pages/buyer/Buyer.php");
     exit;
 }
 
@@ -41,5 +41,5 @@ $params = http_build_query([
     'picture_url'  => $picture_url,
 ]);
 
-header("Location: ../Users/Register.php?" . $params);
+header("Location: " . FRONTEND_URL . "/pages/users/Register.php?" . $params);
 exit;

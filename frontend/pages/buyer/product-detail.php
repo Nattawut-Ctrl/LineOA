@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/user_guard.php';
 require_once UTILS_PATH . '/image_helper.php';
@@ -16,14 +16,14 @@ $user_id = (int)($_SESSION['user_id'] ?? 0);
 
 // ───────────────────── ตรวจสอบสิทธิ์ผู้ใช้ ─────────────────────
 if ($user_id <= 0) {
-  header("Location: ../Users/line-entry.php?from=shop");
+  header("Location: " . FRONTEND_URL . "/pages/users/line-entry.php?from=shop");
   exit;
 }
 
 $user = getUserById($conn, $user_id);
 if (!$user) {
   unset($_SESSION['user_id']);
-  header("Location: ../Users/line-entry.php?from=register");
+  header("Location: " . FRONTEND_URL . "/pages/users/line-entry.php?from=register");
   exit;
 }
 
@@ -865,6 +865,44 @@ $allImages    = $allImages ?? [];
       }, 2000);
     }
 
+    document.getElementById('goPaymentBtn').addEventListener('click', () => {
+      if (cart.length === 0) {
+        alert('ตะกร้าว่างเปล่า');
+        return;
+      }
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = 'payment.php';
+
+      const mode = document.createElement('input');
+      mode.type = 'hidden';
+      mode.name = 'mode';
+      mode.value = 'cart';
+      form.appendChild(mode);
+
+      cart.forEach(item => {
+        const fields = {
+          product_id: item.product_id,
+          variant_id: item.variant_id || '',
+          product_name: item.name,
+          quantity: item.quantity,
+          price: item.price
+        };
+
+        for (const key in fields) {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key + '[]';
+          input.value = fields[key];
+          form.appendChild(input);
+        }
+      });
+
+      document.body.appendChild(form);
+      form.submit();
+    });
+
     // ───────────────────── Variant ด้านบน ─────────────────────
     document.querySelectorAll('.variant-chip-main').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1011,7 +1049,7 @@ $allImages    = $allImages ?? [];
 
     // ─────────────── syncCartToServer (ใช้ format เดียวกับ Buyer.php) ───────────────
     function syncCartToServer() {
-      fetch('save_cart.php', {
+      fetch("<?= FRONTEND_URL ?>/api/buyer/save_cart.php", {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

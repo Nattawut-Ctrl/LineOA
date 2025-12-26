@@ -10,10 +10,9 @@ if (!isset($_SESSION['admin_id'])) {
 
 $conn = connectDBWithLog();
 
-// Simple stats
 $productsCount = db_query($conn, "SELECT COUNT(*) c FROM products")->fetch_assoc()['c'] ?? 0;
 $variantsCount = 0;
-// รวมสต็อกจาก products + product_variants
+// products + product_variants
 $stockRow = db_query($conn, "SELECT 
     (SELECT IFNULL(SUM(stock),0) FROM product_variants) AS c")->fetch_assoc();
 if ($stockRow && isset($stockRow['c'])) {

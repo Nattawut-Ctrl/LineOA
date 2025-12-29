@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/admin_guard.php';
 require_once UTILS_PATH . '/product_image_helper.php';
@@ -9,7 +9,7 @@ require_admin();
 $conn = connectDBWithLog();
 
 if (!isset($_SESSION['admin_id'])) {
-    header('Location: ../Users/ad_login.php');
+    header('Location: ' . BACKEND_URL . '/pages/users/login.php');
     exit;
 }
 
@@ -20,6 +20,8 @@ $res = db_query($conn, "SELECT id, name FROM products ORDER BY id DESC");
 while ($row = $res->fetch_assoc()) {
     $products[] = $row;
 }
+
+$STOCK_API = rtrim(BACKEND_URL, '/') . '/api/stock';
 
 $pageTitle  = "เพิ่มสินค้า / เพิ่มสต็อก";
 $activeMenu = "stock";
@@ -141,6 +143,11 @@ $activeMenu = "stock";
             margin-bottom: .25rem;
         }
     </style>
+
+    <script>
+        const BACKEND_URL = "<?= BACKEND_URL ?>";
+        const STOCK_API = BACKEND_URL + "/api/stock";
+    </script>
 </head>
 
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary sidebar-mini">
@@ -512,7 +519,7 @@ $activeMenu = "stock";
                                                 </div>
                                             </div>
                                             <div class="card-body">
-                                                <form id="addProductForm" action="save_new_product.php" method="POST" enctype="multipart/form-data">
+                                                <form id="addProductForm" action="<?= $STOCK_API ?>/save_product.php" method="POST" enctype="multipart/form-data">
 
                                                     <!-- กลุ่ม ข้อมูลสินค้าหลัก -->
                                                     <div class="section-box">
@@ -600,7 +607,7 @@ $activeMenu = "stock";
                                                 </h5>
                                             </div>
                                             <div class="card-body">
-                                                <form action="save_new_stock.php" method="POST" enctype="multipart/form-data">
+                                                <form action="<?= $STOCK_API ?>/save_stock.php" method="POST" enctype="multipart/form-data">
                                                     <div class="mb-3">
                                                         <label class="form-label fw-semibold">เลือกสินค้า</label>
                                                         <select name="product_id" id="productSelect" class="form-select" required>
@@ -710,7 +717,7 @@ $activeMenu = "stock";
                                                 return;
                                             }
 
-                                            fetch("load_variants.php?product_id=" + productId)
+                                            fetch(STOCK_API + "/load_variants.php?product_id=" + productId)
                                                 .then(res => res.text())
                                                 .then(html => {
                                                     variantArea.innerHTML = html;
@@ -809,7 +816,6 @@ $activeMenu = "stock";
                                     if (addForm && btnSaveProduct) {
                                         addForm.addEventListener('submit', function() {
                                             setButtonLoading(btnSaveProduct, true, 'กำลังบันทึกสินค้าใหม่...');
-                                            // ไม่ต้อง preventDefault ให้ฟอร์มส่งไป save_new_product.php ตามปกติ
                                         });
                                     }
 
@@ -839,7 +845,7 @@ $activeMenu = "stock";
                                         btn.addEventListener('click', () => {
                                             const id = btn.dataset.id;
 
-                                            fetch("ajax_load_product.php?id=" + id)
+                                            fetch(STOCK_API + "/load_product.php?id=" + id)
                                                 .then(res => res.text())
                                                 .then(html => {
                                                     const contentEl = document.getElementById("editProductContent");
@@ -860,7 +866,7 @@ $activeMenu = "stock";
                                                             const fd = new FormData();
                                                             fd.append('id', vid);
 
-                                                            fetch("ajax_delete_variant.php", {
+                                                            fetch(STOCK_API + "/delete_variant.php", {
                                                                     method: "POST",
                                                                     body: fd
                                                                 })
@@ -890,7 +896,7 @@ $activeMenu = "stock";
                                                         console.log('Dropzone productId =', productId); // เอาไว้เช็ค
 
                                                         const dz = new Dropzone(dzElement, {
-                                                            url: "upload_product_image.php",
+                                                            url: STOCK_API + "/upload_image.php",
                                                             paramName: "file",
                                                             maxFilesize: 5, // MB
                                                             acceptedFiles: "image/*",
@@ -917,7 +923,7 @@ $activeMenu = "stock";
                                                         });
 
                                                         // โหลดรูปเดิมเข้ามา
-                                                        fetch("load_product_images.php?product_id=" + productId)
+                                                        fetch(STOCK_API + "/load_images.php?product_id=" + productId)
                                                             .then(r => r.json())
                                                             .then(list => {
                                                                 list.forEach(img => {
@@ -938,7 +944,7 @@ $activeMenu = "stock";
                                                             const fd = new FormData();
                                                             fd.append('id', file.serverId);
 
-                                                            fetch("delete_product_image.php", {
+                                                            fetch(STOCK_API + "/delete_image.php", {
                                                                     method: "POST",
                                                                     body: fd
                                                                 })
@@ -962,7 +968,7 @@ $activeMenu = "stock";
 
                                                             setButtonLoading(btnUpdate, true, "กำลังบันทึกการแก้ไข...");
 
-                                                            fetch("ajax_update_product.php", {
+                                                            fetch(STOCK_API + "/update_product.php", {
                                                                     method: "POST",
                                                                     body: new FormData(updateForm)
                                                                 })
@@ -1008,7 +1014,7 @@ $activeMenu = "stock";
                                             const fd = new FormData();
                                             fd.append('id', btn.dataset.id);
 
-                                            fetch("ajax_delete_product.php", {
+                                            fetch(STOCK_API + "/delete_product.php", {
                                                     method: "POST",
                                                     body: fd
                                                 })
@@ -1048,7 +1054,7 @@ $activeMenu = "stock";
                     </div>`;
 
                                             // Fetch ข้อมูลจากไฟล์ใหม่ (ไม่ต้องส่ง ID)
-                                            fetch("ajax_load_all_product_history.php") // <--- เปลี่ยนเป็นชื่อไฟล์ใหม่
+                                            fetch(STOCK_API + "/load_history.php") // <--- เปลี่ยนเป็นชื่อไฟล์ใหม่
                                                 .then(res => res.text())
                                                 .then(html => {
                                                     historyContent.innerHTML = html;

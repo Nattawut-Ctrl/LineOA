@@ -14,7 +14,7 @@ function require_admin(): void
             header('Content-Type: application/json; charset=utf-8');
             echo json_encode(['ok' => false, 'error' => 'unauthorized']);
         } else {
-            header("Location: " . BACKEND_URL . "/Users/ad_login.php");
+            header("Location: " . BACKEND_URL . "/pages/users/login.php");
         }
         exit;
     }

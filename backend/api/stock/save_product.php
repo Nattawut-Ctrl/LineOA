@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/admin_guard.php';
 require_once UTILS_PATH . '/upload_image.php';
@@ -13,6 +13,15 @@ if (file_exists(UTILS_PATH . '/cloudinary_config.php')) {
 require_admin();
 $conn = connectDBWithLog();
 $adminId = $_SESSION['admin_id'] ?? null;
+
+$REDIRECT_ADD_STOCK = rtrim(BACKEND_URL, '/') . '/pages/stock/addStock.php';
+
+function goAddStock(string $qs): void
+{
+    global $REDIRECT_ADD_STOCK;
+    header('Location: ' . $REDIRECT_ADD_STOCK . (str_contains($qs, '?') ? $qs : ('?' . ltrim($qs, '?'))));
+    exit;
+}
 
 // =======================
 // ตั้งค่าระบบ LOG ลงไฟล์
@@ -214,5 +223,4 @@ if (!empty($_POST['variant_name'])) {
 // 5) เสร็จ → redirect
 // -----------------------
 logProductDebug("DONE: redirect to addStock.php?success=new_product_created");
-header("Location: addStock.php?success=new_product_created");
-exit;
+goAddStock('success=new_product_created');

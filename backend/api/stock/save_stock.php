@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/admin_guard.php';
 require_once UTILS_PATH . '/product_image_helper.php';
@@ -10,15 +10,36 @@ $conn = connectDBWithLog();
 
 // 1) รับค่าจากฟอร์ม
 $product_id        = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
-$addStockArr       = isset($_POST['add_stock']) && is_array($_POST['add_stock']) ? $_POST['add_stock'] : [];
-$productAddStock   = isset($_POST['product_add_stock']) ? (int)$_POST['product_add_stock'] : 0;
+
+$addStockArr = [];
+if (isset($_POST['add_stock']) && is_array($_POST['add_stock'])) {
+    $addStockArr = $_POST['add_stock'];
+} elseif (isset($_POST['variant_stock']) && is_array($_POST['variant_stock'])) {
+    $addStockArr = $_POST['variant_stock'];
+}
+
+$productAddStock = 0;
+if (isset($_POST['product_add_stock'])) {
+    $productAddStock = (int)$_POST['product_add_stock'];
+} elseif (isset($_POST['product_stock'])) {
+    $productAddStock = (int)$_POST['product_stock'];
+}
+
 $deleteReq         = isset($_POST['variant_image_delete']) && is_array($_POST['variant_image_delete']) ? $_POST['variant_image_delete'] : [];
 $files             = $_FILES['variant_image'] ?? null;
 
+$REDIRECT_ADD_STOCK = rtrim(BACKEND_URL, '/') . '/pages/stock/addStock.php';
+
+function goAddStock(string $qs): void
+{
+    global $REDIRECT_ADD_STOCK;
+    header('Location: ' . $REDIRECT_ADD_STOCK . (str_contains($qs, '?') ? $qs : ('?' . ltrim($qs, '?'))));
+    exit;
+}
+
 // validate เบื้องต้น
 if ($product_id <= 0) {
-    header("Location: addStock.php?error=invalid_input");
-    exit;
+    goAddStock('error=invalid_input');
 }
 
 // ต้องมีอย่างน้อย 1 อย่าง: เพิ่มสต็อก variant หรือเพิ่มสต็อกสินค้าหลัก
@@ -33,8 +54,7 @@ if (!empty($addStockArr)) {
 }
 
 if (!$hasVariantStock && $productAddStock <= 0) {
-    header("Location: addStock.php?error=invalid_input");
-    exit;
+    goAddStock('error=invalid_input');
 }
 
 // เช็กว่าสินค้ามีอยู่จริงไหม
@@ -46,7 +66,7 @@ $resProduct = db_query(
 );
 
 if (!$resProduct || $resProduct->num_rows === 0) {
-    header("Location: addStock.php?error=product_not_found");
+    goAddStock('error=product_not_found');
     exit;
 }
 
@@ -166,9 +186,9 @@ if ($hasVariantStock) {
 
     $successKey = 'variant_stock_added';
 
-// -----------------------------
-// กรณีไม่มี variant → เพิ่มสต็อกสินค้าโดยตรง
-// -----------------------------
+    // -----------------------------
+    // กรณีไม่มี variant → เพิ่มสต็อกสินค้าโดยตรง
+    // -----------------------------
 } else {
 
     $resultProduct = db_exec(
@@ -181,13 +201,11 @@ if ($hasVariantStock) {
     );
 
     if (!$resultProduct['ok'] || $resultProduct['affected'] <= 0) {
-        header("Location: addStock.php?error=product_stock_update_failed");
-        exit;
+        goAddStock('error=product_stock_update_failed');
     }
 
     $successKey = 'product_stock_added';
 }
 
 // เสร็จ → redirect กลับไปหน้า addStock
-header("Location: addStock.php?success=" . $successKey);
-exit;
+goAddStock('success=' . urlencode($successKey));

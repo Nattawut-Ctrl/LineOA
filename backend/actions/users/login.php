@@ -1,14 +1,14 @@
 <?php
 session_start();
 
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 
 $conn = connectDBWithLog();
 
 function redirectWithError($code)
 {
-    header('Location: ad_login.php?error=' . $code);
+    header('Location: ' . BACKEND_URL . '/pages/users/login.php?error=' . $code);
     exit;
 }
 
@@ -53,9 +53,8 @@ try {
     $_SESSION['admin_name']  = $admin['username'];
     $_SESSION['admin_email'] = $admin['email'];
 
-    header('Location: ../dashboard.php');
+    header('Location: ' . BACKEND_URL . '/pages/dashboard/dashboard.php');
     exit;
-
 } catch (Exception $e) {
     redirectWithError('unknown');
 }

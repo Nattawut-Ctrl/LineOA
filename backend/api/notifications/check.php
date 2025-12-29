@@ -5,6 +5,8 @@ declare(strict_types=1);
 require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once SERVICES_PATH . '/slipService.php';
+require_once UTILS_PATH . '/admin_guard.php';
+require_admin();
 
 header('Content-Type: application/json; charset=utf-8');
 

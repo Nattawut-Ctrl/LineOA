@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 
 $conn = connectDBWithLog();
@@ -29,7 +29,7 @@ if ($full_name === '' || $username === '' || $email === '' || $password === '' |
         'ad_register_save: required fields missing'
     );
 
-    header('Location: ad_register.php?error=required');
+    header('Location: ' . BACKEND_URL . '/pages/users/register.php?error=required');
     exit;
 }
 
@@ -45,7 +45,7 @@ if ($password !== $password_confirm) {
         'ad_register_save: password mismatch'
     );
 
-    header('Location: ad_register.php?error=password_mismatch');
+    header('Location: ' . BACKEND_URL . '/pages/users/register.php?error=password_mismatch');
     exit;
 }
 
@@ -68,7 +68,7 @@ if ($resUser && $resUser->num_rows > 0) {
         'ad_register_save: username already exists'
     );
 
-    header('Location: ad_register.php?error=exists_username');
+    header('Location: ' . BACKEND_URL . '/pages/users/register.php?error=exists_username');
     exit;
 }
 
@@ -91,7 +91,7 @@ if ($resEmail && $resEmail->num_rows > 0) {
         'ad_register_save: email already exists'
     );
 
-    header('Location: ad_register.php?error=exists_email');
+    header('Location: ' . BACKEND_URL . '/pages/users/register.php?error=exists_email');
     exit;
 }
 
@@ -121,7 +121,7 @@ if (!$result['ok'] || !$adminId) {
         'ad_register_save: insert admin failed'
     );
 
-    header('Location: ad_register.php?error=unknown');
+    header('Location: ' . BACKEND_URL . '/pages/users/register.php?error=unknown');
     exit;
 }
 
@@ -142,5 +142,5 @@ writeLog(
 // exit;
 
 // ตอนนี้เลือกให้กลับไปหน้า login พร้อมข้อความว่าสมัครสำเร็จ
-header('Location: ad_login.php?success=registered');
+header('Location: ' . BACKEND_URL . '/pages/users/login.php?success=registered');
 exit;

@@ -1,11 +1,13 @@
 <?php
 session_start();
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once SERVICES_PATH . '/slipService.php';
+require_once UTILS_PATH . '/admin_guard.php';
+require_admin();
 
 if (!isset($_SESSION['admin_id'])) {
-  header('Location: ' . BACKEND_URL . '/Users/ad_login.php');
+  header('Location: ' . BACKEND_URL . '/pages/users/login.php');
   exit;
 }
 
@@ -109,7 +111,7 @@ $payments = function_exists('getAllPayments') ? getAllPayments($conn) : [];
                         </td>
                         <td>
                           <a class="btn btn-info btn-sm"
-                            href="<?= BACKEND_URL ?>/payments/view.php?id=<?= (int)($p['id'] ?? 0) ?>">
+                            href="<?= BACKEND_URL ?>/pages/payments/view.php?id=<?= (int)($p['id'] ?? 0) ?>">
                             ดูสลิป
                           </a>
                         </td>

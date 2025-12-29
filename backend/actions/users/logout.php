@@ -8,5 +8,5 @@ session_unset();
 session_destroy();
 
 // ส่งกลับไปหน้า login
-header("Location: ad_login.php");
+header("Location: " . BACKEND_URL . "/pages/users/login.php");
 exit;

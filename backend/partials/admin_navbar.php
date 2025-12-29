@@ -6,7 +6,6 @@ if (isset($conn) && $conn instanceof mysqli) {
   require_once SERVICES_PATH . '/slipService.php';
 
   $pendingSlipCount = getPendingSlipCount($conn);
-  // ดึงรายการแจ้งเตือนล่าสุด 10 อัน
   $pendingSlips     = getPendingSlipNotifications($conn, 10);
 }
 ?>
@@ -21,7 +20,7 @@ if (isset($conn) && $conn instanceof mysqli) {
         </button>
       </li>
       <li class="nav-item d-none d-md-inline-block">
-        <a href="<?= BACKEND_URL ?>/dashboard.php" class="nav-link fw-semibold">
+        <a href="<?= BACKEND_URL ?>/pages/dashboard/dashboard.php" class="nav-link fw-semibold">
           Line-Shop Admin
         </a>
       </li>
@@ -66,7 +65,7 @@ if (isset($conn) && $conn instanceof mysqli) {
         <?= htmlspecialchars($_SESSION['admin_name'] ?? 'Admin') ?>
       </li>
       <li class="nav-item">
-        <a class="btn btn-outline-danger btn-sm" href="<?= BACKEND_URL ?>/Users/ad_logout.php">
+        <a class="btn btn-outline-danger btn-sm" href="<?= BACKEND_URL ?>/actions/users/logout.php">
           <i class="bi bi-box-arrow-right"></i> Logout
         </a>
       </li>
@@ -101,7 +100,7 @@ if (isset($conn) && $conn instanceof mysqli) {
       `;
     } else {
       items.forEach(item => {
-        const url = "<?= BACKEND_URL ?>/payments/view.php?id=" + encodeURIComponent(item.id);
+        const url = "<?= BACKEND_URL ?>/pages/payments/view.php?id=" + encodeURIComponent(item.id);
 
         html += `
           <a href="${url}"
@@ -137,7 +136,7 @@ if (isset($conn) && $conn instanceof mysqli) {
       // footer
       html += `
         <div class="px-3 py-2 text-center">
-          <a href="<?= BACKEND_URL ?>/payments/list.php" class="small text-decoration-none">
+          <a href="<?= BACKEND_URL ?>/pages/payments/list.php" class="small text-decoration-none">
             ดูสลิปทั้งหมด
           </a>
         </div>
@@ -148,7 +147,7 @@ if (isset($conn) && $conn instanceof mysqli) {
   }
 
   function updateNotifications() {
-    fetch("<?= BACKEND_URL ?>/services/api/check_notifications.php")
+    fetch("<?= BACKEND_URL ?>/api/notifications/check.php")
       .then(res => res.json())
       .then(data => {
         if (!data.ok) {

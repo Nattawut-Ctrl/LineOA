@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/admin_guard.php';
 require_once UTILS_PATH . '/product_image_helper.php';
@@ -102,7 +102,7 @@ if ($resVar && $resVar->num_rows > 0): ?>
             <div class="flex-shrink-0" style="width:130px;">
                 <label class="small text-muted mb-1 d-block">เพิ่มสต็อก</label>
                 <input type="number"
-                    name="variant_stock[<?php echo $vid; ?>]"
+                    name="add_stock[<?php echo $vid; ?>]"
                     min="0"
                     class="form-control form-control-sm text-end"
                     value="0">
@@ -141,7 +141,7 @@ else: ?>
     <div class="mb-2">
         <label class="small mb-1">เพิ่มสต็อก (สินค้าหลัก)</label>
         <input type="number"
-            name="product_stock"
+            name="product_add_stock"
             min="0"
             class="form-control form-control-sm text-end"
             value="0">

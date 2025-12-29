@@ -1,26 +1,32 @@
 <?php
 session_start();
-require_once __DIR__ . '/../../config.php';
-require_once UTILS_PATH . '/db_with_log.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 
-// ถ้าล็อกอินอยู่แล้ว ให้เด้งเข้าแดชบอร์ดเลย
+// ถ้า login อยู่แล้ว ไม่ต้องสมัครซ้ำ
 if (isset($_SESSION['admin_id'])) {
-    header('Location: ../Stock/addStock.php');
+    header('Location: ' . BACKEND_URL . '/pages/stock/addStock.php');
     exit;
 }
 
 function getErrorMessage($code)
 {
     switch ($code) {
-        case 'invalid':
-            return 'อีเมล / ชื่อผู้ใช้ หรือรหัสผ่านไม่ถูกต้อง';
         case 'required':
             return 'กรุณากรอกข้อมูลให้ครบถ้วน';
-        case 'inactive':
-            return 'บัญชีผู้ใช้ยังไม่เปิดใช้งาน กรุณาติดต่อผู้ดูแลระบบ';
+        case 'password_mismatch':
+            return 'รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน';
+        case 'exists_username':
+            return 'ชื่อผู้ใช้นี้ถูกใช้แล้ว กรุณาใช้ชื่ออื่น';
+        case 'exists_email':
+            return 'อีเมลนี้ถูกใช้แล้ว กรุณาใช้อีเมลอื่น';
         default:
-            return 'ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่อีกครั้ง';
+            return 'ไม่สามารถสมัครผู้ดูแลได้ กรุณาลองใหม่อีกครั้ง';
     }
+}
+
+$successText = '';
+if (!empty($_GET['success']) && $_GET['success'] === 'registered') {
+    $successText = 'สมัครผู้ดูแลสำเร็จแล้ว กรุณาเข้าสู่ระบบ';
 }
 
 $errorText = '';
@@ -33,16 +39,14 @@ if (!empty($_GET['error'])) {
 
 <head>
     <meta charset="UTF-8">
-    <title>เข้าสู่ระบบผู้ดูแล</title>
-    <?php require_once SHARED_PARTIALS_PATH . '/bootstrap.php'; ?>
+    <title>สมัครผู้ดูแลระบบ</title>
+
+    <?php include BACKEND_PATH . '/partials/admin_head.php'; ?>
+
     <style>
         :root {
             --primary-color: #0d6efd;
             --bg-gradient: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
-        }
-
-        * {
-            box-sizing: border-box;
         }
 
         body {
@@ -57,7 +61,7 @@ if (!empty($_GET['error'])) {
 
         .auth-wrapper {
             width: 100%;
-            max-width: 430px;
+            max-width: 480px;
             padding: 1.5rem;
         }
 
@@ -109,36 +113,10 @@ if (!empty($_GET['error'])) {
             box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
         }
 
-        .btn-login {
+        .btn-submit {
             border-radius: 0.7rem;
             padding: 0.65rem;
             font-weight: 500;
-        }
-
-        .divider-text {
-            text-align: center;
-            font-size: 0.85rem;
-            color: #999;
-            position: relative;
-            margin: 1rem 0;
-        }
-
-        .divider-text::before,
-        .divider-text::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            width: 42%;
-            height: 1px;
-            background-color: #e2e2e2;
-        }
-
-        .divider-text::before {
-            left: 0;
-        }
-
-        .divider-text::after {
-            right: 0;
         }
 
         .auth-footer {
@@ -146,16 +124,6 @@ if (!empty($_GET['error'])) {
             border-top: 1px solid #f1f1f1;
             background: #fafafa;
             font-size: 0.85rem;
-        }
-
-        @media (max-width: 576px) {
-            .auth-wrapper {
-                padding: 1rem;
-            }
-
-            .auth-card {
-                border-radius: 0.75rem;
-            }
         }
     </style>
 </head>
@@ -168,16 +136,22 @@ if (!empty($_GET['error'])) {
             <!-- Header -->
             <div class="auth-card-header">
                 <div class="brand-circle">
-                    <i class="bi bi-box-seam"></i>
+                    <i class="bi bi-person-plus"></i>
                 </div>
-                <h1 class="h4 auth-title mb-1">เข้าสู่ระบบผู้ดูแล</h1>
+                <h1 class="h4 auth-title mb-1">สมัครผู้ดูแลระบบ</h1>
                 <p class="text-muted auth-subtitle mb-0">
-                    ลงชื่อเข้าใช้เพื่อจัดการสินค้า การจอง และข้อมูลระบบ
+                    สร้างบัญชีผู้ดูแลเพื่อจัดการระบบหลังบ้าน
                 </p>
             </div>
 
             <!-- Body -->
             <div class="auth-body">
+
+                <?php if (!empty($successText)): ?>
+                    <div class="alert alert-success py-2 px-3 mb-3">
+                        <small><?= htmlspecialchars($successText) ?></small>
+                    </div>
+                <?php endif; ?>
 
                 <?php if (!empty($errorText)): ?>
                     <div class="alert alert-danger py-2 px-3 mb-3">
@@ -185,9 +159,19 @@ if (!empty($_GET['error'])) {
                     </div>
                 <?php endif; ?>
 
-                <form action="ad_login_check.php" method="POST" novalidate>
+                <form action="<?= BACKEND_URL ?>/actions/users/register.php" method="post" novalidate>
                     <div class="mb-3">
-                        <label for="email" class="form-label">อีเมล / ชื่อผู้ใช้</label>
+                        <label class="form-label">ชื่อ-นามสกุล</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            name="full_name"
+                            placeholder="เช่น นางสาวตัวอย่าง แอดมิน"
+                            required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">ชื่อผู้ใช้ (Username)</label>
                         <div class="input-group">
                             <span class="input-group-text bg-white">
                                 <i class="bi bi-person"></i>
@@ -195,15 +179,29 @@ if (!empty($_GET['error'])) {
                             <input
                                 type="text"
                                 class="form-control"
-                                id="email"
-                                name="email"
-                                placeholder="กรอกอีเมลหรือชื่อผู้ใช้"
+                                name="username"
+                                placeholder="กำหนดชื่อผู้ใช้"
                                 required>
                         </div>
                     </div>
 
-                    <div class="mb-2">
-                        <label for="password" class="form-label">รหัสผ่าน</label>
+                    <div class="mb-3">
+                        <label class="form-label">อีเมล</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white">
+                                <i class="bi bi-envelope"></i>
+                            </span>
+                            <input
+                                type="email"
+                                class="form-control"
+                                name="email"
+                                placeholder="example@mail.com"
+                                required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">รหัสผ่าน</label>
                         <div class="input-group">
                             <span class="input-group-text bg-white">
                                 <i class="bi bi-lock"></i>
@@ -211,52 +209,49 @@ if (!empty($_GET['error'])) {
                             <input
                                 type="password"
                                 class="form-control"
-                                id="password"
                                 name="password"
-                                placeholder="กรอกรหัสผ่าน"
+                                placeholder="กำหนดรหัสผ่าน"
                                 required>
                         </div>
                     </div>
 
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" value="1" id="remember" name="remember">
-                            <label class="form-check-label" for="remember">
-                                จำการเข้าสู่ระบบ
-                            </label>
+                    <div class="mb-3">
+                        <label class="form-label">ยืนยันรหัสผ่าน</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white">
+                                <i class="bi bi-lock-fill"></i>
+                            </span>
+                            <input
+                                type="password"
+                                class="form-control"
+                                name="password_confirm"
+                                placeholder="กรอกรหัสผ่านอีกครั้ง"
+                                required>
                         </div>
-                        <!-- ลิงก์ลืมรหัสผ่าน (อนาคตทำหน้า reset ก็มาแก้ href ได้) -->
-                        <a href="#" class="small text-decoration-none text-primary-emphasis">
-                            ลืมรหัสผ่าน?
-                        </a>
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100 btn-login">
-                        <i class="bi bi-box-arrow-in-right me-1"></i> เข้าสู่ระบบ
+                    <button type="submit" class="btn btn-primary w-100 btn-submit">
+                        <i class="bi bi-person-plus me-1"></i> สมัครผู้ดูแล
                     </button>
                 </form>
 
-                <div class="divider-text small">
-                    หรือ
-                </div>
-
-                <p class="text-center text-muted small mb-0">
-                    หากยังไม่มีบัญชีผู้ดูแล กรุณาติดต่อผู้ดูแลระบบหลัก
+                <p class="text-center text-muted small mb-0 mt-3">
+                    มีบัญชีผู้ดูแลอยู่แล้ว?
+                    <a href="<?= BACKEND_URL ?>/pages/users/login.php" class="text-decoration-none">
+                        เข้าสู่ระบบที่นี่
+                    </a>
                 </p>
             </div>
 
             <!-- Footer -->
             <div class="auth-footer d-flex justify-content-between align-items-center">
                 <span class="text-muted">&copy; <?= date('Y') ?> ระบบจัดการสินค้า</span>
-                <!-- ถ้ามีลิงก์กลับหน้าเว็บหลัก -->
-                <!-- <a href="../index.php" class="small text-decoration-none">กลับหน้าเว็บไซต์</a> -->
             </div>
 
         </div>
     </div>
 
     <script>
-        // Auto hide alert (เช่น login error) หลัง 3 วิ
         document.addEventListener("DOMContentLoaded", function() {
             const alertEl = document.querySelector('.alert');
             if (alertEl) {

@@ -61,7 +61,7 @@ function notifyAdminNewSlipOnce(mysqli $conn, int $paymentId): bool
     $orderCode = 'ORD-' . str_pad((string)$paymentId, 5, '0', STR_PAD_LEFT);
 
     $url = rtrim(BACKEND_URL, '/') .
-           '/payments/view.php?id=' . urlencode((string)$paymentId);
+           '/pages/payments/view.php?id=' . urlencode((string)$paymentId);
 
     $customer =
         trim(($payment['first_name'] ?? '') . ' ' . ($payment['last_name'] ?? ''))

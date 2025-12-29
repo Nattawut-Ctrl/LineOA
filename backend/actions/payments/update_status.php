@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/admin_guard.php';
 require_once UTILS_PATH . '/csrf.php';
@@ -38,11 +38,11 @@ try {
     }
 
     $conn->commit();
-    header("Location: list.php?ok=1");
+    header('Location: ' . rtrim(BACKEND_URL, '/') . '/pages/payments/list.php?ok=1');
     exit;
 } catch (Throwable $e) {
     $conn->rollback();
     error_log($e->getMessage());
-    header("Location: list.php?error=1");
+    header('Location: ' . rtrim(BACKEND_URL, '/') . '/pages/payments/list.php?error=1');
     exit;
 }

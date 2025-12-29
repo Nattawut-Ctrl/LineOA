@@ -11,6 +11,8 @@ utils/db_with_log.php
 storage/uploads/
 storage/uploads/*
 !storage/uploads/.gitkeep
+/storage/logs/*
+/logs/*
 
 *.log
 logs/

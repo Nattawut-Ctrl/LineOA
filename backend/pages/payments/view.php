@@ -1,12 +1,14 @@
 <?php
 session_start();
-require_once __DIR__ . '/../../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 require_once UTILS_PATH . '/csrf.php';
 require_once SERVICES_PATH . '/slipService.php';
+require_once UTILS_PATH . '/admin_guard.php';
+require_admin();
 
 if (!isset($_SESSION['admin_id'])) {
-  header('Location: ' . BACKEND_URL . '/Users/ad_login.php');
+  header('Location: ' . BACKEND_URL . '/pages/users/login.php');
   exit;
 }
 
@@ -21,8 +23,11 @@ function statusButton($id, $status, $label, $class)
   $label  = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
   $class  = htmlspecialchars($class, ENT_QUOTES, 'UTF-8');
 
+  $action = rtrim(BACKEND_URL, '/') . '/actions/payments/update_status.php';
+  $action = htmlspecialchars($action, ENT_QUOTES, 'UTF-8');
+
   return "
-    <form action='update_status.php' method='post' class='d-inline'>
+    <form action='{$action}' method='post'>
         <input type='hidden' name='csrf_token' value='{$token}'>
         <input type='hidden' name='id' value='{$id}'>
         <input type='hidden' name='status' value='{$status}'>
@@ -64,16 +69,6 @@ $modeLabel = ($payment['mode'] ?? 'single') === 'cart' ? 'ทั้งตะก�
     <?php include BACKEND_PATH . '/partials/admin_sidebar.php'; ?>
 
     <main class="app-main">
-      <!-- <div class="app-content-header">
-        <div class="container-fluid d-flex justify-content-between align-items-center">
-          <h3 class="mb-0"><?= htmlspecialchars($pageTitle ?? "") ?></h3>
-          <ol class="breadcrumb float-sm-end">
-            <li class="breadcrumb-item"><a href="<?= BACKEND_URL ?>/dashboard.php">Home</a></li>
-            <li class="breadcrumb-item active"><?= htmlspecialchars($pageTitle ?? "") ?></li>
-          </ol>
-        </div>
-      </div> -->
-
       <div class="app-content">
         <div class="container-fluid">
 
@@ -100,13 +95,13 @@ $modeLabel = ($payment['mode'] ?? 'single') === 'cart' ? 'ทั้งตะก�
                           <table class="table table-sm table-borderless mb-0">
                             <tr>
                               <th style="width:150px;">ผู้ใช้</th>
-                              <td><?= htmlspecialchars(trim(($payment['first_name'] ?? '') . ' ' . ($payment['last_name']) ?? '')) ? : '-' ?></td>
+                              <td><?= htmlspecialchars(trim(($payment['first_name'] ?? '') . ' ' . ($payment['last_name']) ?? '')) ?: '-' ?></td>
                             </tr>
                             <tr>
                               <th>ยอดเงิน</th>
                               <td><span class="fw-semibold text-danger">
-                                <?= number_format((float)$payment['amount'], 2) ?> บาท
-                              </span></td>
+                                  <?= number_format((float)$payment['amount'], 2) ?> บาท
+                                </span></td>
                             </tr>
                             <tr>
                               <th>โหมดการชำระ</th>
@@ -191,9 +186,9 @@ $modeLabel = ($payment['mode'] ?? 'single') === 'cart' ? 'ทั้งตะก�
                       <h5 class="fw-semibold mb-3">ภาพสลิป</h5>
                       <div class="border rounded p-2 bg-light text-center">
                         <img src="/<?= htmlspecialchars($payment['slip_path']) ?>"
-                             alt="สลิปการโอน #<?= (int)$payment['id'] ?>"
-                             class="img-fluid"
-                             style="max-height: 520px; object-fit: contain;">
+                          alt="สลิปการโอน #<?= (int)$payment['id'] ?>"
+                          class="img-fluid"
+                          style="max-height: 520px; object-fit: contain;">
                       </div>
                     </div>
                   </div>

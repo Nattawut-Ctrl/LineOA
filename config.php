@@ -51,16 +51,21 @@ if (!defined('UPLOAD_BASE_URL_PATH')) {
     define('UPLOAD_BASE_URL_PATH', 'storage/uploads');
 }
 
+define('DB_HOST', 'localhost');
+define('DB_USER', 'root');
+define('DB_PASS', '');
+define('DB_NAME', 'line_shop');
+
 function connectDB()
 {
-    $host = "localhost";
-    $user = "root";
-    $pass = "";
-    $dbname = "line_shop";
+    $host   = getenv('DB_HOST') ?: (defined('DB_HOST') ? DB_HOST : 'localhost');
+    $user   = getenv('DB_USER') ?: (defined('DB_USER') ? DB_USER : 'root');
+    $pass   = getenv('DB_PASS') ?: (defined('DB_PASS') ? DB_PASS : '');
+    $dbname = getenv('DB_NAME') ?: (defined('DB_NAME') ? DB_NAME : 'line_shop');
 
     $conn = new mysqli($host, $user, $pass, $dbname);
     if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
+        throw new Exception("DB connection failed: " . $conn->connect_error);
     }
     $conn->set_charset("utf8mb4");
     return $conn;

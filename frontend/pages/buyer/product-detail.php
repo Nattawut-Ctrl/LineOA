@@ -1049,7 +1049,7 @@ $allImages    = $allImages ?? [];
 
     // ─────────────── syncCartToServer (ใช้ format เดียวกับ Buyer.php) ───────────────
     function syncCartToServer() {
-      fetch("<?= FRONTEND_URL ?>/api/buyer/save_cart.php", {
+      return fetch("<?= FRONTEND_URL ?>/api/buyer/save_cart.php", {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -1138,7 +1138,8 @@ $allImages    = $allImages ?? [];
       if (!requireVariantIfNeeded()) return;
 
       const qty = Number(cartQtyInputEl.value || 1);
-      const ok = addCartLogic(qty); // ให้ตะกร้าตรงกับที่ซื้อ
+      // const ok = addCartLogic(qty);
+      const ok = true; // ไม่ต้องเพิ่มลงตะกร้า แค่ไปหน้าชำระเงินเลย
       if (!ok) return;
 
       const pid = product.id;

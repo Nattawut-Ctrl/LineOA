@@ -1,5 +1,4 @@
 <?php
-require_once __DIR__ . '/shared/utils/log.php';
 
 // config_path.php
 define('BASE_PATH', __DIR__);

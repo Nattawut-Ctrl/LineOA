@@ -429,7 +429,8 @@ unset($item);
                                 <?= htmlspecialchars($product['description']); ?>
                             </small>
                             <div class="d-grid gap-1 mt-1">
-                                <button class="btn btn-sm btn-outline-danger fw-semibold rounded-3 add-cart-btn"
+                                <!-- ใช้ open-cart-bar แทนได้ -->
+                                <button class="btn btn-sm btn-outline-danger fw-semibold rounded-3 open-cart-bar"
                                     data-product='<?= json_encode($productForJs, JSON_UNESCAPED_UNICODE); ?>'>
                                     <i class="bi bi-cart-plus me-1"></i> เพิ่มตะกร้า
                                 </button>
@@ -1044,7 +1045,6 @@ unset($item);
                     quantity: qty
                 });
             }
-
             updateCartBadge();
             syncCartToServer();
         }

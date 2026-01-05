@@ -1272,7 +1272,6 @@ $allImages    = $allImages ?? [];
       updateCartBadge();
     });
   </script>
-
 </body>
 
 </html>

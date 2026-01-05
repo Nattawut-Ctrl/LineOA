@@ -194,7 +194,7 @@ $modeLabel = ($payment['mode'] ?? 'single') === 'cart' ? 'ทั้งตะก�
                   </div>
 
                   <!-- ปุ่มจัดการ -->
-                  <div class="mt-4">
+                  <div class="mt-4 d-flex align-items-center">
                     <?= statusButton($id, 'approved', 'อนุมัติ', 'btn-success me-2') ?>
                     <?= statusButton($id, 'rejected', 'ปฏิเสธ', 'btn-danger me-2') ?>
                     <a href="list.php" class="btn btn-secondary">กลับ</a>

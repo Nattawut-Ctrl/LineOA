@@ -176,6 +176,7 @@ unset($item);
         /* Cart bar */
         #cartBar {
             box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.12);
+            z-index: 2100 !important;
         }
 
         /* Variants */
@@ -232,6 +233,8 @@ unset($item);
         .shake-cart {
             animation: cart-bounce 0.3s ease;
         }
+
+        body.cartbar-open .bottom-nav{ display:none !important; }
 
         .bottom-nav {
             position: fixed;
@@ -431,11 +434,13 @@ unset($item);
                             <div class="d-grid gap-1 mt-1">
                                 <!-- ใช้ open-cart-bar แทนได้ -->
                                 <button class="btn btn-sm btn-outline-danger fw-semibold rounded-3 open-cart-bar"
+                                    data-mode="add"
                                     data-product='<?= json_encode($productForJs, JSON_UNESCAPED_UNICODE); ?>'>
                                     <i class="bi bi-cart-plus me-1"></i> เพิ่มตะกร้า
                                 </button>
                                 <button class="btn btn-sm fw-semibold rounded-3 text-white open-cart-bar"
                                     style="background: linear-gradient(135deg, #ff7043, #ff9800);"
+                                    data-mode="buy"
                                     data-product='<?= json_encode($productForJs, JSON_UNESCAPED_UNICODE); ?>'>
                                     <i class="bi bi-lightning-charge me-1"></i> ซื้อเลย
                                 </button>
@@ -550,7 +555,7 @@ unset($item);
     </div>
 
     <!-- Bottom Navigation Bar -->
-    <nav class="bottom-nav d-flex">
+    <nav class="bottom-nav">
         <a href="Buyer.php" class="nav-item active" id="nav-home">
             <i class="bi bi-house-door"></i>
             <span>หน้าแรก</span>
@@ -681,33 +686,13 @@ unset($item);
             document.querySelectorAll('.open-cart-bar').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
+
+                    const mode = btn.getAttribute('data-mode') || 'add';
                     selectedProduct = JSON.parse(btn.getAttribute('data-product'));
-                    openCartBar(selectedProduct);
+
+                    openCartBar(selectedProduct, mode);
                 });
             });
-
-            // ปุ่ม "เพิ่มตะกร้า" = Quick add + animation บินเข้าตะกร้า
-            // document.querySelectorAll('.add-cart-btn').forEach(btn => {
-            //     btn.addEventListener('click', (e) => {
-            //         e.stopPropagation();
-            //         const product = JSON.parse(btn.getAttribute('data-product'));
-
-            //         if (product.variants && product.variants.length > 0) {
-            //             selectedProduct = product;
-            //             openCartBar(selectedProduct);
-            //             return;
-            //         }
-
-            //         quickAddToCart(product);
-
-            //         const cardImg = btn.closest('.product-card')
-            //             .querySelector('.product-img-wrap img');
-            //         const cartIcon = document.getElementById('cartIcon');
-            //         if (cardImg && cartIcon) {
-            //             flyToCart(cardImg, cartIcon);
-            //         }
-            //     });
-            // });
 
             const modalEl = document.getElementById('cartModal');
             if (modalEl) {
@@ -838,8 +823,28 @@ unset($item);
             cartToast.show();
         }
 
+        let cartMode = 'add'; // 'add' | 'buy'
 
-        function openCartBar(product) {
+        function updateCartBarButtons() {
+            const addBtn = document.getElementById('btnAddToCartBar');
+            const buyBtn = document.getElementById('btnBuyNowBar');
+            if (!addBtn || !buyBtn) return;
+
+            if (cartMode === 'buy') {
+                addBtn.classList.add('d-none');
+                buyBtn.classList.remove('d-none');
+            } else {
+                buyBtn.classList.add('d-none');
+                addBtn.classList.remove('d-none');
+            }
+        }
+
+        function openCartBar(product, mode) {
+            document.body.classList.add('cartbar-open');
+            
+            cartMode = mode || 'add';
+            updateCartBarButtons();
+
             const bar = document.getElementById('cartBar');
             const imgEl = document.getElementById('cartProductImage');
             const nameEl = document.getElementById('cartProductName');
@@ -928,6 +933,7 @@ unset($item);
         }
 
         function closeCartBar() {
+            document.body.classList.remove('cartbar-open');
             document.getElementById('cartBar').style.transform = 'translateY(100%)';
         }
 
@@ -1137,22 +1143,21 @@ unset($item);
 
             const product = selectedProduct;
 
-            syncCartToServer();
-
             const form = document.createElement('form');
             form.method = 'GET';
             form.action = 'payment.php';
 
             const fields = {
+                mode: 'single',
                 product_id: product.id,
-                product_name: product.name,
+                // product_name: product.name,
                 quantity: qty,
             };
 
             if (selectedVariant) {
                 fields.variant_id = selectedVariant.id;
-                fields.variant_name = selectedVariant.name;
-                fields.variant_image = selectedVariant.image;
+                // fields.variant_name = selectedVariant.name;
+                // fields.variant_image = selectedVariant.image;
             }
 
             for (const key in fields) {
@@ -1215,7 +1220,6 @@ unset($item);
         setInterval(checkNotifications, 10000);
         checkNotifications();
     </script>
-
 </body>
 
 </html>

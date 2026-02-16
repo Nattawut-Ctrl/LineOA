@@ -1,0 +1,374 @@
+<?php
+session_start();
+require_once dirname(__DIR__, 3) . '/config.php';
+require_once UTILS_PATH . '/db_with_log.php';
+require_once UTILS_PATH . '/admin_guard.php';
+require_once UTILS_PATH . '/upload_image.php';
+require_once UTILS_PATH . '/product_image_helper.php';
+
+if (!function_exists('writeLog')) {
+    die('DEBUG: db_with_log loaded from = ' . UTILS_PATH . '/db_with_log.php<br>แต่ไม่เจอฟังก์ชัน writeLog()');
+} else {
+    // แค่ทดสอบว่ามีจริง
+    // echo 'DEBUG: writeLog() ถูกโหลดแล้ว'; exit;
+}
+
+require_admin();
+$conn = connectDBWithLog();
+
+$userId = $_SESSION['user_id'] ?? null;
+
+// รับเฉพาะ POST
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    exit('Method Not Allowed');
+}
+
+// Product ID
+$id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+if ($id <= 0) {
+    writeLog(
+        $conn,
+        "UPDATE products (invalid id)",
+        [],
+        '',
+        'error',
+        'ajax_update_product: invalid product id',
+        $id
+    );
+    http_response_code(400);
+    exit('Invalid ID');
+}
+
+$resCur = db_query($conn, "SELECT price, stock FROM products WHERE id = ? LIMIT 1", [$id], "i");
+$cur = $resCur ? $resCur->fetch_assoc() : null;
+$curPrice = $cur ? (float)$cur['price'] : 0;
+$curStock = $cur ? (int)$cur['stock'] : 0;
+
+function getVariantCount(mysqli $conn, int $productId): int
+{
+    $res = db_query($conn, "SELECT COUNT(*) AS c FROM product_variants WHERE product_id = ?", [$productId], "i");
+    $row = $res ? $res->fetch_assoc() : null;
+    return (int)($row['c'] ?? 0);
+}
+
+// โหลด image เดิมของ product
+$resP = db_query(
+    $conn,
+    "SELECT image FROM products WHERE id = ?",
+    [$id],
+    "i"
+);
+$rowP = $resP ? $resP->fetch_assoc() : null;
+$oldProductImage = $rowP['image'] ?? null;
+
+// ----------------------
+// 1) ข้อมูลหลักของ product
+// ----------------------
+$name        = $_POST['name'] ?? '';
+$unit        = trim($_POST['unit'] ?? '');
+$description = $_POST['description'] ?? '';
+
+$priceInput = isset($_POST['price']) ? floatval($_POST['price']) : $curPrice;
+$stockInput = isset($_POST['stock']) ? intval($_POST['stock']) : $curStock;
+
+$hasVariants = (!empty($_POST['variant_id']) || !empty($_POST['new_variant_name']));
+
+if ($name === '' || $unit === '') {
+    http_response_code(400);
+    echo "invalid_input";
+    exit;
+}
+
+if (!$hasVariants && $priceInput <= 0) {
+    http_response_code(400);
+    echo "invalid_price";
+    exit;
+}
+
+// ----------------------
+// 1.1 จัดการรูปหลักของสินค้า
+// ----------------------
+$deleteMainReq = !empty($_POST['product_image_delete']);
+$newMainImagePath = null;
+
+if (!empty($_FILES['product_image']) && $_FILES['product_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+
+    $file = [
+        'name'     => $_FILES['product_image']['name'],
+        'type'     => $_FILES['product_image']['type'],
+        'tmp_name' => $_FILES['product_image']['tmp_name'],
+        'error'    => $_FILES['product_image']['error'],
+        'size'     => $_FILES['product_image']['size'],
+    ];
+
+    // โฟลเดอร์ของ product main image
+    $uploaded = uploadImageWithFallback($file, 'products', 'line-shop/products');
+    if ($uploaded) {
+        $newMainImagePath = $uploaded;
+    }
+}
+
+// ตัดสินใจรูปหลักสุดท้าย
+$finalProductImage = $oldProductImage;
+
+if ($deleteMainReq) {
+    $finalProductImage = null;
+}
+
+if ($newMainImagePath !== null) {
+    $finalProductImage = $newMainImagePath;
+}
+
+// ถ้ามีการเปลี่ยนรูปหลักจริง ๆ → update + ลบไฟล์เก่า
+if ($finalProductImage !== $oldProductImage) {
+    // ลบไฟล์เก่า (ถ้าเป็น local)
+    if ($oldProductImage && ($deleteMainReq || $newMainImagePath)) {
+        deleteImageFileIfLocal($oldProductImage);
+    }
+}
+
+// ----------------------
+// 1.2 UPDATE products (ยังไม่สรุปราคา/stock)
+// ----------------------
+$resultProduct = db_exec(
+    $conn,
+    "UPDATE products 
+     SET name = ?, price = ?, stock = ?, unit = ?, description = ?, image = ?
+     WHERE id = ?",
+    [$name, $priceInput, $stockInput, $unit, $description, $finalProductImage, $id],
+    "sdisssi"
+);
+
+// ----------------------
+// 2) จัดการ variants เดิม + รูป
+// ----------------------
+$deleteReq = $_POST['variant_image_delete'] ?? [];
+$files     = $_FILES['variant_image'] ?? null;
+
+$deleteSet = [];
+if (is_array($deleteReq)) {
+    foreach ($deleteReq as $vid) {
+        $deleteSet[(int)$vid] = true;
+    }
+}
+
+$oldVarImages = [];
+$oldVarStocks = [];
+if (!empty($_POST['variant_id'])) {
+    $resOld = db_query(
+        $conn,
+        "SELECT id, image, stock 
+         FROM product_variants 
+         WHERE product_id = ?",
+        [$id],
+        "i"
+    );
+
+    if ($resOld) {
+        while ($r = $resOld->fetch_assoc()) {
+            $oldVarImages[(int)$r['id']] = $r['image'];
+            $oldVarStocks[(int)$r['id']] = isset($r['stock']) ? (int)$r['stock'] : 0;
+        }
+    }
+}
+
+$okVariantsAll = true;
+
+if (!empty($_POST['variant_id'])) {
+    foreach ($_POST['variant_id'] as $i => $vidRaw) {
+
+        $vid = intval($vidRaw);
+        if ($vid <= 0) {
+            continue;
+        }
+
+        $vName  = $_POST['variant_name'][$i] ?? '';
+        $vPrice = floatval($_POST['variant_price'][$i] ?? 0);
+
+        // ถ้า input สต็อกมี ให้ใช้ค่านั้น ถ้าไม่มี ให้ใช้สต็อกเก่าจาก DB (ป้องกันกรณีฟอร์มไม่ได้ส่งค่า)
+        $oldStock = $oldVarStocks[$vid] ?? null;
+        if (isset($_POST['variant_stock'][$i]) && $_POST['variant_stock'][$i] !== '') {
+            $vStock = intval($_POST['variant_stock'][$i]);
+        } elseif ($oldStock !== null) {
+            $vStock = (int)$oldStock;
+        } else {
+            $vStock = 0;
+        }
+
+        $resultVariant = db_exec(
+            $conn,
+            "UPDATE product_variants 
+             SET variant_name = ?, price = ?, stock = ?
+             WHERE id = ?",
+            [$vName, $vPrice, $vStock, $vid],
+            "sdii"
+        );
+
+        if (!$resultVariant['ok']) {
+            $okVariantsAll = false;
+        }
+
+        $oldImage   = $oldVarImages[$vid] ?? null;
+        $needDelete = isset($deleteSet[$vid]);
+        $newImagePath = null;
+
+        if ($files && isset($files['name'][$vid]) && $files['error'][$vid] !== UPLOAD_ERR_NO_FILE) {
+            $file = [
+                'name'     => $files['name'][$vid],
+                'type'     => $files['type'][$vid],
+                'tmp_name' => $files['tmp_name'][$vid],
+                'error'    => $files['error'][$vid],
+                'size'     => $files['size'][$vid],
+            ];
+
+            $uploaded = uploadImageWithFallback($file, 'variants', 'line-shop/variants');
+            if ($uploaded) {
+                $newImagePath = $uploaded;
+            }
+        }
+
+        $finalImage = $oldImage;
+
+        if ($needDelete) {
+            $finalImage = null;
+        }
+
+        if ($newImagePath !== null) {
+            $finalImage = $newImagePath;
+        }
+
+        if ($finalImage !== $oldImage) {
+            db_exec(
+                $conn,
+                "UPDATE product_variants
+                 SET image = ?
+                 WHERE id = ?",
+                [$finalImage, $vid],
+                "si"
+            );
+
+            if ($oldImage && ($needDelete || $newImagePath) && $oldImage !== $finalImage) {
+                deleteImageFileIfLocal($oldImage);
+            }
+        }
+    }
+}
+
+// ----------------------
+// 3) เพิ่ม variants ใหม่ (พร้อมรูป)
+// ----------------------
+$okNewVariants = true;
+
+if (!empty($_POST['new_variant_name'])) {
+    $newNames  = $_POST['new_variant_name'];
+    $newSKUs   = $_POST['new_variant_sku'] ?? [];
+    // $newPrices = $_POST['new_variant_price'] ?? [];
+    // $newStocks = $_POST['new_variant_stock'] ?? [];
+    $newImages = $_FILES['new_variant_image'] ?? null;
+
+    foreach ($newNames as $i => $nvName) {
+        $nvName = trim($nvName);
+        if ($nvName === '') {
+            continue;
+        }
+        $nvSKU   = isset($newSKUs[$i]) ? trim($newSKUs[$i]) : '';
+        // $nvPrice = isset($newPrices[$i]) ? floatval($newPrices[$i]) : 0;
+        // $nvStock = isset($newStocks[$i]) ? intval($newStocks[$i]) : 0;
+
+        $imagePath = null;
+        if ($newImages && !empty($newImages['name'][$i]) && $newImages['error'][$i] === UPLOAD_ERR_OK) {
+            $file = [
+                'name'     => $newImages['name'][$i],
+                'type'     => $newImages['type'][$i],
+                'tmp_name' => $newImages['tmp_name'][$i],
+                'error'    => $newImages['error'][$i],
+                'size'     => $newImages['size'][$i],
+            ];
+
+            $imagePath = uploadImageWithFallback($file, 'variants', 'line-shop/variants');
+        }
+
+        $insert = db_exec(
+            $conn,
+            "INSERT INTO product_variants (product_id,sku, variant_name, image)
+             VALUES (?, ?, ?, ?)",
+            [$id, $nvSKU, $nvName, $imagePath],
+            "issi"
+        );
+
+        if (!$insert['ok']) {
+            $okNewVariants = false;
+        }
+    }
+}
+
+// ----------------------
+// 3.1 สรุปราคา/stock จาก variants (ROLL-UP ไป products)
+// ----------------------
+$variantCount = getVariantCount($conn, $id);
+
+$okSummary = true;
+
+// ถ้ามี variants จริงใน DB -> products.price = ราคาต่ำสุดของ variants (ตัดราคา 0 ทิ้ง)
+if ($variantCount > 0) {
+    $sumRes = db_query(
+        $conn,
+        "SELECT 
+            COALESCE(MIN(NULLIF(price, 0)), 0) AS min_price,
+            COALESCE(SUM(stock), 0) AS stock_sum
+         FROM product_variants
+         WHERE product_id = ?",
+        [$id],
+        "i"
+    );
+
+    $row = $sumRes ? $sumRes->fetch_assoc() : null;
+
+    $summaryPrice = (float)($row['min_price'] ?? 0);
+    $summaryStock = (int)($row['stock_sum'] ?? 0);
+
+    $summaryUpdate = db_exec(
+        $conn,
+        "UPDATE products SET price = ?, stock = ? WHERE id = ?",
+        [$summaryPrice, $summaryStock, $id],
+        "dii"
+    );
+
+    if (!$summaryUpdate['ok']) {
+        $okSummary = false;
+    }
+} else {
+    // ไม่มี variants -> ใช้ค่าจากฟอร์ม/เดิมตามปกติ
+    $summaryPrice = $priceInput;
+    $summaryStock = $stockInput;
+}
+
+// ----------------------
+// 4) ประเมินผล & log
+// ----------------------
+$statusOverall = ($resultProduct['ok'] && $okVariantsAll && $okNewVariants && $okSummary) ? 'success' : 'error';
+
+writeLog(
+    $conn,
+    "UPDATE products + variants",
+    [
+        'product_id'  => $id,
+        'name'        => $name,
+        'price'       => $summaryPrice,
+        'stock'       => $summaryStock,
+        'description' => $description
+    ],
+    '',
+    $statusOverall,
+    $statusOverall === 'success' ? null : 'One or more update failed',
+    $id
+);
+
+if ($statusOverall !== 'success') {
+    http_response_code(500);
+    echo "error";
+    exit;
+}
+
+echo "success";

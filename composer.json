@@ -1,0 +1,13 @@
+{
+    "name": "nb-med/line-oa",
+    "authors": [
+        {
+            "name": "Nattawut-Ctrl",
+            "email": "aumjahaha@gmail.com"
+        }
+    ],
+    "require": {
+        "cloudinary/cloudinary_php": "^3.1",
+        "phpmailer/phpmailer": "^7.0"
+    }
+}

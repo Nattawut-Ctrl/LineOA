@@ -1,0 +1,1184 @@
+<?php
+session_start();
+require_once dirname(__DIR__, 3) . '/config.php';
+require_once UTILS_PATH . '/db_with_log.php';
+require_once UTILS_PATH . '/admin_guard.php';
+require_once UTILS_PATH . '/product_image_helper.php';
+
+require_admin();
+$conn = connectDBWithLog();
+
+if (!isset($_SESSION['admin_id'])) {
+    header('Location: ' . BACKEND_URL . '/pages/users/login.php');
+    exit;
+}
+
+// โหลดรายการสินค้าเดิมไว้สำหรับ dropdown
+$products = [];
+$res = db_query($conn, "SELECT id, name FROM products ORDER BY id DESC");
+
+while ($row = $res->fetch_assoc()) {
+    $products[] = $row;
+}
+
+$STOCK_API = rtrim(BACKEND_URL, '/') . '/api/stock';
+
+$pageTitle  = "เพิ่มสินค้า / เพิ่มสต็อก";
+$activeMenu = "stock";
+?>
+
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <title>เพิ่มสินค้า / เพิ่มสต็อก</title>
+
+    <?php $pageTitle = 'เพิ่มสินค้า / เพิ่มสต็อก'; ?>
+    <?php include BACKEND_PATH . '/partials/admin_head.php'; ?>
+    <style>
+        .variant-row {
+            margin-bottom: .75rem;
+        }
+
+        .stock-manage-wrapper {
+            padding-bottom: 1.5rem;
+        }
+
+        @media (max-width: 767.98px) {
+            .stock-manage-wrapper {
+                padding-inline: .5rem;
+            }
+        }
+
+        .variant-row-placeholder {
+            background: #fafafa;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+
+        .table td img {
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .page-title {
+            font-weight: 600;
+        }
+
+        .card {
+            border-radius: 0.75rem;
+        }
+
+        /* ===== เน้นฟอร์มเพิ่มสินค้า + variants ให้เด่นขึ้น ===== */
+        .card-main-feature {
+            border: 1px solid rgba(124, 58, 237, .25);
+            box-shadow: 0 0.55rem 1.5rem rgba(124, 58, 237, .1);
+        }
+
+        .card-main-feature .card-header {
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            color: #fff;
+        }
+
+        .card-main-feature .card-header span.small {
+            color: rgba(255, 255, 255, .85);
+        }
+
+        .card-main-feature h5 {
+            color: #fff;
+        }
+
+        .section-label {
+            font-size: .85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: #6c757d;
+        }
+
+        .section-box {
+            border-radius: .75rem;
+            border: 1px dashed #ced4da;
+            padding: .75rem 1rem;
+            background-color: #f8f9fa;
+            margin-bottom: 1rem;
+        }
+
+        .section-box-title {
+            font-size: .9rem;
+            font-weight: 600;
+            margin-bottom: .5rem;
+        }
+
+        /* กล่อง variant ให้ดูเป็นบล็อกชัด ๆ */
+        .variant-row {
+            border-radius: .75rem;
+            border: 1px solid #e2e3e5;
+            background: #fcfcfd;
+            padding: .75rem .85rem;
+            margin-bottom: .75rem;
+        }
+
+        .variant-row-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: .5rem;
+        }
+
+        .variant-row-header strong {
+            font-size: .9rem;
+        }
+
+        .variant-row-header small {
+            font-size: .75rem;
+            color: #6c757d;
+        }
+
+        .variant-row .form-label {
+            font-size: .8rem;
+            margin-bottom: .25rem;
+        }
+    </style>
+
+    <script>
+        const BACKEND_URL = "<?= BACKEND_URL ?>";
+        const STOCK_API = BACKEND_URL + "/api/stock";
+    </script>
+
+    <script>
+        // Load categories and units into dropdowns on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCategoriesDropdown();
+            loadUnitsDropdown();
+        });
+
+        function loadCategoriesDropdown() {
+            const select = document.getElementById('categorySelect');
+            if (!select) return;
+
+            fetch(STOCK_API + '/get_categories.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        data.data.forEach(category => {
+                            const option = document.createElement('option');
+                            option.value = category.name;
+                            option.textContent = category.name;
+                            select.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading categories:', error);
+                });
+        }
+
+        function loadUnitsDropdown() {
+            const select = document.getElementById('unitSelect');
+            if (!select) return;
+
+            fetch(STOCK_API + '/get_units.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        data.data.forEach(unit => {
+                            const option = document.createElement('option');
+                            option.value = unit.name;
+                            option.textContent = unit.name + (unit.symbol ? ' (' + unit.symbol + ')' : '');
+                            select.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading units:', error);
+                });
+        }
+    </script>
+</head>
+
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary sidebar-mini">
+    <div class="app-wrapper">
+        <!-- Top bar / Navbar -->
+        <?php include BACKEND_PATH . '/partials/admin_navbar.php'; ?>
+        <?php include BACKEND_PATH . '/partials/admin_sidebar.php'; ?>
+
+        <main class="app-main">
+            <div class="app-content">
+                <div class="container-fluid">
+
+                    <section class="content pt-3">
+                        <div class="container-fluid">
+
+                            <div class="container pb-4">
+
+                                <?php
+                                // --------------------------
+                                // ตั้งค่าการแบ่งหน้า + ค้นหา/กรอง
+                                // --------------------------
+                                $perPage = 5; // จำนวนสินค้าต่อหน้า ปรับได้
+                                $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+                                if ($page < 1) $page = 1;
+
+                                // เตรียมเงื่อนไขค้นหา/กรอง
+                                $where = " WHERE 1=1 ";
+
+                                // คำค้นหา (ชื่อสินค้า / หมวดหมู่)
+                                if (!empty($_GET['q'])) {
+                                    $q = '%' . $conn->real_escape_string($_GET['q']) . '%';
+                                    $where .= " AND (p.name LIKE '$q' OR p.category LIKE '$q')";
+                                }
+
+                                // กรองสต็อก
+                                if (!empty($_GET['filter_stock'])) {
+                                    $fs = $_GET['filter_stock'];
+                                    if ($fs === 'low') {
+                                        $where .= " AND (p.stock - p.reserved_stock) > 0 
+                                                    AND (p.stock - p.reserved_stock) <= 5";
+                                    } elseif ($fs === 'out') {
+                                        $where .= " AND (p.stock - p.reserved_stock) <= 0";
+                                    }
+                                }
+
+                                // นับจำนวนสินค้าทั้งหมด (ตามเงื่อนไขค้นหา)
+                                $countRes = $conn->query("SELECT COUNT(*) AS total FROM products p $where");
+                                $totalRows = ($countRes && $countRes->num_rows > 0)
+                                    ? (int)$countRes->fetch_assoc()['total']
+                                    : 0;
+
+                                $totalPages = max(1, ceil($totalRows / $perPage));
+
+                                // ถ้าเลข page เกินหน้าสุดท้าย ให้ดึงหน้าสุดท้ายแทน
+                                if ($page > $totalPages) $page = $totalPages;
+
+                                $offset = ($page - 1) * $perPage;
+
+                                // ดึงเฉพาะสินค้าของหน้านี้
+                                $productsListRes = $conn->query("
+                                    SELECT 
+                                        p.id,
+                                        p.name,
+                                        p.category,
+                                        p.price,
+                                        COALESCE(SUM(v.stock), 0)          AS stock,
+                                        COALESCE(SUM(v.reserved_stock), 0) AS reserved_stock,
+                                        COUNT(v.id)                        AS variant_count
+                                    FROM products p
+                                    LEFT JOIN product_variants v ON v.product_id = p.id
+                                    $where
+                                    GROUP BY p.id
+                                    ORDER BY p.id DESC
+                                    LIMIT $perPage OFFSET $offset
+                                ");
+
+                                // แปลงเป็น array เพื่อจะได้วนใช้หลายรอบ + เตรียม list สำหรับ fallback รูป variant
+                                $productsList           = [];
+                                $productIdsNeedFallback = [];
+
+                                if ($productsListRes) {
+                                    while ($row = $productsListRes->fetch_assoc()) {
+                                        $productsList[] = $row;
+
+                                        if (empty($row['image'])) {
+                                            $productIdsNeedFallback[] = (int)$row['id'];
+                                        }
+                                    }
+                                }
+
+                                // ดึง fallback รูปจาก variant สำหรับสินค้าในหน้านี้ ที่ไม่มีรูปหลัก
+                                $fallbackVariantImages = [];
+                                if (!empty($productIdsNeedFallback)) {
+                                    $fallbackVariantImages = loadVariantFallbackImages($conn, $productIdsNeedFallback);
+                                }
+                                ?>
+
+                                <!-- Header Page -->
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <h1 class="h3 page-title mb-1">จัดการสินค้า</h1>
+                                        <p class="text-muted mb-0">
+                                            เพิ่ม / แก้ไข / จัดการสต็อกสินค้าให้พร้อมสำหรับการใช้งานจริง
+                                        </p>
+                                    </div>
+                                    <!-- ถ้ามีหน้า dashboard หลักสามารถใส่ลิงก์กลับได้ -->
+                                    <!-- <a href="ad_dashboard.php" class="btn btn-outline-light text-dark btn-sm">กลับแดชบอร์ด</a> -->
+                                </div>
+
+                                <!-- แสดงผลสำเร็จ / error -->
+                                <?php if (isset($_GET['success'])): ?>
+                                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                        <?php
+                                        if ($_GET['success'] === 'new_product_created') {
+                                            echo "🎉 เพิ่มสินค้าใหม่เรียบร้อยแล้ว!";
+                                        } elseif ($_GET['success'] === 'variant_stock_added') {
+                                            echo "📦 เพิ่มสต็อกให้ตัวเลือกสินค้าเรียบร้อย!";
+                                        } elseif ($_GET['success'] === 'product_stock_added') {
+                                            echo "📦 เพิ่มสต็อกสินค้าเรียบร้อย!";
+                                        } elseif ($_GET['success'] === 'updated') {
+                                            echo "🔄 อัปเดตข้อมูลเรียบร้อย!";
+                                        } else {
+                                            echo "ดำเนินการสำเร็จ!";
+                                        }
+                                        ?>
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                <?php endif; ?>
+
+                                <?php if (isset($_GET['error'])): ?>
+                                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                        ❗ เกิดข้อผิดพลาด:
+                                        <?php
+                                        if ($_GET['error'] === 'invalid_product_input') {
+                                            echo "ข้อมูลสินค้าไม่ครบหรือไม่ถูกต้อง";
+                                        } elseif ($_GET['error'] === 'invalid_input') {
+                                            echo "ข้อมูลไม่ครบถ้วนในการเพิ่มสต็อก";
+                                        } elseif ($_GET['error'] === 'use_receipt_flow') {
+                                            echo "ปิดการเพิ่มสต็อกจากหน้านี้แล้ว กรุณารับเข้า/เพิ่มสต็อกผ่านหน้าใบรับของ (Goods Receipts)";
+                                        } else {
+                                            echo "ไม่สามารถดำเนินการได้";
+                                        }
+                                        ?>
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                <?php endif; ?>
+
+                                <form class="row g-2 mb-3" method="get">
+                                    <div class="col-md-5">
+                                        <input
+                                            type="text"
+                                            class="form-control"
+                                            name="q"
+                                            placeholder="ค้นหาชื่อสินค้า / หมวดหมู่"
+                                            value="<?= htmlspecialchars($_GET['q'] ?? '') ?>">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <select name="filter_stock" class="form-select">
+                                            <option value="">-- สต็อกทั้งหมด --</option>
+                                            <option value="low" <?= ($_GET['filter_stock'] ?? '') === 'low' ? 'selected' : '' ?>>
+                                                สต็อกเหลือน้อย (1–5 ชิ้น)
+                                            </option>
+                                            <option value="out" <?= ($_GET['filter_stock'] ?? '') === 'out' ? 'selected' : '' ?>>
+                                                สต็อกหมด
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2 d-grid">
+                                        <button class="btn btn-outline-secondary">
+                                            <i class="bi bi-search"></i> ค้นหา
+                                        </button>
+                                    </div>
+                                </form>
+
+                                <!-- รายการสินค้า -->
+                                <div class="card shadow-sm mb-4">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <span class="fw-semibold">📦 รายการสินค้า</span>
+                                        </div>
+                                        <span class="badge bg-secondary">
+                                            ทั้งหมด <?= number_format($totalRows) ?> รายการ
+                                        </span>
+                                        <button
+                                            class="btn btn-outline-secondary logHistoryBtn"
+                                            title="ดูประวัติการแก้ไขสินค้าล่าสุดทั้งหมด"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#historyModal">
+                                            <i class="bi bi-clock-history"></i> ประวัติ
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover align-middle mb-0">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th scope="col">ID</th>
+                                                        <th scope="col">รูป</th>
+                                                        <th scope="col">ชื่อสินค้า</th>
+                                                        <th scope="col">ราคา</th>
+                                                        <th scope="col">สต็อก</th>
+                                                        <th scope="col">ตัวเลือก</th>
+                                                        <th scope="col" width="220" class="text-end">จัดการ</th>
+                                                    </tr>
+                                                </thead>
+
+                                                <tbody>
+                                                    <?php foreach ($productsList as $p): ?>
+                                                        <tr>
+                                                            <td class="text-muted">#<?= $p['id'] ?></td>
+                                                            <td>
+                                                                <?php
+                                                                // ใช้รูปหลักก่อน
+                                                                $imgPath = $p['image'] ?? '';
+
+                                                                // ถ้าไม่มีรูปหลัก → ลองหาจาก variant
+                                                                $pid = (int)$p['id'];
+                                                                if (empty($imgPath) && !empty($fallbackVariantImages[$pid])) {
+                                                                    $imgPath = $fallbackVariantImages[$pid];
+                                                                }
+
+                                                                // แปลง path เป็น URL เต็ม (ใช้ helper จาก product_image_helper.php)
+                                                                $imgUrl = getProductMainImageUrl($conn, (int)$p['id']);
+                                                                ?>
+
+                                                                <?php if (!empty($imgUrl)): ?>
+                                                                    <img
+                                                                        src="<?= htmlspecialchars($imgUrl) ?>"
+                                                                        width="60"
+                                                                        height="60"
+                                                                        class="img-thumbnail"
+                                                                        style="object-fit: cover;"
+                                                                        alt="product-image">
+                                                                <?php else: ?>
+                                                                    <span class="text-muted small">ไม่มีรูป</span>
+                                                                <?php endif; ?>
+                                                            </td>
+                                                            <td>
+                                                                <div class="fw-semibold"><?= htmlspecialchars($p['name']) ?></div>
+                                                                <?php if (!empty($p['category'])): ?>
+                                                                    <div class="small text-muted">หมวดหมู่: <?= htmlspecialchars($p['category']) ?></div>
+                                                                <?php endif; ?>
+                                                            </td>
+                                                            <td><?= number_format($p['price'], 2) ?></td>
+                                                            <td>
+                                                                <?php
+                                                                $totalStock = (int)($p['stock'] ?? 0);
+                                                                $reserved   = (int)($p['reserved_stock'] ?? 0);
+                                                                $available  = max(0, $totalStock - $reserved);
+                                                                ?>
+
+                                                                <?php if ($available <= 0): ?>
+                                                                    <span class="badge bg-danger-subtle border border-danger text-danger">
+                                                                        สต็อกหมด
+                                                                    </span>
+                                                                <?php elseif ($available <= 5): ?>
+                                                                    <span class="badge bg-warning-subtle border border-warning text-warning">
+                                                                        เหลือน้อย (<?= number_format($available) ?>)
+                                                                    </span>
+                                                                <?php else: ?>
+                                                                    <span class="badge bg-success-subtle border border-success text-success">
+                                                                        <?= number_format($available) ?> ชิ้น
+                                                                    </span>
+                                                                <?php endif; ?>
+
+                                                                <?php if ($reserved > 0): ?>
+                                                                    <small class="text-muted d-block mt-1">
+                                                                        จองไว้: <?= number_format($reserved) ?> ชิ้น
+                                                                        (รวมทั้งหมด) <?= number_format($totalStock) ?> ชิ้น
+                                                                    </small>
+                                                                <?php endif; ?>
+                                                            </td>
+
+                                                            <td>
+                                                                <span class="badge bg-info-subtle border border-info text-info">
+                                                                    <?= $p['variant_count'] ?> ตัวเลือก
+                                                                </span>
+                                                            </td>
+
+                                                            <td class="text-end">
+                                                                <div class="btn-group btn-group-sm" role="group">
+                                                                    <!-- ปุ่มแก้ไข เปิด Modal -->
+                                                                    <button
+                                                                        class="btn btn-outline-warning editProductBtn"
+                                                                        data-id="<?= $p['id'] ?>">
+                                                                        <i class="bi bi-pencil-square me-1"></i> แก้ไข
+                                                                    </button>
+
+                                                                    <!-- ปุ่มลบ -->
+                                                                    <button
+                                                                        class="btn btn-outline-danger deleteProductBtn"
+                                                                        data-id="<?= $p['id'] ?>">
+                                                                        <i class="bi bi-trash me-1"></i> ลบ
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+
+                                                    <?php if ($totalRows === 0): ?>
+                                                        <tr>
+                                                            <td colspan="7" class="text-center py-4 text-muted">
+                                                                ยังไม่มีสินค้าในระบบ
+                                                            </td>
+                                                        </tr>
+                                                    <?php endif; ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <?php if ($totalPages > 1): ?>
+                                        <div class="card-footer border-0">
+                                            <nav aria-label="Page navigation">
+                                                <ul class="pagination justify-content-center mb-0">
+
+                                                    <!-- ปุ่มก่อนหน้า -->
+                                                    <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
+                                                        <a class="page-link" href="?page=<?= $page - 1 ?>">ก่อนหน้า</a>
+                                                    </li>
+
+                                                    <!-- เลขหน้า -->
+                                                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                                                        <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
+                                                            <a class="page-link" href="?page=<?= $i ?>">
+                                                                <?= $i ?>
+                                                            </a>
+                                                        </li>
+                                                    <?php endfor; ?>
+
+                                                    <!-- ปุ่มถัดไป -->
+                                                    <li class="page-item <?= ($page >= $totalPages) ? 'disabled' : '' ?>">
+                                                        <a class="page-link" href="?page=<?= $page + 1 ?>">ถัดไป</a>
+                                                    </li>
+
+                                                </ul>
+                                            </nav>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+
+                                <ul class="nav nav-tabs" id="productTab">
+                                    <li class="nav-item">
+                                        <button class="nav-link active" data-bs-target="#tabAddStock" data-bs-toggle="tab">
+                                            เพิ่มสต็อกสินค้าเดิม
+                                        </button>
+                                    </li>
+
+                                    <li class="nav-item">
+                                        <button class="nav-link" data-bs-target="#tabAddProduct" data-bs-toggle="tab">
+                                            เพิ่มสินค้าใหม่
+                                        </button>
+                                    </li>
+                                </ul>
+
+                                <!-- จัดการสินค้า: ฟอร์ม 2 ฝั่ง -->
+                                <div class="tab-content row g-4 mt-1">
+
+                                    <!-- 1) ฟอร์มเพิ่มสินค้าใหม่ + variants (ฟังก์ชันรอง) -->
+                                    <div class="tab-pane fade col-lg-8 col-xl-9 mx-auto" id="tabAddProduct">
+                                        <div class="card shadow-sm card-main-feature h-100">
+                                            <div class="card-header d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h5 class="mb-0 fw-semibold">
+                                                        🆕 เพิ่มสินค้าใหม่
+                                                    </h5>
+                                                    <span class="small d-block mt-1">
+                                                        กรอกข้อมูลสินค้าให้ครบถ้วน และตั้งค่าตัวเลือก (Variants) ได้ในที่เดียว
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <form id="addProductForm" action="<?= $STOCK_API ?>/save_product.php" method="POST" enctype="multipart/form-data">
+
+                                                    <!-- กลุ่ม ข้อมูลสินค้าหลัก -->
+                                                    <div class="section-box">
+                                                        <div class="section-box-title">
+                                                            ข้อมูลสินค้าหลัก
+                                                        </div>
+                                                        <div class="row g-3">
+                                                            <div class="col-12">
+                                                                <label class="form-label fw-semibold">ชื่อสินค้า</label>
+                                                                <input type="text" name="name" class="form-control" required
+                                                                    placeholder="เช่น เสื้อยืด Oversize รุ่น A">
+                                                            </div>
+
+                                                            <div class="col-md-4">
+                                                                <label class="form-label fw-semibold">หมวดหมู่</label>
+                                                                <select name="category" id="categorySelect" class="form-select" required>
+                                                                    <option value="">-- เลือกหมวดหมู่ --</option>
+                                                                </select>
+                                                                <div class="form-text">
+                                                                    <a href="<?= BACKEND_URL ?>/pages/stock/categoryUnits.php" class="text-decoration-none">
+                                                                        <i class="bi bi-plus-circle me-1"></i>จัดการหมวดหมู่
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-md-4">
+                                                                <label class="form-label fw-semibold">หน่วยนับ (Unit)</label>
+                                                                <select name="unit" id="unitSelect" class="form-select">
+                                                                    <option value="">-- เลือกหน่วยนับ --</option>
+                                                                </select>
+                                                                <div class="form-text">
+                                                                    <a href="<?= BACKEND_URL ?>/pages/stock/categoryUnits.php#tabUnits" target="_blank" class="text-decoration-none">
+                                                                        <i class="bi bi-plus-circle me-1"></i>จัดการหน่วยนับ
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="mt-3">
+                                                            <label class="form-label fw-semibold">คำอธิบาย</label>
+                                                            <textarea name="description" rows="3" class="form-control"
+                                                                placeholder="รายละเอียดสินค้า / เงื่อนไขเพิ่มเติม"></textarea>
+                                                        </div>
+
+                                                        <div class="mt-3 row g-3 align-items-center">
+                                                            <div class="col-md-7">
+                                                                <label class="form-label fw-semibold">รูปภาพสินค้า</label>
+                                                                <input type="file" name="image" id="mainImageInput"
+                                                                    class="form-control">
+                                                                <div class="form-text">รองรับไฟล์ .jpg, .png ขนาดไม่เกิน 5 MB</div>
+                                                            </div>
+                                                            <div class="col-md-5 text-md-end mt-2 mt-md-0">
+                                                                <img id="mainImagePreview" src="#" alt=""
+                                                                    class="d-none img-thumbnail" style="max-height: 120px;">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- กลุ่ม ตัวเลือกสินค้า (Variants) -->
+                                                    <div class="section-box">
+                                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                                            <div>
+                                                                <div class="section-box-title mb-0">
+                                                                    ตัวเลือกสินค้า (Variants)
+                                                                </div>
+                                                                <small class="text-muted">
+                                                                    ใช้สำหรับแยก สี / ไซส์ / แพ็กเกจ ฯลฯ ถ้าไม่มีตัวเลือก สามารถเว้นว่างได้
+                                                                </small>
+                                                            </div>
+                                                            <button type="button" class="btn btn-sm btn-outline-light bg-white text-primary"
+                                                                id="addVariantBtn">
+                                                                <i class="bi bi-plus-circle me-1"></i> เพิ่มตัวเลือก
+                                                            </button>
+                                                        </div>
+
+                                                        <div id="variantsContainer" class="mt-2">
+                                                            <!-- variant-row จะถูกเพิ่มเข้ามาด้วย JS -->
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="d-grid mt-3">
+                                                        <button class="btn btn-success btn-lg" id="btnSaveProduct">
+                                                            <i class="bi bi-save2 me-1"></i> บันทึกสินค้าใหม่
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 2) ฟอร์มเพิ่มสต็อกจากสินค้าเดิม (ฟังก์ชันหลัก) -->
+                                    <div class="tab-pane fade show active col-lg-8 col-xl-9 mx-auto" id="tabAddStock">
+                                        <div class="card shadow-sm h-100">
+                                            <div class="card-header">
+                                                <h5 class="mb-0 fw-semibold">
+                                                    ➕ เพิ่มสต็อกจากสินค้าเดิม
+                                                </h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <form action="<?= $STOCK_API ?>/save_stock.php" method="POST" enctype="multipart/form-data">
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-semibold">เลือกสินค้า</label>
+                                                        <select name="product_id" id="productSelect" class="form-select" required>
+                                                            <option value="">-- เลือกสินค้า --</option>
+                                                            <?php foreach ($products as $p): ?>
+                                                                <option value="<?= $p['id'] ?>">
+                                                                    <?= htmlspecialchars($p['name']) ?>
+                                                                </option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                        <div class="form-text">
+                                                            เลือกสินค้าที่ต้องการเพิ่มสต็อก และกำหนดจำนวนในตัวเลือกด้านล่าง
+                                                        </div>
+                                                    </div>
+
+                                                    <div id="variantArea"></div>
+
+                                                    <div class="d-grid mt-2">
+                                                        <button class="btn btn-primary">
+                                                            <i class="bi bi-box-seam me-1"></i> เพิ่มสต็อก
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div><!-- row -->
+
+                            </div> <!-- container -->
+
+                            <!-- EDIT PRODUCT MODAL -->
+                            <div class="modal fade" id="editProductModal" tabindex="-1">
+                                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                    <div class="modal-content">
+
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">แก้ไขสินค้า</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+
+                                        <div class="modal-body" id="editProductContent">
+                                            <!-- โหลดข้อมูลมาใส่ด้วย AJAX -->
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal fade" id="historyModal" tabindex="-1">
+                                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="historyModalTitle">ประวัติการแก้ไขสินค้า</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body" id="historyModalContent">
+                                            <div class="text-center py-5 text-muted">
+                                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                                กำลังโหลดประวัติ...
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Helper: ปุ่มแสดง spinner ระหว่างบันทึก -->
+                            <script>
+                                function setButtonLoading(button, isLoading, loadingText = 'กำลังบันทึก...') {
+                                    if (!button) return;
+
+                                    if (isLoading) {
+                                        // เก็บ HTML เดิมไว้
+                                        if (!button.dataset.originalHtml) {
+                                            button.dataset.originalHtml = button.innerHTML;
+                                        }
+
+                                        button.disabled = true;
+                                        button.innerHTML = `
+                                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                            ${loadingText}
+                                        `;
+                                    } else {
+                                        if (button.dataset.originalHtml) {
+                                            button.innerHTML = button.dataset.originalHtml;
+                                        }
+                                        button.disabled = false;
+                                    }
+                                }
+                            </script>
+
+                            <script>
+                                Dropzone.autoDiscover = false;
+
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    // ---------------------------
+                                    // 1) โหลดตัวเลือก variant ของสินค้าเดิมเพื่อเพิ่มสต็อก
+                                    // ---------------------------
+                                    const productSelectEl = document.getElementById('productSelect');
+                                    if (productSelectEl) {
+                                        productSelectEl.addEventListener('change', function() {
+                                            const productId = this.value;
+                                            const variantArea = document.getElementById('variantArea');
+
+                                            if (!productId) {
+                                                variantArea.innerHTML = "";
+                                                return;
+                                            }
+
+                                            fetch(STOCK_API + "/load_variants.php?product_id=" + productId)
+                                                .then(res => res.text())
+                                                .then(html => {
+                                                    variantArea.innerHTML = html;
+                                                });
+                                        });
+                                    }
+
+                                    // ---------------------------
+                                    // 2) เพิ่มตัวเลือกสินค้าใหม่ในฟอร์ม "เพิ่มสินค้าใหม่"
+                                    // ---------------------------
+                                    const addVariantBtn = document.getElementById('addVariantBtn');
+                                    const variantsContainer = document.getElementById('variantsContainer');
+
+                                    if (addVariantBtn && variantsContainer) {
+                                        addVariantBtn.addEventListener('click', () => {
+                                            const div = document.createElement('div');
+                                            div.className = 'variant-row';
+
+                                            div.innerHTML = `
+                                                <div class="variant-row-header">
+                                                    <div>
+                                                        <strong>ตัวเลือกสินค้า</strong>
+                                                        <small class="d-block">เช่น สีแดง / ไซส์ M / แพ็ก 3 ชิ้น</small>
+                                                    </div>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger removeVariant">
+                                                        <i class="bi bi-x-circle"></i> ลบ
+                                                    </button>
+                                                </div>
+
+                                                <div class="row">
+                                                    <div class="col-md-4 mb-3">
+                                                        <label class="form-label">ชื่อ (เช่น สีแดง / ไซส์ M)</label>
+                                                        <input type="text" name="variant_name[]" class="form-control" required>
+                                                    </div>
+                                                    <div class="col-md-3 mb-3">
+                                                        <label class="form-label">SKU (ของตัวเลือกนี้)</label>
+                                                        <input type="text" name="variant_sku[]" class="form-control" placeholder="เช่น SHIRT-001-BLACK-M">
+                                                    </div>
+                                                    
+                                                    <div class="col-md-4 mb-2">
+                                                        <label class="form-label">รูป (ถ้ามี)</label>
+                                                        <input type="file" name="variant_image[]" class="form-control">
+                                                    </div>
+                                                </div>
+                                            `;
+
+                                            variantsContainer.appendChild(div);
+
+                                            const removeBtn = div.querySelector('.removeVariant');
+                                            if (removeBtn) {
+                                                removeBtn.addEventListener('click', () => div.remove());
+                                            }
+                                        });
+                                    }
+
+                                    // ---------------------------
+                                    // 3) Auto close alert
+                                    // ---------------------------
+                                    setTimeout(function() {
+                                        const alertList = document.querySelectorAll('.alert');
+                                        alertList.forEach(function(alert) {
+                                            const bsAlert = new bootstrap.Alert(alert);
+                                            bsAlert.close();
+                                        });
+                                    }, 3000);
+
+                                    // ---------------------------
+                                    // 3.1) ลบ success / error จาก URL
+                                    // ---------------------------
+                                    (function removeFlashQueryParams() {
+                                        const url = new URL(window.location.href);
+
+                                        const hasFlash = url.searchParams.has('success') || url.searchParams.has('error');
+                                        if (!hasFlash) return;
+
+                                        url.searchParams.delete('success');
+                                        url.searchParams.delete('error');
+
+                                        // ทำให้ URL สะอาด แต่ไม่ reload หน้า
+                                        window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+                                    })();
+
+                                    // ---------------------------
+                                    // 4) Form เพิ่มสินค้าใหม่: ใส่ spinner ตอน submit
+                                    // ---------------------------
+                                    const addForm = document.getElementById('addProductForm');
+                                    const btnSaveProduct = document.getElementById('btnSaveProduct');
+
+                                    if (addForm && btnSaveProduct) {
+                                        addForm.addEventListener('submit', function() {
+                                            setButtonLoading(btnSaveProduct, true, 'กำลังบันทึกสินค้าใหม่...');
+                                        });
+                                    }
+
+                                    // ---------------------------
+                                    // 5) Preview รูปภาพหลักก่อนบันทึก
+                                    // ---------------------------
+                                    const mainImageInput = document.getElementById('mainImageInput');
+                                    const mainImagePreview = document.getElementById('mainImagePreview');
+
+                                    if (mainImageInput && mainImagePreview) {
+                                        mainImageInput.addEventListener('change', function() {
+                                            const [file] = this.files;
+                                            if (file) {
+                                                mainImagePreview.src = URL.createObjectURL(file);
+                                                mainImagePreview.classList.remove('d-none');
+                                            } else {
+                                                mainImagePreview.src = '#';
+                                                mainImagePreview.classList.add('d-none');
+                                            }
+                                        });
+                                    }
+
+                                    // ---------------------------
+                                    // 6) เปิด modal แก้ไขสินค้า + ผูก event ภายใน (ลบ variant / submit ฟอร์มแก้ไข)
+                                    // ---------------------------
+                                    document.querySelectorAll('.editProductBtn').forEach(btn => {
+                                        btn.addEventListener('click', () => {
+                                            const id = btn.dataset.id;
+
+                                            fetch(STOCK_API + "/load_product.php?id=" + id)
+                                                .then(res => res.text())
+                                                .then(html => {
+                                                    const contentEl = document.getElementById("editProductContent");
+                                                    contentEl.innerHTML = html;
+
+                                                    // เปิด modal
+                                                    const myModal = new bootstrap.Modal(document.getElementById('editProductModal'));
+                                                    myModal.show();
+
+                                                    // ---------- ลบ variant เดิม ----------
+                                                    const variantDeleteButtons = contentEl.querySelectorAll('.deleteVariantBtn');
+
+                                                    variantDeleteButtons.forEach(vbtn => {
+                                                        vbtn.addEventListener('click', () => {
+                                                            const vid = vbtn.dataset.id;
+                                                            if (!confirm("ต้องการลบตัวเลือกสินค้านี้ใช่หรือไม่?")) return;
+
+                                                            const fd = new FormData();
+                                                            fd.append('id', vid);
+
+                                                            fetch(STOCK_API + "/delete_variant.php", {
+                                                                    method: "POST",
+                                                                    body: fd
+                                                                })
+                                                                .then(r => r.text())
+                                                                .then(txt => {
+                                                                    if (txt.trim() === "success") {
+                                                                        const row = vbtn.closest('.variant-row, tr, .variant-item');
+                                                                        if (row) row.remove();
+                                                                    } else {
+                                                                        console.error("Delete variant failed:", txt);
+                                                                        alert("ลบตัวเลือกสินค้าไม่สำเร็จ");
+                                                                    }
+                                                                })
+                                                                .catch(err => {
+                                                                    console.error("Fetch error:", err);
+                                                                    alert("เกิดข้อผิดพลาดในการลบตัวเลือกสินค้า");
+                                                                });
+                                                        });
+                                                    });
+
+                                                    // ---------- Dropzone: Gallery ----------
+                                                    // ---------- Dropzone: Gallery ----------
+                                                    const dzElement = contentEl.querySelector("#productImageDropzone");
+                                                    if (dzElement && typeof Dropzone !== 'undefined') {
+
+                                                        const productId = dzElement.getAttribute('data-product-id');
+                                                        console.log('Dropzone productId =', productId); // เอาไว้เช็ค
+
+                                                        const dz = new Dropzone(dzElement, {
+                                                            url: STOCK_API + "/upload_image.php",
+                                                            paramName: "file",
+                                                            maxFilesize: 5, // MB
+                                                            acceptedFiles: "image/*",
+                                                            addRemoveLinks: true,
+                                                            dictRemoveFile: "ลบรูปนี้"
+                                                        });
+
+                                                        // ใส่ product_id ลงใน FormData ตอนส่งจริง ๆ
+                                                        dz.on("sending", function(file, xhr, formData) {
+                                                            console.log("DZ sending product_id =", productId);
+                                                            formData.append("product_id", productId);
+                                                        });
+
+                                                        dz.on("success", function(file, response) {
+                                                            let resp = response;
+                                                            if (typeof response === "string") {
+                                                                try {
+                                                                    resp = JSON.parse(response);
+                                                                } catch (e) {}
+                                                            }
+                                                            if (resp && resp.id) {
+                                                                file.serverId = resp.id;
+                                                            }
+                                                        });
+
+                                                        // โหลดรูปเดิมเข้ามา
+                                                        fetch(STOCK_API + "/load_images.php?product_id=" + productId)
+                                                            .then(r => r.json())
+                                                            .then(list => {
+                                                                list.forEach(img => {
+                                                                    const mock = {
+                                                                        name: "image",
+                                                                        size: 12345,
+                                                                        serverId: img.id
+                                                                    };
+                                                                    dz.emit("addedfile", mock);
+                                                                    dz.emit("thumbnail", mock, img.url);
+                                                                    dz.emit("complete", mock);
+                                                                });
+                                                            });
+
+                                                        dz.on("removedfile", function(file) {
+                                                            if (!file.serverId) return;
+
+                                                            const fd = new FormData();
+                                                            fd.append('id', file.serverId);
+
+                                                            fetch(STOCK_API + "/delete_image.php", {
+                                                                    method: "POST",
+                                                                    body: fd
+                                                                })
+                                                                .then(r => r.text())
+                                                                .then(txt => {
+                                                                    if (txt.trim() !== "success") {
+                                                                        console.error("Delete image error:", txt);
+                                                                    }
+                                                                })
+                                                                .catch(err => console.error("Delete image fetch error:", err));
+                                                        });
+                                                    }
+
+                                                    // ---------- Submit ฟอร์มแก้ไขสินค้า + spinner ----------
+                                                    const updateForm = contentEl.querySelector("#updateProductForm");
+                                                    const btnUpdate = contentEl.querySelector("#btnUpdateProduct");
+
+                                                    if (updateForm && btnUpdate) {
+                                                        updateForm.addEventListener("submit", function(ev) {
+                                                            ev.preventDefault();
+
+                                                            setButtonLoading(btnUpdate, true, "กำลังบันทึกการแก้ไข...");
+
+                                                            fetch(STOCK_API + "/update_product.php", {
+                                                                    method: "POST",
+                                                                    body: new FormData(updateForm)
+                                                                })
+                                                                .then(res => res.text().then(text => ({
+                                                                    ok: res.ok,
+                                                                    status: res.status,
+                                                                    text
+                                                                })))
+                                                                .then(({
+                                                                    ok,
+                                                                    status,
+                                                                    text
+                                                                }) => {
+                                                                    console.log("Update response:", status, text);
+
+                                                                    const lower = text.trim().toLowerCase();
+
+                                                                    if (ok && lower.includes("success")) {
+                                                                        window.location.href = "addStock.php?success=updated";
+                                                                    } else {
+                                                                        setButtonLoading(btnUpdate, false);
+                                                                        alert("บันทึกการแก้ไขไม่สำเร็จ: " + text);
+                                                                    }
+                                                                })
+                                                                .catch(err => {
+                                                                    console.error("Fetch error:", err);
+                                                                    setButtonLoading(btnUpdate, false);
+                                                                    alert("เกิดข้อผิดพลาดในการบันทึกการแก้ไข");
+                                                                });
+                                                        });
+                                                    }
+                                                });
+                                        });
+                                    });
+
+                                    // ---------------------------
+                                    // 7) ลบสินค้า (ทั้งชิ้น)
+                                    // ---------------------------
+                                    document.querySelectorAll('.deleteProductBtn').forEach(btn => {
+                                        btn.addEventListener('click', () => {
+                                            if (!confirm("ลบสินค้านี้?")) return;
+
+                                            const fd = new FormData();
+                                            fd.append('id', btn.dataset.id);
+
+                                            fetch(STOCK_API + "/delete_product.php", {
+                                                    method: "POST",
+                                                    body: fd
+                                                })
+                                                .then(r => r.text())
+                                                .then(txt => {
+                                                    if (txt.trim() === "success") {
+                                                        location.reload();
+                                                    } else {
+                                                        console.error("Delete failed:", txt);
+                                                        alert("ลบสินค้าไม่สำเร็จ");
+                                                    }
+                                                })
+                                                .catch(err => console.error("Fetch error:", err));
+                                        });
+                                    });
+                                });
+                            </script>
+
+                            <script>
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    const historyModal = document.getElementById('historyModal');
+                                    const historyContent = document.getElementById('historyModalContent');
+                                    const historyTitle = document.getElementById('historyModalTitle');
+
+                                    document.querySelectorAll('.logHistoryBtn').forEach(btn => {
+                                        btn.addEventListener('click', () => {
+                                            // ไม่ต้องดึง ID หรือค้นหาชื่อสินค้าจากตารางแล้ว
+
+                                            // ตั้ง Modal Title
+                                            historyTitle.textContent = `ประวัติการแก้ไขสินค้าล่าสุดทั้งหมด`;
+
+                                            // แสดง Loading Spinner
+                                            historyContent.innerHTML = `
+                    <div class="text-center py-5 text-muted">
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                        กำลังโหลดประวัติ...
+                    </div>`;
+
+                                            // Fetch ข้อมูลจากไฟล์ใหม่ (ไม่ต้องส่ง ID)
+                                            fetch(STOCK_API + "/load_history.php") // <--- เปลี่ยนเป็นชื่อไฟล์ใหม่
+                                                .then(res => res.text())
+                                                .then(html => {
+                                                    historyContent.innerHTML = html;
+                                                })
+                                                .catch(err => {
+                                                    historyContent.innerHTML = `<div class="text-danger py-4 text-center">เกิดข้อผิดพลาดในการโหลดประวัติ</div>`;
+                                                    console.error("Error loading history:", err);
+                                                });
+                                        });
+                                    });
+                                });
+                            </script>
+
+                            <!-- 8) เพิ่มตัวเลือกใหม่ใน modal แก้ไขสินค้า (ปุ่ม id="addNewVariantInEdit") -->
+                            <script>
+                                document.addEventListener('click', function(e) {
+                                    if (e.target && e.target.id === 'addNewVariantInEdit') {
+                                        const container = document.getElementById('newVariantContainer');
+                                        if (!container) return;
+
+                                        const div = document.createElement('div');
+                                        div.className = 'variant-row mb-2';
+
+                                        div.innerHTML = `
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <strong>ตัวเลือกใหม่</strong>
+                                                <button type="button" class="btn btn-sm btn-outline-danger removeNewVariant">
+                                                    <i class="bi bi-x-circle"></i> ลบ
+                                                </button>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-4 mb-3">
+                                                    <label class="form-label">ชื่อ</label>
+                                                    <input type="text" name="new_variant_name[]" class="form-control" required>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label class="form-label">รหัสสินค้า</label>
+                                                    <input type="text" step="0.01" name="new_variant_sku[]" class="form-control">
+                                                </div>
+                                                <div class="col-md-2 mb-3">
+                                                    <label class="form-label">รูป (ถ้ามี)</label>
+                                                    <input type="file" name="new_variant_image[]" class="form-control">
+                                                </div>
+                                            </div>
+                                        `;
+
+                                        container.appendChild(div);
+
+                                        const removeBtn = div.querySelector('.removeNewVariant');
+                                        if (removeBtn) {
+                                            removeBtn.addEventListener('click', () => div.remove());
+                                        }
+                                    }
+                                });
+                            </script>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+
+
+    </div>
+
+    <!-- <?php include BACKEND_PATH . '/partials/admin_footer.php'; ?> -->
+    <?php include BACKEND_PATH . '/partials/admin_script.php'; ?>
+
+</body>
+
+</html>

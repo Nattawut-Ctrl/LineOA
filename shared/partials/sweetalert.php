@@ -36,6 +36,15 @@ window.SA = {
       cancelButtonText: cancelText || 'ยกเลิก',
       confirmButtonColor: '#ee4d2d'
     }).then((result) => { if (typeof thenFn === 'function') thenFn(result.isConfirmed); });
+  },
+
+  warning: function (title, text, thenFn) {
+    Swal.fire({
+      icon: 'warning',
+      title: title || 'คำเตือน',
+      text: text || '',
+      confirmButtonText: 'ตกลง'
+    }).then(() => { if (typeof thenFn === 'function') thenFn(); });
   }
 };
 </script>

@@ -52,6 +52,8 @@ function statusIcon($status)
             return 'bi-hourglass-split text-warning';
     }
 }
+
+$activeMenu = 'notifications';
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -81,43 +83,6 @@ function statusIcon($status)
             box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
         }
 
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 60px;
-            background: #ffffff;
-            border-top: 1px solid #e0e0e0;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            z-index: 2000;
-        }
-
-        .bottom-nav .nav-item {
-            flex: 1;
-            text-align: center;
-            font-size: 0.75rem;
-            color: #777;
-            text-decoration: none;
-            padding-top: 3px;
-        }
-
-        .bottom-nav .nav-item i {
-            font-size: 1.3rem;
-            display: block;
-            margin-bottom: 2px;
-        }
-
-        .bottom-nav .nav-item.active {
-            color: #ee4d2d;
-            font-weight: 600;
-        }
-
-        .bottom-nav .nav-item.active i {
-            color: #ee4d2d;
-        }
     </style>
 </head>
 
@@ -179,35 +144,17 @@ function statusIcon($status)
 
     </main>
 
-    <!-- Footer Bar -->
-    <nav class="bottom-nav">
-        <a href="Buyer.php" class="nav-item" id="nav-home">
-            <i class="bi bi-house-door"></i>
-            <span>หน้าแรก</span>
-        </a>
-
-        <a href="order-history.php" class="nav-item" id="nav-orders">
-            <i class="bi bi-receipt"></i>
-            <span>ออเดอร์ของฉัน</span>
-        </a>
-
-        <a href="notifications.php" class="nav-item active" id="nav-noti">
-            <i class="bi bi-bell"></i>
-            <span>แจ้งเตือน / สลิป</span>
-        </a>
-
-        <a href="profile.php" class="nav-item" id="nav-me">
-            <i class="bi bi-person"></i>
-            <span>ฉัน</span>
-        </a>
-    </nav>
+     <!-- Bottom Navigation Bar -->
+    <?php include FRONTEND_PATH . '/partials/buyer_bottom_nav.php'; ?>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            fetch('<?= FRONTEND_URL ?>/api/buyer/mark_buyer_notifications_read.php', {
-                    method: 'POST'
-                })
-                .catch(err => console.error('mark read error', err));
+            if (window.BuyerNoti && typeof window.BuyerNoti.markAllRead === 'function') {
+                window.BuyerNoti.markAllRead();
+            } else {
+                fetch('<?= FRONTEND_URL ?>/api/buyer/mark_buyer_notifications_read.php', { method: 'POST', credentials: 'same-origin' })
+                    .catch(err => console.error('mark read error', err));
+            }
         });
     </script>
 </body>

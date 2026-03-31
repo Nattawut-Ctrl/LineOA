@@ -1,153 +1,195 @@
 <?php
 session_start();
 
+// ป้องกัน browser cache (กันกด Back แล้วเห็นหน้าเก่า)
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
+header("Expires: 0");
+
 require_once dirname(__DIR__, 3) . '/config.php';
 require_once UTILS_PATH . '/db_with_log.php';
 
 require_once SERVICES_PATH . '/slipService.php';
+
+require_once SERVICES_PATH . '/paymentIntentService.php';
 require_once SERVICES_PATH . '/cartService.php';
+require_once FRONTEND_PATH . '/services/AddressService.php';
+require_once BACKEND_PATH . '/services/adminEmailService.php';
 
 $conn = connectDBWithLog();
-$user_id = $_SESSION['user_id'];
+$user_id = (int)($_SESSION['user_id'] ?? 0);
+if ($user_id <= 0) {
+    header("Location: " . FRONTEND_URL . "/pages/users/line-entry.php");
+    exit;
+}
 
-$mode = $_POST['mode'] ?? 'single';
+// ตรวจสอบว่ามี intent_id หรือไม่ (จากการจองสต็อก)
+$intent_id = (int)($_POST['intent_id'] ?? 0);
+if ($intent_id <= 0) {
+    header("Location: " . FRONTEND_URL . "/pages/buyer/Buyer.php?error=invalid_intent");
+    exit;
+}
 
-$transfer_date = $_POST['transfer_date'] ?? null; // YYYY-MM-DD
-$transfer_time = $_POST['transfer_time'] ?? null; // HH:MM
+$intent = getIntentById($conn, $intent_id);
+if (!$intent || (int)$intent['user_id'] !== $user_id) {
+    header("Location: " . FRONTEND_URL . "/pages/buyer/Buyer.php?error=intent_not_found");
+    exit;
+}
+
+if (($intent['status'] ?? '') !== 'active') {
+    header("Location: " . FRONTEND_URL . "/pages/buyer/Buyer.php?error=intent_not_active");
+    exit;
+}
+
+if (isIntentExpired($intent)) {
+    // ถ้าคุณมี release reservation ของ intent ให้เรียกตรงนี้ด้วย
+    expireIntent($conn, $intent_id);
+    header("Location: " . FRONTEND_URL . "/pages/buyer/Buyer.php?error=intent_expired");
+    exit;
+}
 
 if (!isset($_FILES['slip']) || $_FILES['slip']['error'] !== UPLOAD_ERR_OK) {
-    die("กรุณาอัปโหลดสลิป");
+    header("Location: " . FRONTEND_URL . "/pages/buyer/payment.php?intent_id=" . $intent_id . "&error=no_slip");
+    exit;
 }
 
 // --------------- Upload Slip ----------------
+$uploadDir = rtrim(UPLOAD_BASE_DIR, '/\\') . '/slips';
+if (!is_dir($uploadDir)) {
+    mkdir($uploadDir, 0775, true);
+}
+
 $ext = strtolower(pathinfo($_FILES['slip']['name'], PATHINFO_EXTENSION));
-$allowed = ['jpg','jpeg','png','gif','webp'];
-if (!in_array($ext, $allowed)) {
-    die("ไฟล์สลิปต้องเป็นรูปภาพเท่านั้น (jpg/jpeg/png/gif/webp)");
+$allowed = ['jpg', 'jpeg', 'png', 'webp'];
+if (!in_array($ext, $allowed, true)) {
+    header("Location: " . FRONTEND_URL . "/pages/buyer/payment.php?intent_id=" . $intent_id . "&error=invalid_file");
+    exit;
 }
 
-$filename = time() . "_" . uniqid() . "." . $ext;
+$filename = 'slip_' . $user_id . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+$targetPath = $uploadDir . '/' . $filename;
 
-// โฟลเดอร์เก็บสลิปบนเครื่อง
-$slipDirFs = rtrim(UPLOAD_BASE_DIR, '/\\') . '/slips';
-if (!is_dir($slipDirFs)) {
-    @mkdir($slipDirFs, 0777, true);
-}
-
-$uploadPath = $slipDirFs . "/" . $filename;
-
-if (!move_uploaded_file($_FILES['slip']['tmp_name'], $uploadPath)) {
-    die("อัปโหลดสลิปไม่สำเร็จ");
+if (!move_uploaded_file($_FILES['slip']['tmp_name'], $targetPath)) {
+    header("Location: " . FRONTEND_URL . "/pages/buyer/payment.php?intent_id=" . $intent_id . "&error=upload_failed");
+    exit;
 }
 
 // path เก็บลง DB
 $slip_path = rtrim(UPLOAD_BASE_URL_PATH, '/\\') . "/slips/" . $filename;
-// -------------------------------------------
 
-// ---------- Payment From Cart ----------
-if ($mode === 'cart') {
+$conn->begin_transaction();
+try {
+    $sql = "
+        INSERT INTO payments (
+            user_id, address_id, product_id, variant_id,
+            items_json, address_json,
+            subtotal, shipping_fee, grand_total,
+            amount, slip_path, transfer_date, transfer_time,
+            mode, status, created_at
+        ) VALUES (
+            ?, ?, ?, ?,
+            ?, ?,
+            ?, ?, ?,
+            ?, ?, ?, ?,
+            ?, 'pending', NOW()
+        )
+    ";
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) throw new Exception("prepare failed: " . $conn->error);
 
-    $product_ids = $_POST['product_id'];
-    $variant_ids = $_POST['variant_id'];
-    $quantities  = $_POST['quantity'];
-    $names       = $_POST['product_name'];
-    $vn_names    = $_POST['variant_name'];
-    $prices      = $_POST['price'];
+    $address_id = isset($intent['address_id']) ? (int)$intent['address_id'] : 0;
+    $product_id = isset($intent['product_id']) ? (int)$intent['product_id'] : 0;
+    $variant_id = isset($intent['variant_id']) ? (int)$intent['variant_id'] : 0;
 
-    $items = [];
-    $total = 0;
+    $items_json   = (string)$intent['items_json'];
+    $address_json = $intent['address_json'] ?? '';
+    $amount       = (float)$intent['amount'];
+    $mode         = (string)$intent['mode'];
 
-    foreach ($product_ids as $i => $pid) {
-        $items[] = [
-            'product_id'   => (int)$pid,
-            'variant_id'   => (int)$variant_ids[$i],
-            'name'         => $names[$i],
-            'variant_name' => $vn_names[$i],
-            'price'        => (float)$prices[$i],
-            'quantity'     => (int)$quantities[$i]
-        ];
-        $total += $prices[$i] * $quantities[$i];
+    $items = json_decode($items_json, true) ?: [];
+    $subtotal = 0.0;
+
+    foreach ($items as $it) {
+        $qty = max(1, (int)($it['quantity'] ?? 1));
+        $unit = (float)($it['unit_price'] ?? ($it['price'] ?? 0));
+        $subtotal += $qty * $unit;
     }
 
-    $items_json = json_encode($items, JSON_UNESCAPED_UNICODE);
+    $subtotal = round($subtotal, 2);
+    $grandTotal  = (float)$amount;
+    $shippingFee = max(0.0, round($grandTotal - $subtotal, 2));
 
-    $conn->begin_transaction();
+    $transfer_date = trim((string)($_POST['transfer_date'] ?? ''));
+    $transfer_time = trim((string)($_POST['transfer_time'] ?? ''));
 
-    $payment_id = createPayment($conn, [
-        'user_id'        => $user_id,
-        'product_id'     => null,
-        'variant_id'     => null,
-        'items_json'     => $items_json,
-        'amount'         => $total,
-        'slip_path'      => $slip_path,
-        'mode'           => 'cart',
-        'transfer_date'  => $transfer_date,
-        'transfer_time'  => $transfer_time,
-    ]);
-
-    if ($payment_id <= 0) {
-        $conn->rollback();
-        die("บันทึกข้อมูลการชำระเงินไม่สำเร็จ");
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $transfer_date)) {
+        throw new Exception("รูปแบบวันที่โอนเงินไม่ถูกต้อง (ต้องเป็น YYYY-MM-DD)");
     }
 
-    // กันสต็อกสำหรับ payment นี้
-    if (!reserveStockForPayment($conn, $payment_id)) {
-        $conn->rollback();
-        die("สินค้าบางรายการสต็อกไม่เพียงพอ หรือถูกจองเต็มแล้ว");
+    if (!preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $transfer_time)) {
+        throw new Exception("รูปแบบเวลาที่โอนเงินไม่ถูกต้อง (ต้องเป็น HH:MM หรือ HH:MM:SS)");
     }
 
-    // ลบจากตะกร้าเมื่อกันสต็อกสำเร็จ
-    clearCartForProducts($conn, $user_id, $product_ids);
+    if (strlen($transfer_time) === 5) {
+        // เพิ่มวินาทีเป็น :00 ถ้าไม่มี
+        $transfer_time .= ':00';
+    }
+
+    $stmt->bind_param(
+        "iiiissddddssss",
+        $user_id,
+        $address_id,
+        $product_id,
+        $variant_id,
+        $items_json,
+        $address_json,
+        $subtotal,
+        $shippingFee,
+        $grandTotal,
+        $amount,
+        $slip_path,
+        $transfer_date,
+        $transfer_time,
+        $mode
+    );
+
+    if (!$stmt->execute()) throw new Exception("execute failed: " . $stmt->error);
+
+    $payment_id = (int)$stmt->insert_id;
+    if ($payment_id <= 0) throw new Exception("insert_id invalid");
+
+    // mark intent converted
+    if (!markIntentConverted($conn, $intent_id, $payment_id)) {
+        throw new Exception("markIntentConverted failed");
+    }
 
     $conn->commit();
 
-    header("Location: " . FRONTEND_URL . "/pages/buyer/payment.php?success=1");
+    if (!notifyAdminNewSlipOnce($conn, $payment_id)) {
+        throw new Exception("Failed to notify admin");
+    }
+
+    // ส่ง JSON response แทนการ redirect เพื่อให้ fetch ไม่ตัวแปร
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => true,
+        'payment_id' => $payment_id,
+        'redirect_url' => FRONTEND_URL . "/pages/buyer/confirm_payment.php?payment_id=" . $payment_id
+    ]);
+    exit;
+} catch (Throwable $e) {
+    $conn->rollback();
+    error_log($e->getMessage());
+
+    // ส่ง JSON error response
+    header('Content-Type: application/json');
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'error' => $e->getMessage(),
+        'redirect_url' => FRONTEND_URL . "/pages/buyer/payment.php?intent_id=" . $intent_id . "&error=" . urlencode($e->getMessage())
+    ]);
     exit;
 }
 
-
-// ---------- Payment Single ----------
-$product_id  = (int)($_POST['product_id'] ?? 0);
-$variant_id  = (int)($_POST['variant_id'] ?? 0);
-$quantity    = (int)($_POST['quantity'] ?? 1);
-$amount      = (float)($_POST['total'] ?? 0);
-
-$item = [
-    'product_id'   => $product_id,
-    'variant_id'   => $variant_id,
-    'name'         => $_POST['product_name'],
-    'variant_name' => $_POST['variant_name'],
-    'price'        => $amount,
-    'quantity'     => $quantity
-];
-
-$conn->begin_transaction();
-
-$payment_id = createPayment($conn, [
-    'user_id'        => $user_id,
-    'product_id'     => $product_id,
-    'variant_id'     => $variant_id,
-    'items_json'     => json_encode([$item], JSON_UNESCAPED_UNICODE),
-    'amount'         => $amount,
-    'slip_path'      => $slip_path,
-    'mode'           => 'single',
-    'transfer_date'  => $transfer_date,
-    'transfer_time'  => $transfer_time,
-]);
-
-if ($payment_id <= 0) {
-    $conn->rollback();
-    die("บันทึกข้อมูลการชำระเงินไม่สำเร็จ");
-}
-
-if (!reserveStockForPayment($conn, $payment_id)) {
-    $conn->rollback();
-    die("สินค้าไม่เพียงพอ หรือถูกจองเต็มแล้ว");
-}
-
-clearSingleCartItem($conn, $user_id, $product_id, $variant_id);
-
-$conn->commit();
-
-header("Location: " . FRONTEND_URL . "/pages/buyer/payment.php?success=1");
-exit;

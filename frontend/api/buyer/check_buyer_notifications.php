@@ -22,7 +22,7 @@ try {
 
     $sql = "
         SELECT 
-            id          AS payment_id,
+            id AS payment_id,
             amount,
             status,
             created_at
@@ -46,6 +46,8 @@ try {
         'status' => 'ok',
         'count'  => count($rows),
         'items'  => $rows,
+        'order_count' => count($pending),
+        'pending' => $pending,
     ], JSON_UNESCAPED_UNICODE);
 
 } catch (Throwable $e) {

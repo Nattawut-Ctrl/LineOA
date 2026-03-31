@@ -40,6 +40,18 @@ if ($id <= 0) {
     exit('Invalid ID');
 }
 
+$resCur = db_query($conn, "SELECT price, stock FROM products WHERE id = ? LIMIT 1", [$id], "i");
+$cur = $resCur ? $resCur->fetch_assoc() : null;
+$curPrice = $cur ? (float)$cur['price'] : 0;
+$curStock = $cur ? (int)$cur['stock'] : 0;
+
+function getVariantCount(mysqli $conn, int $productId): int
+{
+    $res = db_query($conn, "SELECT COUNT(*) AS c FROM product_variants WHERE product_id = ?", [$productId], "i");
+    $row = $res ? $res->fetch_assoc() : null;
+    return (int)($row['c'] ?? 0);
+}
+
 // โหลด image เดิมของ product
 $resP = db_query(
     $conn,
@@ -56,9 +68,8 @@ $oldProductImage = $rowP['image'] ?? null;
 $name        = $_POST['name'] ?? '';
 $unit        = trim($_POST['unit'] ?? '');
 $description = $_POST['description'] ?? '';
-
-$priceInput  = isset($_POST['price']) ? floatval($_POST['price']) : 0;
-$stockInput  = isset($_POST['stock']) ? intval($_POST['stock']) : 0;
+$priceInput = isset($_POST['price']) ? floatval($_POST['price']) : $curPrice;
+$stockInput = isset($_POST['stock']) ? intval($_POST['stock']) : $curStock;
 
 $hasVariants = (!empty($_POST['variant_id']) || !empty($_POST['new_variant_name']));
 
@@ -142,10 +153,11 @@ if (is_array($deleteReq)) {
 }
 
 $oldVarImages = [];
+$oldVarStocks = [];
 if (!empty($_POST['variant_id'])) {
     $resOld = db_query(
         $conn,
-        "SELECT id, image 
+        "SELECT id, image, stock 
          FROM product_variants 
          WHERE product_id = ?",
         [$id],
@@ -155,6 +167,7 @@ if (!empty($_POST['variant_id'])) {
     if ($resOld) {
         while ($r = $resOld->fetch_assoc()) {
             $oldVarImages[(int)$r['id']] = $r['image'];
+            $oldVarStocks[(int)$r['id']] = isset($r['stock']) ? (int)$r['stock'] : 0;
         }
     }
 }
@@ -171,8 +184,16 @@ if (!empty($_POST['variant_id'])) {
 
         $vName  = $_POST['variant_name'][$i] ?? '';
         $vPrice = floatval($_POST['variant_price'][$i] ?? 0);
-        $vStock = intval($_POST['variant_stock'][$i] ?? 0);
 
+        // ถ้า input สต็อกมี ให้ใช้ค่านั้น ถ้าไม่มี ให้ใช้สต็อกเก่าจาก DB (ป้องกันกรณีฟอร์มไม่ได้ส่งค่า)
+        $oldStock = $oldVarStocks[$vid] ?? null;
+        if (isset($_POST['variant_stock'][$i]) && $_POST['variant_stock'][$i] !== '') {
+            $vStock = intval($_POST['variant_stock'][$i]);
+        } elseif ($oldStock !== null) {
+            $vStock = (int)$oldStock;
+        } else {
+            $vStock = 0;
+        }
         $resultVariant = db_exec(
             $conn,
             "UPDATE product_variants 
@@ -239,8 +260,9 @@ $okNewVariants = true;
 
 if (!empty($_POST['new_variant_name'])) {
     $newNames  = $_POST['new_variant_name'];
-    $newPrices = $_POST['new_variant_price'] ?? [];
-    $newStocks = $_POST['new_variant_stock'] ?? [];
+    $newSKUs   = $_POST['new_variant_sku'] ?? [];
+    // $newPrices = $_POST['new_variant_price'] ?? [];
+    // $newStocks = $_POST['new_variant_stock'] ?? [];
     $newImages = $_FILES['new_variant_image'] ?? null;
 
     foreach ($newNames as $i => $nvName) {
@@ -248,9 +270,9 @@ if (!empty($_POST['new_variant_name'])) {
         if ($nvName === '') {
             continue;
         }
-
-        $nvPrice = isset($newPrices[$i]) ? floatval($newPrices[$i]) : 0;
-        $nvStock = isset($newStocks[$i]) ? intval($newStocks[$i]) : 0;
+        $nvSKU   = isset($newSKUs[$i]) ? trim($newSKUs[$i]) : '';
+        // $nvPrice = isset($newPrices[$i]) ? floatval($newPrices[$i]) : 0;
+        // $nvStock = isset($newStocks[$i]) ? intval($newStocks[$i]) : 0;
 
         $imagePath = null;
         if ($newImages && !empty($newImages['name'][$i]) && $newImages['error'][$i] === UPLOAD_ERR_OK) {
@@ -267,10 +289,10 @@ if (!empty($_POST['new_variant_name'])) {
 
         $insert = db_exec(
             $conn,
-            "INSERT INTO product_variants (product_id, variant_name, image, price, stock)
-             VALUES (?, ?, ?, ?, ?)",
-            [$id, $nvName, $imagePath, $nvPrice, $nvStock],
-            "issdi"
+            "INSERT INTO product_variants (product_id,sku, variant_name, image)
+             VALUES (?, ?, ?, ?)",
+            [$id, $nvSKU, $nvName, $imagePath],
+            "issi"
         );
 
         if (!$insert['ok']) {
@@ -280,31 +302,33 @@ if (!empty($_POST['new_variant_name'])) {
 }
 
 // ----------------------
-// 3.1 สรุปราคา/stock จาก variants
+// 3.1 สรุปราคา/stock จาก variants (ROLL-UP ไป products)
 // ----------------------
-$summaryPrice = $priceInput;
-$summaryStock = $stockInput;
-
-$sumRes = db_query(
-    $conn,
-    "SELECT MIN(price) AS min_price, SUM(stock) AS total_stock
-     FROM product_variants
-     WHERE product_id = ?",
-    [$id],
-    "i"
-);
+$variantCount = getVariantCount($conn, $id);
 
 $okSummary = true;
-if ($sumRes && ($row = $sumRes->fetch_assoc()) && $row['min_price'] !== null) {
 
-    $summaryPrice = floatval($row['min_price']);
-    $summaryStock = intval($row['total_stock']);
+// ถ้ามี variants จริงใน DB -> products.price = ราคาต่ำสุดของ variants (ตัดราคา 0 ทิ้ง)
+if ($variantCount > 0) {
+    $sumRes = db_query(
+        $conn,
+        "SELECT 
+            COALESCE(MIN(NULLIF(price, 0)), 0) AS min_price,
+            COALESCE(SUM(stock), 0) AS stock_sum
+         FROM product_variants
+         WHERE product_id = ?",
+        [$id],
+        "i"
+    );
+
+    $row = $sumRes ? $sumRes->fetch_assoc() : null;
+
+    $summaryPrice = (float)($row['min_price'] ?? 0);
+    $summaryStock = (int)($row['stock_sum'] ?? 0);
 
     $summaryUpdate = db_exec(
         $conn,
-        "UPDATE products
-         SET price = ?, stock = ?
-         WHERE id = ?",
+        "UPDATE products SET price = ?, stock = ? WHERE id = ?",
         [$summaryPrice, $summaryStock, $id],
         "dii"
     );
@@ -313,7 +337,9 @@ if ($sumRes && ($row = $sumRes->fetch_assoc()) && $row['min_price'] !== null) {
         $okSummary = false;
     }
 } else {
-    $okSummary = false;
+    // ไม่มี variants -> ใช้ค่าจากฟอร์ม/เดิมตามปกติ
+    $summaryPrice = $priceInput;
+    $summaryStock = $stockInput;
 }
 
 // ----------------------

@@ -8,7 +8,8 @@ require_once SERVICES_PATH . '/userService.php';
 
 $conn    = connectDBWithLog();
 $user_id = require_user_id();
-
+$return_to = $_SERVER['REQUEST_URI'] ?? 'profile.php';
+$return_to_q = rawurlencode($return_to);
 $user = getUserById($conn, $user_id);
 if (!$user) {
     unset($_SESSION['user_id']);
@@ -17,6 +18,8 @@ if (!$user) {
 }
 
 $logoutUrl = "../pages/users/line-entry.php?logout=1";
+$activeMenu = 'profile';
+
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -66,43 +69,6 @@ $logoutUrl = "../pages/users/line-entry.php?logout=1";
             width: 22px;
         }
 
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 60px;
-            background: #ffffff;
-            border-top: 1px solid #e0e0e0;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            z-index: 2000;
-        }
-
-        .bottom-nav .nav-item {
-            flex: 1;
-            text-align: center;
-            font-size: 0.75rem;
-            color: #777;
-            text-decoration: none;
-            padding-top: 3px;
-        }
-
-        .bottom-nav .nav-item i {
-            font-size: 1.3rem;
-            display: block;
-            margin-bottom: 2px;
-        }
-
-        .bottom-nav .nav-item.active {
-            color: #ee4d2d;
-            font-weight: 600;
-        }
-
-        .bottom-nav .nav-item.active i {
-            color: #ee4d2d;
-        }
     </style>
 </head>
 
@@ -169,8 +135,8 @@ $logoutUrl = "../pages/users/line-entry.php?logout=1";
                 </a>
 
                 <hr class="my-1">
+                <a href="buyer_address.php?return_to=<?= $return_to_q ?>" class="d-flex justify-content-between align-items-center text-decoration-none text-dark menu-item">
 
-                <a href="buyer_address.php" class="d-flex justify-content-between align-items-center text-decoration-none text-dark menu-item">
                     <div>
                         <i class="bi bi-geo-alt me-2"></i>
                         <span>ที่อยู่ของฉัน</span>
@@ -193,29 +159,9 @@ $logoutUrl = "../pages/users/line-entry.php?logout=1";
 
     </main>
 
-    <!-- Footer Bar -->
-    <nav class="bottom-nav">
-        <a href="Buyer.php" class="nav-item" id="nav-home">
-            <i class="bi bi-house-door"></i>
-            <span>หน้าแรก</span>
-        </a>
-
-        <a href="order-history.php" class="nav-item" id="nav-orders">
-            <i class="bi bi-receipt"></i>
-            <span>ออเดอร์ของฉัน</span>
-        </a>
-
-        <a href="notifications.php" class="nav-item" id="nav-noti">
-            <i class="bi bi-bell"></i>
-            <span>แจ้งเตือน / สลิป</span>
-        </a>
-
-        <a href="profile.php" class="nav-item active" id="nav-me">
-            <i class="bi bi-person"></i>
-            <span>ฉัน</span>
-        </a>
-    </nav>
-
+     <!-- Bottom Navigation Bar -->
+    <?php include FRONTEND_PATH . '/partials/buyer_bottom_nav.php'; ?>
+    
 </body>
 
 </html>

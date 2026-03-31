@@ -1,6 +1,6 @@
 /* assets/css/admin.css */
 :root {
-  --brand: #F57B39;
+  --brand: #7c3aed;
 }
 
 body {
@@ -25,7 +25,7 @@ body {
 }
 
 .app-sidebar .nav-link.active {
-  background: #F57B39 !important;
+  background: #7c3aed !important;
   color: #fff !important;
   font-weight: 600;
 }

@@ -193,8 +193,7 @@ require_once '../../../config.php';
   </div>
 
   <script>
-    const liffId = "2008474276-zZ2DZolb";
-
+    const liffId = "2008995534-0KoF8ybe";
     const params = new URLSearchParams(location.search);
     const from = params.get("from") || "shop";
 

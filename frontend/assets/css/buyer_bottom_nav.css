@@ -1,0 +1,67 @@
+
+
+.bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: #ffffff;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .bottom-nav .nav-item {
+            flex: 1;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #777;
+            text-decoration: none;
+            padding-top: 3px;
+        }
+
+        .bottom-nav .nav-item i {
+            font-size: 1.3rem;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .bottom-nav .icon-wrap { 
+            position: relative; 
+            display: inline-block; 
+            line-height: 0; /* tighten layout */
+        }
+
+        .bottom-nav .noti-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            transform: none;
+            min-width: 24px;
+            height: 24px;
+            padding: 0 6px;
+            font-size: 12px;
+            line-height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #fff;
+            background: #ee4d2d;
+            border-radius: 999px;
+            border: 2px solid #fff; /* white border like the mock */
+            box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+            pointer-events: none;
+        }
+
+        .bottom-nav .nav-item.active {
+            color: #ee4d2d;
+            font-weight: 600;
+        }
+
+        .bottom-nav .nav-item.active i {
+            color: #ee4d2d;
+        }

@@ -49,12 +49,12 @@ $payments = function_exists('getAllPayments') ? getAllPayments($conn) : [];
                 <thead class="table-light">
                   <tr>
                     <th style="width:80px;">ID</th>
-                    <th>User</th>
-                    <th style="width:140px;">Amount</th>
+                    <th>ชื่อผู้ใช้</th>
+                    <th style="width:140px;">ราคา</th>
                     <!-- ✅ เพิ่มคอลัมน์ใหม่ -->
-                    <th style="width:170px;">ชำระเมื่อ</th>
-                    <th style="width:140px;">Status</th>
-                    <th style="width:140px;">Action</th>
+                    <th style="width:170px;">วันที่ชำระ</th>
+                    <th style="width:140px;">สถานะ</th>
+                    <th style="width:140px;">เช็คสลิป</th>
                   </tr>
                 </thead>
                 <tbody>

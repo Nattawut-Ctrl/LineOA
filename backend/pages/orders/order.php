@@ -53,9 +53,8 @@ if ($orderDate !== '') {
     $params[] = $orderDate;
     $types   .= 's';
 }
-
+$where[] = "(p.slip_path IS NOT NULL AND p.slip_path <> '')";
 $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
-
 $sqlBase  = " FROM payments p JOIN users u ON p.user_id = u.id ";
 
 // นับจำนวนทั้งหมด
@@ -189,8 +188,8 @@ function build_order_query(array $extra = []): string
                                             <th>ชื่อลูกค้า</th>
                                             <th class="text-center">จำนวนสินค้า</th>
                                             <th class="text-end">ยอดรวม (บาท)</th>
+                                            <th>เลขติดตามพัสดุ</th>
                                             <th>สถานะออร์เดอร์</th>
-                                            <th>สถานะชำระเงิน</th>
                                             <th class="text-center" style="width: 140px;">จัดการ</th>
                                         </tr>
                                     </thead>
@@ -227,6 +226,7 @@ function build_order_query(array $extra = []): string
                                                 }
 
                                                 $amount = (float)($o['amount'] ?? 0);
+                                                $tracking_no = $o['tracking_no'] ?? '-';
                                                 $paymentStatus = $o['status'] ?? 'pending';
 
                                                 // แสดงสถานะออร์เดอร์ (สรุปจากสถานะการชำระเงิน)
@@ -249,11 +249,7 @@ function build_order_query(array $extra = []): string
                                                     <td><?= htmlspecialchars($userName) ?></td>
                                                     <td class="text-center"><?= $itemsCount ?></td>
                                                     <td class="text-end"><?= number_format($amount, 2) ?></td>
-                                                    <td>
-                                                        <span class="badge bg-secondary order-status-badge">
-                                                            <?= htmlspecialchars($orderStatusText) ?>
-                                                        </span>
-                                                    </td>
+                                                    <td class="text-center"><?= htmlspecialchars($tracking_no) ?></td>
                                                     <td>
                                                         <span class="badge text-bg-<?= $paymentBadge ?> payment-status-badge">
                                                             <?= htmlspecialchars($paymentStatus) ?>

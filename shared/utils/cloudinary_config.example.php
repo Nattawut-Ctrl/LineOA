@@ -9,6 +9,6 @@ require_once BASE_PATH . '/vendor/autoload.php';
         'api_secret' => 'YOUR_API_SECRET',
     ],
     'url' => [
-        'secure' => true, // ใช้ https เสมอ
+        'secure' => true,
     ],
 ]);

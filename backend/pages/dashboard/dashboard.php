@@ -14,17 +14,15 @@ if (!isset($_SESSION['admin_id'])) {
 $conn = connectDBWithLog();
 
 $productsCount = db_query($conn, "SELECT COUNT(*) c FROM products")->fetch_assoc()['c'] ?? 0;
-$variantsCount = 0;
-// products + product_variants
-$stockRow = db_query($conn, "SELECT 
-    (SELECT IFNULL(SUM(stock),0) FROM product_variants) AS c")->fetch_assoc();
-if ($stockRow && isset($stockRow['c'])) {
-  $variantsCount = (int)$stockRow['c'];
+$profitSummary = 0;
+$profitRow = db_query($conn, "SELECT COALESCE(SUM(a.qty * (a.unit_sell_price - a.unit_cost_price)), 0) AS profit FROM lot_allocations a")->fetch_assoc();
+if ($profitRow && isset($profitRow['profit'])) {
+  $profitSummary = (float)$profitRow['profit'];
 }
 $pendingSlips  = db_query($conn, "SELECT COUNT(*) c FROM payments WHERE status='pending'")
   ->fetch_assoc()['c'] ?? 0;
 
-$pageTitle  = "Dashboard";
+$pageTitle  = "แดชบอร์ด";
 $activeMenu = "dashboard";
 ?>
 <!DOCTYPE html>
@@ -44,7 +42,7 @@ $activeMenu = "dashboard";
 
       <div class="app-content-header">
         <div class="container-fluid">
-          <h3 class="mb-0 fw-semibold">Dashboard</h3>
+          <h3 class="mb-0 fw-semibold">แดชบอร์ด</h3>
         </div>
         
       </div>
@@ -58,7 +56,7 @@ $activeMenu = "dashboard";
               <div class="small-box text-bg-primary">
                 <div class="inner">
                   <h3><?= (int)$productsCount ?></h3>
-                  <p>Products</p>
+                  <p>รายการสินค้า</p>
                 </div>
                 <div class="small-box-icon">
                   <i class="bi bi-bag"></i>
@@ -70,16 +68,16 @@ $activeMenu = "dashboard";
             </div>
 
             <div class="col-lg-4 col-12">
-              <div class="small-box text-bg-success">
+              <div class="small-box text-bg-info">
                 <div class="inner">
-                  <h3><?= (int)$variantsCount ?></h3>
-                  <p>Variants / Stock Units</p>
+                  <h3><?= number_format($profitSummary, 2) ?> ฿</h3>
+                  <p>สรุปกำไร</p>
                 </div>
                 <div class="small-box-icon">
-                  <i class="bi bi-box-seam"></i>
+                  <i class="bi bi-cash"></i>
                 </div>
-                <a href="<?= BACKEND_URL ?>/pages/stock/addStock.php" class="small-box-footer">
-                  เพิ่มสต็อก <i class="fas fa-arrow-circle-right"></i>
+                <a href="<?= BACKEND_URL ?>/pages/stock/profit_summary.php" class="small-box-footer">
+                  ดูรายการชำระเงิน <i class="fas fa-arrow-circle-right"></i>
                 </a>
               </div>
             </div>
@@ -88,7 +86,7 @@ $activeMenu = "dashboard";
               <div class="small-box text-bg-warning">
                 <div class="inner">
                   <h3><?= (int)$pendingSlips ?></h3>
-                  <p>Pending Payment Slips</p>
+                  <p>สลิปที่ยังไม่ได้ตรวจสอบ</p>
                 </div>
                 <div class="small-box-icon">
                   <i class="bi bi-receipt"></i>
@@ -101,7 +99,7 @@ $activeMenu = "dashboard";
           </div>
 
           <div class="card shadow-sm">
-            <div class="card-header fw-semibold">Quick Actions</div>
+            <div class="card-header fw-semibold">การดำเนินการด่วน</div>
             <div class="card-body d-flex gap-2 flex-wrap">
               <a class="btn btn-primary" href="<?= BACKEND_URL ?>/pages/stock/addStock.php#tabAddStock">
                 <i class="bi bi-plus-circle"></i> เพิ่มสินค้า/สต็อก
@@ -117,8 +115,6 @@ $activeMenu = "dashboard";
 
     </main>
   </div>
-
-  <!-- <?php include BACKEND_PATH . '/partials/admin_footer.php'; ?> -->
   <?php include BACKEND_PATH . "/partials/admin_script.php"; ?>
 </body>
 

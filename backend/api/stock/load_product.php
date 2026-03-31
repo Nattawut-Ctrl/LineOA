@@ -58,7 +58,7 @@ $resV = db_query(
 
     <div class="row">
         <div class="col-md-6 mb-3">
-            <label>หน่วยนับ (Unit)</label>
+            <label>หน่วยนับ</label>
             <input type="text" name="unit"
                 value="<?= htmlspecialchars($unit, ENT_QUOTES, 'UTF-8') ?>"
                 class="form-control">
@@ -68,7 +68,8 @@ $resV = db_query(
     <div class="row">
         <div class="col-md-4 mb-3">
             <label>ราคา</label>
-            <input type="number" name="price" value="<?= $p['price'] ?>" class="form-control" disabled>
+            <input type="number" name="price" value="<?= $p['price'] ?>" class="form-control" readonly>
+            <!-- <input type="hidden" name="price" value="<?= htmlspecialchars($p['price']) ?>"> -->
         </div>
 
         <?php
@@ -141,10 +142,9 @@ $resV = db_query(
             <small class="text-muted d-block mt-1">ถ้าไม่เลือก รูปเดิมจะยังคงอยู่ (ถ้าไม่ได้ติ๊ก "ลบรูป")</small>
         </div>
     </div>
-
-    <!-- Gallery หลายรูป -->
+    <!-- รูปเพิ่มเติม -->
     <hr>
-    <h5>รูปสินค้าเพิ่มเติม (Gallery)</h5>
+    <h5>รูปสินค้าเพิ่มเติม</h5>
     <div class="mb-3">
         <div id="productImageDropzone"
             class="dropzone"
@@ -156,7 +156,7 @@ $resV = db_query(
     </div>
 
     <hr>
-    <h5>ตัวเลือกสินค้า (Variants)</h5>
+    <h5>ตัวเลือกสินค้า</h5>
 
     <?php if ($resV->num_rows > 0): ?>
         <?php while ($v = $resV->fetch_assoc()):
@@ -194,22 +194,19 @@ $resV = db_query(
                             class="form-control form-control-sm"
                             accept="image/*">
                     </div>
-
-                    <!-- ชื่อ / SKU -->
+                    <!-- ชื่อ / รหัสสินค้า -->
                     <div class="col-md-3">
                         <label class="form-label">ชื่อ</label>
                         <input type="text"
                             name="variant_name[]"
                             value="<?= htmlspecialchars($v['variant_name']) ?>"
                             class="form-control mb-2">
-
-                        <label class="form-label mb-1">SKU</label>
+                        <label class="form-label mb-1">รหัสสินค้า</label>
                         <input type="text"
                             name="variant_sku[]"
                             value="<?= htmlspecialchars($v['sku']) ?>"
                             class="form-control">
                     </div>
-
                     <!-- ราคา -->
                     <div class="col-md-2">
                         <label class="form-label">ราคา</label>
@@ -217,7 +214,8 @@ $resV = db_query(
                             step="0.01"
                             name="variant_price[]"
                             value="<?= $v['price'] ?>"
-                            class="form-control">
+                            class="form-control" 
+                            readonly>
                     </div>
 
                     <!-- สต๊อก + ปุ่มลบ -->
@@ -229,17 +227,16 @@ $resV = db_query(
                                 จองไว้: <?= $reserved ?> | สต็อกทั้งหมด: <?= $stockTotal ?>
                             </small>
                         </div>
-
-                        <label class="form-label small mb-1">แก้ไขสต็อกรวม</label>
+                        <!-- <label class="form-label small mb-1">แก้ไขสต็อกรวม</label> -->
                         <div class="d-flex gap-2">
-                            <input type="number"
+                            <!-- <input type="number"
                                 name="variant_stock[]"
                                 value="<?= $stockTotal ?>"
-                                class="form-control">
+                                class="form-control"> -->
                             <button type="button"
                                 class="btn btn-sm btn-outline-danger deleteVariantBtn"
                                 data-id="<?= $vid ?>">
-                                <i class="bi bi-trash"></i> ลบ
+                                <i class="bi bi-trash"></i> ลบตัวเลือกสินค้านี้
                             </button>
                         </div>
                     </div>

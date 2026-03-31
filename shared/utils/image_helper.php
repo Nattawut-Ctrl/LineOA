@@ -12,7 +12,6 @@ if (!function_exists('buildImageUrl')) {
             return '';
         }
 
-        // ตัดช่องว่างหัว-ท้าย และ normalize backslash -> slash
         $path = trim($path);
         $path = str_replace('\\', '/', $path);
 

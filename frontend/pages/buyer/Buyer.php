@@ -12,10 +12,31 @@ require_once SERVICES_PATH . '/productService.php';
 require_once SERVICES_PATH . '/cartService.php';
 require_once SERVICES_PATH . '/userService.php';
 
+require_once FRONTEND_PATH . '/services/AddressService.php';
+require_once SHARED_PARTIALS_PATH . '/sweetalert.php';
 
 
 $conn    = connectDBWithLog();
 $user_id = require_user_id();
+
+
+// ----------------------- Fetch Pending Orders -----------------------
+$pendingOrderCount = 0;
+
+$sql = "
+    SELECT COUNT(*) AS c
+    FROM payment_intents
+    WHERE user_id = ?
+      AND status = 'active'
+";
+
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$row = $stmt->get_result()->fetch_assoc();
+
+$pendingOrderCount = (int)$row['c'];
+
 
 // ----------------------- Fetch User Info via Service -----------------------
 $user = getUserById($conn, $user_id);
@@ -24,6 +45,9 @@ if (!$user) {
     header("Location: " . FRONTEND_URL . "/pages/users/line-entry.php?from=register");
     exit;
 }
+
+// ----------------------- Fetch Addresses (for checkout validation) -----------------------
+$addresses = getUserAddresses($conn, $user_id);
 
 // ----------------------- Fetch Products + Variants via Service -----------------------
 $productsAssoc = getAllProductsWithVariants($conn);
@@ -60,6 +84,9 @@ foreach ($cart_items as &$item) {
 }
 unset($item);
 
+$activeMenu = 'main';
+
+
 // ------------------------ View Part ------------------------
 ?>
 
@@ -71,6 +98,8 @@ unset($item);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Line-Shop</title>
     <?php require_once SHARED_PARTIALS_PATH . '/bootstrap.php'; ?>
+    <?php require_once SHARED_PARTIALS_PATH . '/sweetalert.php'; ?>
+
 
     <style>
         body {
@@ -179,7 +208,6 @@ unset($item);
             z-index: 2100 !important;
         }
 
-        /* Variants */
         .variant-pill {
             border-radius: 999px;
         }
@@ -191,7 +219,13 @@ unset($item);
         }
 
         .badge-stock {
-            font-size: 0.7rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 6px 10px !important;
+            border-radius: 8px !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(4px);
+            letter-spacing: 0.5px;
         }
 
         .cart-row {
@@ -234,53 +268,8 @@ unset($item);
             animation: cart-bounce 0.3s ease;
         }
 
-        body.cartbar-open .bottom-nav{ display:none !important; }
-
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 58px;
-            background: #fff;
-            border-top: 1px solid #ddd;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            z-index: 2000;
-        }
-
-        .bottom-nav .nav-item {
-            flex: 1;
-            text-align: center;
-            font-size: 0.75rem;
-            color: #777;
-            text-decoration: none;
-            padding-top: 4px;
-            position: relative;
-        }
-
-        .bottom-nav .nav-item i {
-            font-size: 1.3rem;
-        }
-
-        .bottom-nav .nav-item.active,
-        .bottom-nav .nav-item:hover {
-            color: #ee4d2d;
-        }
-
-        .bottom-nav .noti-badge {
-            position: absolute;
-            top: 4px;
-            right: 22%;
-            transform: translate(50%, -40%);
-            min-width: 16px;
-            height: 16px;
-            padding: 0 4px;
-            font-size: 10px;
-            line-height: 16px;
-            border-radius: 999px;
-            pointer-events: none;
+        .swal2-container {
+            z-index: 3000 !important;
         }
 
         .buyer-main-padding {
@@ -292,11 +281,6 @@ unset($item);
                 padding-bottom: 2rem;
             }
         }
-
-        .bottom-nav .nav-item.active i {
-            color: #ee4d2d;
-        }
-
         body {
             padding-bottom: 30px;
         }
@@ -410,12 +394,11 @@ unset($item);
                             <span class="badge position-absolute bottom-0 end-0 m-2 badge-stock shadow-sm
                                    <?php echo $availableStock <= 0
                                         ? 'bg-secondary text-light'
-                                        : 'bg-success-subtle text-success-emphasis'; ?>">
+                                        : 'bg-success text-white'; ?>">
                                 <?php if ($availableStock <= 0): ?>
-                                    สินค้าหมดชั่วคราว
+                                    <i class="bi bi-exclamation-circle me-1"></i>หมดชั่วคราว
                                 <?php else: ?>
-                                    คงเหลือ
-                                    <?= $availableStock; ?>
+                                    <i class="bi bi-check-circle-fill me-1"></i>คงเหลือ <?= $availableStock; ?>
                                 <?php endif; ?>
                             </span>
                         </div>
@@ -555,34 +538,7 @@ unset($item);
     </div>
 
     <!-- Bottom Navigation Bar -->
-    <nav class="bottom-nav">
-        <a href="Buyer.php" class="nav-item active" id="nav-home">
-            <i class="bi bi-house-door"></i>
-            <span>หน้าแรก</span>
-        </a>
-
-        <a href="order-history.php" class="nav-item" id="nav-orders">
-            <i class="bi bi-receipt"></i>
-            <span>ออเดอร์</span>
-        </a>
-
-        <a href="notifications.php" class="nav-item" id="nav-noti">
-            <i class="bi bi-bell"></i>
-            <span>แจ้งเตือน</span>
-
-            <!-- badge แจ้งเตือน -->
-            <span id="notiBadge"
-                class="noti-badge badge rounded-pill bg-danger text-white d-none">
-                0
-            </span>
-        </a>
-
-        <a href="profile.php" class="nav-item" id="nav-me">
-            <i class="bi bi-person"></i>
-            <span>ฉัน</span>
-        </a>
-    </nav>
-
+    <?php include FRONTEND_PATH . '/partials/buyer_bottom_nav.php'; ?>
     <!-- SCRIPTS -->
     <script>
         let selectedProduct = null;
@@ -719,7 +675,34 @@ unset($item);
 
             document.getElementById('goPaymentBtn').addEventListener('click', () => {
                 if (cart.length === 0) {
-                    alert('ตะกร้าว่างเปล่า');
+                    Swal.fire({
+                        title: 'ตะกร้าว่างเปล่า',
+                        text: 'กรุณาเพิ่มสินค้าลงตะกร้าก่อน',
+                        icon: 'warning',
+                        confirmButtonText: 'ตกลง'
+                    });
+                    return;
+                }
+
+                const hasAddress = <?php echo !empty($addresses) ? 'true' : 'false'; ?>;
+                if (!hasAddress) {
+                    Swal.fire({
+                        title: 'ยังไม่มีที่อยู่จัดส่ง',
+                        text: 'กรุณาเพิ่มที่อยู่ก่อนสั่งซื้อสินค้า',
+                        icon: 'info',
+                        confirmButtonText: 'ไปเพิ่มที่อยู่',
+                        showCancelButton: true,
+                        cancelButtonText: 'ยกเลิก',
+                        didOpen: function() {
+                            // ตั้ง z-index สูงที่สุด
+                            const modal = document.querySelector('.swal2-container');
+                            if (modal) modal.style.zIndex = '9999';
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = 'buyer_address_form.php?return_to=' + encodeURIComponent(window.location.pathname + window.location.search) + '&back_to=' + encodeURIComponent(window.location.pathname + window.location.search);
+                        }
+                    });
                     return;
                 }
 
@@ -733,6 +716,12 @@ unset($item);
                 mode.value = 'cart';
                 form.appendChild(mode);
 
+                // force_new flag: start a fresh intent even if an active intent exists in session
+                const force = document.createElement('input');
+                force.type = 'hidden';
+                force.name = 'force_new';
+                force.value = '1';
+                form.appendChild(force);
                 cart.forEach(item => {
                     const fields = {
                         product_id: item.product_id,
@@ -778,7 +767,7 @@ unset($item);
                 if (val < 1) val = 1;
                 if (maxStock > 0 && val > maxStock) {
                     val = maxStock;
-                    alert('มีสินค้าในสต็อกสูงสุด ' + maxStock + ' ชิ้น');
+                    // alert('มีสินค้าในสต็อกสูงสุด ' + maxStock + ' ชิ้น');
                 }
                 qtyInput.value = val;
             });
@@ -841,7 +830,6 @@ unset($item);
 
         function openCartBar(product, mode) {
             document.body.classList.add('cartbar-open');
-            
             cartMode = mode || 'add';
             updateCartBarButtons();
 
@@ -948,7 +936,7 @@ unset($item);
 
             if (maxStock > 0 && value > maxStock) {
                 value = maxStock;
-                alert('มีสินค้าในสต็อกสูงสุด ' + maxStock + ' ชิ้น');
+                // alert('มีสินค้าในสต็อกสูงสุด ' + maxStock + ' ชิ้น');
             }
 
             input.value = value;
@@ -981,11 +969,13 @@ unset($item);
                 if (canAdd <= 0) {
                     alert('คุณมีสินค้านี้ในตะกร้าครบจำนวนสต็อกแล้ว (' + maxStock + ' ชิ้น)');
                 } else {
-                    alert(
-                        'มีสินค้าในสต็อก ' + maxStock +
-                        ' ชิ้น ตอนนี้ในตะกร้าคุณมี ' + inCartQty +
-                        ' ชิ้น สามารถเพิ่มได้อีกสูงสุด ' + canAdd + ' ชิ้น'
-                    );
+
+                    SA.warning('คำเตือน', 'มีสินค้าในสต็อก ' + maxStock + ' ชิ้น ตอนนี้ในตะกร้าคุณมี ' + inCartQty + ' ชิ้น');
+                    // alert(
+                    //     'มีสินค้าในสต็อก ' + maxStock +
+                    //     ' ชิ้น ตอนนี้ในตะกร้าคุณมี ' + inCartQty +
+                    //     ' ชิ้น สามารถเพิ่มได้อีกสูงสุด ' + canAdd + ' ชิ้น'
+                    // );
                 }
                 return;
             }
@@ -1030,11 +1020,13 @@ unset($item);
                 if (inCartQty >= maxStock) {
                     alert('คุณมีสินค้านี้ในตะกร้าครบจำนวนสต็อกแล้ว (' + maxStock + ' ชิ้น)');
                 } else {
-                    alert(
-                        'มีสินค้าในสต็อก ' + maxStock +
-                        ' ชิ้น ตอนนี้ในตะกร้าคุณมี ' + inCartQty +
-                        ' ชิ้น สามารถเพิ่มได้อีกสูงสุด ' + (maxStock - inCartQty) + ' ชิ้น'
-                    );
+
+                    SA.warning('คำเตือน', 'มีสินค้าในสต็อก ' + maxStock + ' ชิ้น ตอนนี้ในตะกร้าคุณมี ' + inCartQty + ' ชิ้น');
+                    // alert(
+                    //     'มีสินค้าในสต็อก ' + maxStock +
+                    //     ' ชิ้น ตอนนี้ในตะกร้าคุณมี ' + inCartQty +
+                    //     ' ชิ้น สามารถเพิ่มได้อีกสูงสุด ' + (maxStock - inCartQty) + ' ชิ้น'
+                    // );
                 }
                 return;
             }
@@ -1137,7 +1129,35 @@ unset($item);
             const maxStock = getMaxStockForCurrent();
 
             if (maxStock > 0 && qty > maxStock) {
-                alert('เลือกจำนวนเกินสต็อก (มีแค่ ' + maxStock + ' ชิ้น)');
+                Swal.fire({
+                    title: 'จำนวนเกินสต็อก',
+                    text: 'มีสินค้าแค่ ' + maxStock + ' ชิ้น',
+                    icon: 'warning',
+                    confirmButtonText: 'ตกลง'
+                });
+                return;
+            }
+
+            // ✅ ตรวจสอบว่ามีที่อยู่หรือไม่
+            const hasAddress = <?php echo !empty($addresses) ? 'true' : 'false'; ?>;
+            if (!hasAddress) {
+                Swal.fire({
+                    title: 'ยังไม่มีที่อยู่จัดส่ง',
+                    text: 'กรุณาเพิ่มที่อยู่ก่อนสั่งซื้อสินค้า',
+                    icon: 'info',
+                    confirmButtonText: 'ไปเพิ่มที่อยู่',
+                    showCancelButton: true,
+                    cancelButtonText: 'ยกเลิก',
+                    didOpen: function() {
+                        // ตั้ง z-index สูงที่สุด
+                        const modal = document.querySelector('.swal2-container');
+                        if (modal) modal.style.zIndex = '9999';
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = 'buyer_address_form.php?return_to=' + encodeURIComponent(window.location.pathname + window.location.search) + '&back_to=' + encodeURIComponent(window.location.pathname + window.location.search);
+                    }
+                });
                 return;
             }
 
@@ -1159,6 +1179,13 @@ unset($item);
                 // fields.variant_name = selectedVariant.name;
                 // fields.variant_image = selectedVariant.image;
             }
+
+            // force_new flag: ensure user starts a new intent rather than reusing session's active intent
+            const force = document.createElement('input');
+            force.type = 'hidden';
+            force.name = 'force_new';
+            force.value = '1';
+            form.appendChild(force);
 
             for (const key in fields) {
                 const input = document.createElement('input');
@@ -1197,11 +1224,21 @@ unset($item);
                 });
 
         }
+        const pendingOrderCount = <?= $pendingOrderCount ?>;
+        const orderBadge = document.getElementById("orderBadge");
 
-        const CHECK_NOTI_URL = "<?= FRONTEND_URL ?>/api/buyer/check_buyer_notifications.php";
+        if (orderBadge && pendingOrderCount > 0) {
+            // orderBadge.textContent = pendingOrderCount;
+            orderBadge.textContent = '';
+            orderBadge.classList.remove("d-none");
+        }
 
-        function checkNotifications() {
-            fetch(CHECK_NOTI_URL)
+        // Start shared notification polling if available, otherwise run a single check as fallback
+        if (window.BuyerNoti && typeof window.BuyerNoti.startPolling === 'function') {
+            window.BuyerNoti.startPolling();
+        } else {
+            fetch('<?= FRONTEND_URL ?>/api/buyer/check_buyer_notifications.php')
+
                 .then(res => res.json())
                 .then(data => {
                     const badge = document.getElementById("notiBadge");
@@ -1216,9 +1253,6 @@ unset($item);
                 })
                 .catch(err => console.error("checkNotifications error:", err));
         }
-
-        setInterval(checkNotifications, 10000);
-        checkNotifications();
     </script>
 </body>
 

@@ -74,12 +74,12 @@ $activeMenu = "stock";
 
         /* ===== เน้นฟอร์มเพิ่มสินค้า + variants ให้เด่นขึ้น ===== */
         .card-main-feature {
-            border: 1px solid rgba(25, 135, 84, .25);
-            box-shadow: 0 0.55rem 1.5rem rgba(25, 135, 84, .1);
+            border: 1px solid rgba(124, 58, 237, .25);
+            box-shadow: 0 0.55rem 1.5rem rgba(124, 58, 237, .1);
         }
 
         .card-main-feature .card-header {
-            background: linear-gradient(135deg, #198754, #20c997);
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
             color: #fff;
         }
 
@@ -147,6 +147,56 @@ $activeMenu = "stock";
     <script>
         const BACKEND_URL = "<?= BACKEND_URL ?>";
         const STOCK_API = BACKEND_URL + "/api/stock";
+    </script>
+
+    <script>
+        // Load categories and units into dropdowns on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCategoriesDropdown();
+            loadUnitsDropdown();
+        });
+
+        function loadCategoriesDropdown() {
+            const select = document.getElementById('categorySelect');
+            if (!select) return;
+
+            fetch(STOCK_API + '/get_categories.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        data.data.forEach(category => {
+                            const option = document.createElement('option');
+                            option.value = category.name;
+                            option.textContent = category.name;
+                            select.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading categories:', error);
+                });
+        }
+
+        function loadUnitsDropdown() {
+            const select = document.getElementById('unitSelect');
+            if (!select) return;
+
+            fetch(STOCK_API + '/get_units.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        data.data.forEach(unit => {
+                            const option = document.createElement('option');
+                            option.value = unit.name;
+                            option.textContent = unit.name + (unit.symbol ? ' (' + unit.symbol + ')' : '');
+                            select.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading units:', error);
+                });
+        }
     </script>
 </head>
 
@@ -285,6 +335,8 @@ $activeMenu = "stock";
                                             echo "ข้อมูลสินค้าไม่ครบหรือไม่ถูกต้อง";
                                         } elseif ($_GET['error'] === 'invalid_input') {
                                             echo "ข้อมูลไม่ครบถ้วนในการเพิ่มสต็อก";
+                                        } elseif ($_GET['error'] === 'use_receipt_flow') {
+                                            echo "ปิดการเพิ่มสต็อกจากหน้านี้แล้ว กรุณารับเข้า/เพิ่มสต็อกผ่านหน้าใบรับของ (Goods Receipts)";
                                         } else {
                                             echo "ไม่สามารถดำเนินการได้";
                                         }
@@ -535,14 +587,26 @@ $activeMenu = "stock";
 
                                                             <div class="col-md-4">
                                                                 <label class="form-label fw-semibold">หมวดหมู่</label>
-                                                                <input type="text" name="category" class="form-control" required
-                                                                    placeholder="เช่น เสื้อผ้า, รองเท้า">
+                                                                <select name="category" id="categorySelect" class="form-select" required>
+                                                                    <option value="">-- เลือกหมวดหมู่ --</option>
+                                                                </select>
+                                                                <div class="form-text">
+                                                                    <a href="<?= BACKEND_URL ?>/pages/stock/categoryUnits.php" class="text-decoration-none">
+                                                                        <i class="bi bi-plus-circle me-1"></i>จัดการหมวดหมู่
+                                                                    </a>
+                                                                </div>
                                                             </div>
 
                                                             <div class="col-md-4">
                                                                 <label class="form-label fw-semibold">หน่วยนับ (Unit)</label>
-                                                                <input type="text" name="unit" class="form-control"
-                                                                    placeholder="เช่น ตัว, ชิ้น, ขวด">
+                                                                <select name="unit" id="unitSelect" class="form-select">
+                                                                    <option value="">-- เลือกหน่วยนับ --</option>
+                                                                </select>
+                                                                <div class="form-text">
+                                                                    <a href="<?= BACKEND_URL ?>/pages/stock/categoryUnits.php#tabUnits" target="_blank" class="text-decoration-none">
+                                                                        <i class="bi bi-plus-circle me-1"></i>จัดการหน่วยนับ
+                                                                    </a>
+                                                                </div>
                                                             </div>
                                                         </div>
 
@@ -755,14 +819,6 @@ $activeMenu = "stock";
                                                     <div class="col-md-3 mb-3">
                                                         <label class="form-label">SKU (ของตัวเลือกนี้)</label>
                                                         <input type="text" name="variant_sku[]" class="form-control" placeholder="เช่น SHIRT-001-BLACK-M">
-                                                    </div>
-                                                    <div class="col-md-3 mb-3">
-                                                        <label class="form-label">ราคา</label>
-                                                        <input type="number" step="0.01" name="variant_price[]" class="form-control">
-                                                    </div>
-                                                    <div class="col-md-2 mb-3">
-                                                        <label class="form-label">สต็อก</label>
-                                                        <input type="number" name="variant_stock[]" class="form-control">
                                                     </div>
                                                     <div class="col-md-4 mb-2">
                                                         <label class="form-label">รูป (ถ้ามี)</label>
@@ -1091,12 +1147,8 @@ $activeMenu = "stock";
                                                     <input type="text" name="new_variant_name[]" class="form-control" required>
                                                 </div>
                                                 <div class="col-md-3 mb-3">
-                                                    <label class="form-label">ราคา</label>
-                                                    <input type="number" step="0.01" name="new_variant_price[]" class="form-control">
-                                                </div>
-                                                <div class="col-md-3 mb-3">
-                                                    <label class="form-label">สต็อก</label>
-                                                    <input type="number" name="new_variant_stock[]" class="form-control">
+                                                    <label class="form-label">รหัสสินค้า</label>
+                                                    <input type="text" step="0.01" name="new_variant_sku[]" class="form-control">
                                                 </div>
                                                 <div class="col-md-2 mb-3">
                                                     <label class="form-label">รูป (ถ้ามี)</label>

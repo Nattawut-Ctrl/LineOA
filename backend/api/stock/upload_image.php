@@ -83,6 +83,22 @@ if (!$imagePath) {
 /**
  * 4) บันทึกเข้า product_images
  */
+// ตรวจสอบความยาว path ก่อนใส่ DB (column คือ varchar(255))
+if (strlen($imagePath) > 255) {
+    // ถ้า path ยาวเกิน ให้ลบไฟล์ local ถ้าเป็น local แล้วแจ้ง error
+    if (!preg_match('#^https?://#', $imagePath)) {
+        deleteImageFileIfLocal($imagePath);
+    }
+
+    http_response_code(500);
+    echo json_encode([
+        'error' => 'path_too_long',
+        'length' => strlen($imagePath),
+        'max' => 255,
+    ]);
+    exit;
+}
+
 $result = db_exec(
     $conn,
     "INSERT INTO product_images (product_id, image_path) VALUES (?, ?)",
@@ -90,9 +106,23 @@ $result = db_exec(
     "is"
 );
 
-$imageId = $result['insert_id'] ?? $conn->insert_id;
+if (!($result['ok'] ?? false)) {
+    // ถ้าบันทึกไม่สำเร็จ ให้ลบไฟล์ local และคืน error
+    if (!preg_match('#^https?://#', $imagePath)) {
+        deleteImageFileIfLocal($imagePath);
+    }
+
+    http_response_code(500);
+    echo json_encode([
+        'error' => 'db_insert_failed',
+        'message' => $result['error'] ?? 'unknown',
+    ]);
+    exit;
+}
+
+$imageId = (int)($result['insert_id'] ?? $conn->insert_id ?? 0);
 
 echo json_encode([
-    'id'  => (int)$imageId,
+    'id'  => $imageId, 
     'url' => buildImageUrlFromPath($imagePath),
 ]);

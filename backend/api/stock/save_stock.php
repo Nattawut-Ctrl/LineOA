@@ -95,7 +95,7 @@ $resProduct = db_query(
 
 if (!$resProduct || $resProduct->num_rows === 0) {
     goAddStock('error=product_not_found');
-
+}
 // แปลง deleteReq เป็น set
 $deleteSet = [];
 foreach ($deleteReq as $vid) {
